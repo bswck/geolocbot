@@ -10,7 +10,7 @@ site = pwbot.Site('pl', 'nonsensopedia') # we're on nonsa.pl
 gotten = {} # this dictionary will be updated with geolocalisation info;
             # then repaired (it looks repulsive in the end).
 
-def satisfy(var, key): # this adds geolocalisation info
+def satisfy(var, key): # this adds captured from categories geolocalisation info
     add = {key : var}
     gotten.update(add)
 
