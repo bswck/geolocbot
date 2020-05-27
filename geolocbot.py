@@ -1,6 +1,7 @@
 # Author: Stim, 2020
 # Geolocalisation bot for Nonsensopedia
 
+import sys
 import pywikibot as pwbot
 from getcats import run
 pagename = input('Podaj nazwę artykułu: ')
