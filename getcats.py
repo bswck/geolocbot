@@ -17,7 +17,7 @@ def findcats(c, title): # this reviews all the categories, chooses needed
         if c[i].find("Kategoria:Gmina ") != -1: # checks if the category contains "Gmina"
             gmina = c[i].replace("Kategoria:Gmina ", "") # no need for namespace and category (already as key) name
             readcategories(c[i])
-            satisfy(gmina, "GMI") # data
+            satisfy(gmina, "GMI") # saving the data
         elif c[i].find("Kategoria:Powiat ") != -1: # checks if the category contains "Powiat "; disclaiming category "Powiaty"
             powiat = c[i].replace("Kategoria:Powiat ", "")
             readcategories(c[i])
