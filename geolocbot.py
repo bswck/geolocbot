@@ -18,6 +18,7 @@ def iserror(data, pagename):
         return error
     elif data == 1:
         print("(nonsa.pl) Błąd " + str(data) + ": Nie znaleziono odpowiednich kategorii lub strona '" + pagename + "' nie istnieje.", file=sys.stderr)
+        print("                   Jeżeli podano nazwę przekierowania, proszę podać nazwę artykułu docelowego.", file=sys.stderr)
         return error
     elif data == 2:
         print("(nonsa.pl) Błąd " + str(data) + ": Zwrócona wartość jest pustym zbiorem.", file=sys.stderr)
