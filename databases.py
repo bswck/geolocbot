@@ -13,6 +13,8 @@ def satisfy(value, teryt): # as in other files, filling in the dictionary
     teryt.update(value)
 
 def terencode(data):
+    if str(data).find("ERROR") != -1:
+        return "<+Fiodorr> Błąd! Gratulacje!"
     data = pd.DataFrame(data, index=[0])
     teryt = {'NAZWA': data.at[0, 'NAZWA']}  # {name: pagename}
     woj = data.at[0, 'województwo']
