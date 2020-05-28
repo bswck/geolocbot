@@ -14,13 +14,13 @@ if len(pagename) != 0:
 def iserror(data, pagename):
     if data == 0:
         print("(nonsa.pl) Błąd " + str(data) + ": Nie podano nazwy artykułu.", file=sys.stderr)
-        return "< Fiodorr> ERROR " + str(data) + "!"
+        return "<+Fiodorr> ERROR " + str(data) + "!"
     elif data == 1:
         print("(nonsa.pl) Błąd " + str(data) + ": Nie znaleziono odpowiednich kategorii lub strona '" + pagename + "' nie istnieje.", file=sys.stderr)
-        return "< Fiodorr> ERROR " + str(data) + "!"
+        return "<+Fiodorr> ERROR " + str(data) + "!"
     elif data == 2:
         print("(nonsa.pl) Błąd " + str(data) + ": Zwrócona wartość jest pustym zbiorem.", file=sys.stderr)
-        return "< Fiodorr> ERROR " + str(data) + "!"
+        return "<+Fiodorr> ERROR " + str(data) + "!"
     else:
         return data
 
