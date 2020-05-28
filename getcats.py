@@ -8,7 +8,7 @@ site = pwbot.Site('pl', 'nonsensopedia') # we're on nonsa.pl
 
 captured = {} # this dictionary will be updated with geolocalisation info;
 
-def satisfy(var, key): # this adds captured from categories geolocalisation info
+def fill(var, key): # this adds captured from categories geolocalisation info
     add = {key : var}
     captured.update(add)
 
@@ -17,14 +17,14 @@ def findcats(c, title): # this reviews all the categories, chooses needed
         if c[i].find("Kategoria:Gmina ") != -1: # checks if the category contains "Gmina"
             gmina = c[i].replace("Kategoria:Gmina ", "") # no need for namespace name
             readcategories(c[i])
-            satisfy(gmina, "gmina") # data
+            fill(gmina, "gmina") # data
         elif c[i].find("Kategoria:Powiat ") != -1: # checks if the category contains "Powiat "; disclaiming category "Powiaty"
             powiat = c[i].replace("Kategoria:Powiat ", "")
             readcategories(c[i])
-            satisfy(powiat.lower(), "powiat")
+            fill(powiat.lower(), "powiat")
         elif c[i].find("Kategoria:Województwo ") != -1: # checks if the category contains "Gmina"
             wojewodztwo = c[i].replace("Kategoria:Województwo ", "")
-            satisfy(wojewodztwo.upper(), "województwo")
+            fill(wojewodztwo.upper(), "województwo")
         # i'm still laughing at that point ↓
         elif c[i].find("Kategoria:Ujednoznacznienia") != -1:
             return 0
