@@ -14,16 +14,16 @@ def satisfy(var, key): # this adds captured from categories geolocalisation info
 def findcats(c, title): # this reviews all the categories, chooses needed
     for i in range(0, len(c), 1):
         if c[i].find("Kategoria:Gmina ") != -1: # checks if the category contains "Gmina"
-            gmina = c[i].replace("Kategoria:Gmina ", "") # no need for namespace and category (already as key) name
+            gmina = c[i].replace("Kategoria:Gmina ", "") # no need for namespace name
             readcategories(c[i])
-            satisfy(gmina, "GMI") # saving the data
+            satisfy(gmina, "gmina") # data
         elif c[i].find("Kategoria:Powiat ") != -1: # checks if the category contains "Powiat "; disclaiming category "Powiaty"
             powiat = c[i].replace("Kategoria:Powiat ", "")
             readcategories(c[i])
-            satisfy(powiat.lower(), "POW")
-        elif c[i].find("Kategoria:Województwo ") != -1: # checks if the category contains "Województwo "
+            satisfy(powiat.lower(), "powiat")
+        elif c[i].find("Kategoria:Województwo ") != -1: # checks if the category contains "Gmina"
             wojewodztwo = c[i].replace("Kategoria:Województwo ", "")
-            satisfy(wojewodztwo.upper(), "WOJ") # it's characteristic for provinces in TERC and SIMC databases
+            satisfy(wojewodztwo.upper(), "województwo")
         # i'm still laughing at that point ↓
         elif c[i].find("Kategoria:Ujednoznacznienia") != -1:
             return 0
@@ -43,12 +43,13 @@ def readcategories(title):
     return c
 
 def run(title):
-    title = title[0].upper() + title[1::] # capitalize first letter
+    if len(title) == 0:
+        return 0
     readcategories(title) # script starts
     if withkeypagename(title) == {'NAZWA' : title}:
-        return 0
-    elif withkeypagename(title) == {}:
         return 1
+    elif withkeypagename(title) == {}:
+        return 2
     else:
         return withkeypagename(title)
 
@@ -56,4 +57,3 @@ def withkeypagename(title):
     line = {"NAZWA" : title} # added key with pagename
     captured.update(line)
     return captured # returns the dictionary
-
