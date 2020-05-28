@@ -32,7 +32,6 @@ def terencode(data):
         fill(teryt2, teryt)
         if 'gmina' in data.columns:
             gmi = data.at[0, 'gmina']
-            # I hate that there are mountains (3) of municipalities.
             gminy = tercbase.loc[((tercbase['NAZWA_DOD'] == 'gmina miejska') | (
                         tercbase['NAZWA_DOD'] == 'gmina wiejska') | (
                                               tercbase['NAZWA_DOD'] == 'gmina miejsko-wiejska')) & (
