@@ -1,5 +1,6 @@
 # Author: Stim, 2020
 # Geolocalisation bot for Nonsensopedia
+# Not yet the end. ;)
 
 import pywikibot as pwbot
 

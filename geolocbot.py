@@ -12,15 +12,16 @@ if len(pagename) != 0:
     pagename = pagename[0].upper() + pagename[1::] # capitalize first letter
 
 def iserror(data, pagename):
+    error = "<+Fiodorr> ERROR " + str(data) + "!"
     if data == 0:
         print("(nonsa.pl) Błąd " + str(data) + ": Nie podano nazwy artykułu.", file=sys.stderr)
-        return "< Fiodorr> ERROR " + str(data) + "!"
+        return error
     elif data == 1:
         print("(nonsa.pl) Błąd " + str(data) + ": Nie znaleziono odpowiednich kategorii lub strona '" + pagename + "' nie istnieje.", file=sys.stderr)
-        return "< Fiodorr> ERROR " + str(data) + "!"
+        return error
     elif data == 2:
         print("(nonsa.pl) Błąd " + str(data) + ": Zwrócona wartość jest pustym zbiorem.", file=sys.stderr)
-        return "< Fiodorr> ERROR " + str(data) + "!"
+        return error
     else:
         return data
 
@@ -29,5 +30,5 @@ data = terencode(iserror((run(pagename)), pagename))
 end = time.time()
 print("✓ " + str(data))
 print()
-print("<+Fiodorr> ale wolno, " + str(end - start) + "s.")
+print("<+Fiodorr> serio? " + str(end - start).replace(".", ",") + "s.")
 
