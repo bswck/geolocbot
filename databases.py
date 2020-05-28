@@ -1,6 +1,6 @@
 # Author: Stim, 2020
 # Geolocalisation bot for Nonsensopedia
-# This is a cool (yet buggy) tool for returning TERYT codes of provinces etc.
+# This is a cool tool for returning TERYT codes of provinces, municipalities etc.
 # Read more: http://eteryt.stat.gov.pl/eTeryt/english.aspx?contrast=default
 
 import pandas as pd
@@ -20,19 +20,19 @@ def terencode(data):
     woj = data.at[0, 'województwo']
     wojewodztwa = tercbase.loc[(tercbase['NAZWA_DOD'] == 'województwo')&(tercbase['NAZWA'] == woj)]
     windex = wojewodztwa.index.tolist()
-    teryt1 = {'WOJ': tercbase.at[windex[0], 'WOJ']} # This works…
+    teryt1 = {'WOJ': tercbase.at[windex[0], 'WOJ']}
     fill(teryt1, teryt)
     if 'powiat' in data.columns:
         pot = data.at[0, 'powiat']
         powiaty = tercbase.loc[(tercbase['NAZWA_DOD'] == 'powiat')&(tercbase['NAZWA'] == pot)]
         pindex = powiaty.index.tolist()
-        teryt2 = {'POW': tercbase.at[pindex[0], 'POW']} # This works…
+        teryt2 = {'POW': tercbase.at[pindex[0], 'POW']}
         fill(teryt2, teryt)
         if 'gmina' in data.columns:
             gmi = data.at[0, 'gmina']
-            print(gmi)
-            gminy = tercbase.loc[(tercbase['NAZWA_DOD'] == 'gmina')&(tercbase['NAZWA'] == gmi)]
+            # I hate that there are mountains of types (3) of municipalities.
+            gminy = tercbase.loc[((tercbase['NAZWA_DOD'] == 'gmina miejska')|(tercbase['NAZWA_DOD'] == 'gmina wiejska')|(tercbase['NAZWA_DOD'] == 'gmina miejsko-wiejska'))&(tercbase['NAZWA'] == gmi)]
             gindex = gminy.index.tolist()
-            teryt3 = {'GMI': tercbase.at[gindex[0], 'GMI']} # …and this one is still buggy
+            teryt3 = {'GMI': tercbase.at[gindex[0], 'GMI']}
             fill(teryt3, teryt)
     return teryt
