@@ -13,17 +13,6 @@ def checktitle(pagename):
     elif len(pagename) == 0:
         return 0
 
-    elif pagename.find(" (") != -1:
-        for i in pagename:
-
-            if i == '(':
-                fromindex = pagename.find(i) - 1
-
-        # deleting annotation, eg. '(województwo śląskie)'
-        pagename = pagename.replace(pagename[fromindex::], '')
-
-        return pagename.capitalize()
-
     elif pagename.find(":") != -1:
         for i in pagename:
 
@@ -32,8 +21,9 @@ def checktitle(pagename):
 
         # prints what has just been deleted (bot works only on the main namespace, sorry)
         print("Usunięto '" + pagename[:from2index] + "'.")
-        return pagename[from2index::].capitalize()
-
+        return str(pagename[from2index::]).capitalize()
+    else:
+        return str(pagename).capitalize()
 
 # checks if data isn't an error value (0, 1, 2)
 # TO DO: Make exceptions from these

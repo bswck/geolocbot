@@ -3,8 +3,6 @@
 # License: GNU GPLv3
 
 import pywikibot as pwbot
-import time
-
 site = pwbot.Site('pl', 'nonsensopedia')  # we're on nonsa.pl
 
 captured = {}  # this dictionary will be updated with geolocalisation info;
@@ -16,7 +14,7 @@ def findcats(c, title):  # this reviews all the categories, chooses needed
         if c[i].find("Kategoria:Gmina ") != -1:  # checks if the category contains "Gmina"
             gmina = c[i].replace("Kategoria:Gmina ", "")  # no need for namespace name
             readcategories(c[i])
-            add = {"gmina": gmina.capitalize()}
+            add = {"gmina": gmina}
             captured.update(add)
 
         elif c[i].find(
