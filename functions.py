@@ -1,36 +1,49 @@
 # Author: Stim, 2020
 # Geolocalisation bot for Nonsensopedia
+# License: GNU GPLv3
 
 import sys
 
+# deleting annotations, adding exception etc.
+def checktitle(pagename):
 
-def checktitle(pagename):  # deleting annotations, adding exception etc.
-    if pagename.find("Województwo") == -1:
-        if len(pagename) != 0:
-            if pagename.find(" (") != -1:
-                for i in pagename:
-                    if i == '(':
-                        fromindex = pagename.find(i) - 1
-                pagename = pagename.replace(pagename[fromindex::], '')
-            pagename = pagename.capitalize()
-            if pagename.find(":") != -1:
-                for i in pagename:
-                    if i == ':':
-                        from2index = pagename.find(i) + 1
-                print("Usunięto '" + pagename[:from2index] + "'.")
-                return pagename[from2index::].capitalize()
-            return pagename
-        else:
-            return pagename
-    else:
+    if pagename.find("Województwo") != -1:
         return pagename + " EXC"
 
+    elif len(pagename) == 0:
+        return 0
 
+    elif pagename.find(" (") != -1:
+        for i in pagename:
+
+            if i == '(':
+                fromindex = pagename.find(i) - 1
+
+        # deleting annotation, eg. '(województwo śląskie)'
+        pagename = pagename.replace(pagename[fromindex::], '')
+
+        return pagename.capitalize()
+
+    elif pagename.find(":") != -1:
+        for i in pagename:
+
+            if i == ':':
+                from2index = pagename.find(i) + 1
+
+        # prints what has just been deleted (bot works only on the main namespace, sorry)
+        print("Usunięto '" + pagename[:from2index] + "'.")
+        return pagename[from2index::].capitalize()
+
+
+# checks if data isn't an error value (0, 1, 2)
+# TO DO: Make exceptions from these
 def iserror(data, pagename):
     error = "<+Fiodorr> ERROR " + str(data) + "!"
+
     if data == 0:
         print("(nonsa.pl) Błąd " + str(data) + ": Nie podano nazwy artykułu.", file=sys.stderr)
         return error
+
     elif data == 1:
         print(
             "(nonsa.pl) Błąd " + str(data) + ": Nie znaleziono odpowiednich kategorii lub strona '" + pagename.replace(
@@ -39,8 +52,10 @@ def iserror(data, pagename):
         print(" " * 19 + "Proszę również upewnić się, czy podana nazwa artykułu jest nazwą miejscowości.",
               file=sys.stderr)
         return error
+
     elif data == 2:
         print("(nonsa.pl) Błąd " + str(data) + ": Zwrócona wartość jest pustym zbiorem.", file=sys.stderr)
         return error
+
     else:
         return data
