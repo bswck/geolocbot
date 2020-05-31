@@ -38,7 +38,6 @@ def terencode(data):
 
     if 'powiat' in cols:
         pot = data.at[0, 'powiat']
-        print(pot)
         if pot.find(" (") != -1:
             for i in pot:
 
@@ -52,7 +51,6 @@ def terencode(data):
         pindex = powiaty.index.tolist()
         teryt2 = {'POW': tercbase.at[pindex[0], 'POW']}
         teryt.update(teryt2)
-        print(tercbase.at[pindex[0], 'POW'])
 
         if 'gmina' in cols:
             gmi = data.at[0, 'gmina']
@@ -107,13 +105,23 @@ def filtersimc(data):
             if goal.empty == True:
                 goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw)]
 
+                # The biggest chance to get >1 results etc.
+                if goal.empty == True:
+                    goal = simc.loc[(simc['NAZWA'] == nazwa)]
+
     elif i == 2:
         goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw) & (simc['POW'] == tp)]
 
         if goal.empty == True:
             goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw)]
 
+            if goal.empty == True:
+                goal = simc.loc[(simc['NAZWA'] == nazwa)]
+
     elif i == 1:
         goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw)]
+
+        if goal.empty == True:
+            goal = simc.loc[(simc['NAZWA'] == nazwa)]
 
     return goal

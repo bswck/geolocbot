@@ -2,17 +2,10 @@
 # Geolocalisation bot for Nonsensopedia
 # License: GNU GPLv3
 
-# just in case
-import sys
-import pywikibot as pwbot
-
 # to measure the time spent on completing the function
 import time
 
-# importing needed definitions from other files in the repository
-from getcats import run
-from databases import filtersimc, terencode
-from functions import checktitle, iserror
+from functions import checktitle, main
 
 pagename = input('Podaj nazwę artykułu: ')
 pagename = checktitle(pagename)
@@ -20,12 +13,10 @@ pagename = checktitle(pagename)
 # 'start' time-measure
 start = time.time()
 
-data = filtersimc(terencode(iserror((run(pagename)), pagename)))
+main(pagename)
 
 # 'stop' time-measure
 end = time.time()
-
-print(str(data))
 
 print()
 

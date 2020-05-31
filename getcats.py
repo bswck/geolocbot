@@ -54,20 +54,8 @@ def readcategories(title):
 
 
 def run(title):
-    if title.find(' EXC') == 1:
-        return 1
-
-    elif len(title) == 0 or title == ' ' * len(title):
-        return 0
     readcategories(title)  # script starts
-    if withkeypagename(title) == {'NAZWA': title}:
-        return 1
-
-    elif withkeypagename(title) == {}:
-        return 2
-
-    else:
-        return withkeypagename(title)
+    return withkeypagename(title)
 
 
 def withkeypagename(title):

@@ -3,49 +3,67 @@
 # License: GNU GPLv3
 
 import sys
+from getcats import run
+from databases import filtersimc, terencode
 
-# deleting annotations, adding exception etc.
+class Error(Exception):
+    """Base class for other exceptions"""
+    pass
+
+class EmptyNameError(Error):
+    """Raised when no pagename has been provided"""
+    pass
+
 def checktitle(pagename):
+    try:
+        if len(pagename) == 0 or pagename == ' ' * len(pagename):
+            raise EmptyNameError
 
-    if pagename.find("Województwo") != -1:
-        return pagename + " EXC"
+        st = pagename[0].upper() + pagename[1::]
 
-    elif len(pagename) == 0:
-        return 0
+        if pagename.find(':') != -1:
+            for i in pagename:
 
-    elif pagename.find(":") != -1:
-        for i in pagename:
+                if i == ':':
+                    from2index = pagename.find(i) + 1
 
-            if i == ':':
-                from2index = pagename.find(i) + 1
+            # prints what has just been deleted (bot works only on the main namespace, sorry)
+            print("Usunięto '" + pagename[:from2index] + "'.")
+            st = str(pagename[from2index::])
 
-        # prints what has just been deleted (bot works only on the main namespace, sorry)
-        print("Usunięto '" + pagename[:from2index] + "'.")
-        return str(pagename[from2index::]).capitalize()
-    else:
-        return str(pagename).capitalize()
+        st = str(pagename)
 
-# checks if data isn't an error value (0, 1, 2)
-# TO DO: Make exceptions from these
-def iserror(data, pagename):
-    error = "<+Fiodorr> ERROR " + str(data) + "!"
+        # .capitalize() changes further characters to lower
+        st = st[0].upper() + st[1::]
+        return st
 
-    if data == 0:
-        print("(nonsa.pl) Błąd " + str(data) + ": Nie podano nazwy artykułu.", file=sys.stderr)
-        return error
-
-    elif data == 1:
-        print(
-            "(nonsa.pl) Błąd " + str(data) + ": Nie znaleziono odpowiednich kategorii lub strona '" + pagename.replace(
-                ' EXC', '') + "' nie istnieje.", file=sys.stderr)
-        print(" " * 19 + "Jeżeli podano nazwę przekierowania, proszę podać nazwę artykułu docelowego.", file=sys.stderr)
-        print(" " * 19 + "Proszę również upewnić się, czy podana nazwa artykułu jest nazwą miejscowości.",
+    except EmptyNameError:
+        print("(nonsa.pl) Błąd: Nie podano tytułu strony.",
               file=sys.stderr)
-        return error
+        sys.exit()
 
-    elif data == 2:
-        print("(nonsa.pl) Błąd " + str(data) + ": Zwrócona wartość jest pustym zbiorem.", file=sys.stderr)
-        return error
+    except ValueError:
+        print("(nonsa.pl) Błąd: Strona '" + pagename + "' nie posiada odpowiednich kategorii lub nie istnieje.",
+              file=sys.stderr)
+        sys.exit()
 
+def main(pagename):
+    try:
+        data = filtersimc(terencode(run(pagename)))
+        if data.empty == True:
+            raise KeyError
+    except TypeError:
+        pass
+    except KeyError:
+        print(
+            "(nonsa.pl) Błąd: Nie znaleziono rekordu w bazie danych.",
+            file=sys.stderr)
+        sys.exit()
+    except ValueError as ve:
+        print(
+            "(nonsa.pl) Błąd: Nie znaleziono odpowiednich kategorii lub strona '" + str(pagename) + "' nie istnieje.", file=sys.stderr)
+        print(
+            " " * 11 + "Hint: " + str(ve), file=sys.stderr)
+        sys.exit()
     else:
-        return data
+        print(str(data))
