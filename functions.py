@@ -4,8 +4,8 @@
 
 import sys
 from getcats import run
-from databases import filtersimc, terencode
-from errors import TooManyRows, EmptyNameError
+from databases import filtersimc, terencode, TooManyRows
+from errors import EmptyNameError
 
 
 def checktitle(pagename):
@@ -54,7 +54,7 @@ def main(pagename):
 
     except KeyError:
         print(
-            "(nonsa.pl) Błąd: Nie znaleziono rekordu w bazie danych odpowiadającego zapytniu '" + pagename + "'.",
+            "(nonsa.pl) Błąd: Nie znaleziono rekordu w bazie danych odpowiadającego zapytaniu '" + pagename + "'.",
             file=sys.stderr)
         sys.exit()
 

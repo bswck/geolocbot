@@ -5,7 +5,13 @@
 # Read more: http://eteryt.stat.gov.pl/eTeryt/english.aspx?contrast=default
 
 import pandas as pd
-from errors import tmr
+from errors import Error
+
+
+class TooManyRows(Error):
+    """Raised when too many rows appear in the table as an answer"""
+    pass
+
 
 simc = pd.read_csv("SIMC.csv", sep=';',
                    usecols=['WOJ', 'POW', 'GMI', 'RODZ_GMI', 'RM', 'MZ', 'NAZWA', 'SYM'])
@@ -149,6 +155,8 @@ def filtersimc(data):
             goal = simc.loc[(simc['NAZWA'] == nazwa)]
 
     goal = goal[['NAZWA', 'SYM']].reset_index()
+
     if goal.shape[0] > 1:
-        tmr()
+        raise TooManyRows("(nonsa.pl) Błąd: Więcej niż 1 rząd w odebranej tabeli.")
+
     return goal[['NAZWA', 'SYM']]
