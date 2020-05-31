@@ -157,6 +157,6 @@ def filtersimc(data):
     goal = goal[['NAZWA', 'SYM']].reset_index()
 
     if goal.shape[0] > 1:
-        raise TooManyRows("(nonsa.pl) Błąd: Więcej niż 1 rząd w odebranej tabeli.")
+        raise TooManyRows
 
     return goal[['NAZWA', 'SYM']]
