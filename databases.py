@@ -12,9 +12,6 @@ tercbase = pd.read_csv("TERC.csv", sep=';', usecols=['WOJ', 'POW', 'GMI', 'RODZ'
 
 
 def terencode(data):
-    if str(data).find("ERROR") != -1:
-        return "<+Fiodorr> Błąd! Gratulacje!"
-
     data = pd.DataFrame(data, index=[0])
     datac = data.copy()
     dname = datac.at[0, 'NAZWA']
@@ -125,3 +122,6 @@ def filtersimc(data):
             goal = simc.loc[(simc['NAZWA'] == nazwa)]
 
     return goal
+
+def encode(data):
+    opdata = data.copy()
