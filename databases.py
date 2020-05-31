@@ -5,13 +5,15 @@
 # Read more: http://eteryt.stat.gov.pl/eTeryt/english.aspx?contrast=default
 
 import pandas as pd
+from errors import tmr
 
 simc = pd.read_csv("SIMC.csv", sep=';',
-                   usecols=['WOJ', 'POW', 'GMI', 'RODZ_GMI', 'RM', 'MZ', 'NAZWA', 'SYM', 'SYMPOD'])
+                   usecols=['WOJ', 'POW', 'GMI', 'RODZ_GMI', 'RM', 'MZ', 'NAZWA', 'SYM'])
 tercbase = pd.read_csv("TERC.csv", sep=';', usecols=['WOJ', 'POW', 'GMI', 'RODZ', 'NAZWA', 'NAZWA_DOD'])
 
 
 def terencode(data):
+    global fromindex
     data = pd.DataFrame(data, index=[0])
     datac = data.copy()
     dname = datac.at[0, 'NAZWA']
@@ -44,13 +46,19 @@ def terencode(data):
             # deleting annotation, eg. '(województwo śląskie)'
             pot = pot.replace(pot[fromindex::], '')
         powiaty = tercbase.loc[(tercbase['NAZWA_DOD'] == 'powiat') & (tercbase['NAZWA'] == pot) & (
-                    tercbase['WOJ'] == tercbase.at[windex[0], 'WOJ'])]
+                tercbase['WOJ'] == tercbase.at[windex[0], 'WOJ'])]
+
+        if powiaty.empty:
+            powiaty = tercbase.loc[
+                ((tercbase['NAZWA_DOD'] == 'powiat') & (tercbase['NAZWA'] == pot))]
+
         pindex = powiaty.index.tolist()
         teryt2 = {'POW': tercbase.at[pindex[0], 'POW']}
         teryt.update(teryt2)
 
         if 'gmina' in cols:
             gmi = data.at[0, 'gmina']
+
             if gmi.find(" (") != -1:
                 for i in gmi:
 
@@ -59,11 +67,29 @@ def terencode(data):
 
                 # deleting annotation, eg. '(województwo śląskie)'
                 gmi = gmi.replace(gmi[fromindex::], '')
-            gminy = tercbase.loc[((tercbase['NAZWA_DOD'] == 'gmina miejska') | (
+            gminy = tercbase.loc[
+                ((tercbase['NAZWA_DOD'] == 'gmina miejska') | (tercbase['NAZWA_DOD'] == 'obszar wiejski') | (
                         tercbase['NAZWA_DOD'] == 'gmina wiejska') | (
-                                              tercbase['NAZWA_DOD'] == 'gmina miejsko-wiejska')) & (
-                                             tercbase['NAZWA'] == gmi) & (
-                                             tercbase['POW'] == tercbase.at[pindex[0], 'POW'])]
+                         tercbase['NAZWA_DOD'] == 'gmina miejsko-wiejska')) & (
+                        tercbase['NAZWA'] == gmi) & (
+                        tercbase['POW'] == tercbase.at[pindex[0], 'POW'])]
+
+            if gminy.empty:
+
+                gminy = tercbase.loc[
+                    ((tercbase['NAZWA_DOD'] == 'gmina miejska') | (tercbase['NAZWA_DOD'] == 'obszar wiejski') | (
+                            tercbase['NAZWA_DOD'] == 'gmina wiejska') | (
+                             tercbase['NAZWA_DOD'] == 'gmina miejsko-wiejska')) & (
+                            tercbase['NAZWA'] == gmi) & (
+                            tercbase['POW'] == tercbase.at[windex[0], 'WOJ'])]
+
+                if gminy.empty:
+                    gminy = tercbase.loc[
+                        ((tercbase['NAZWA_DOD'] == 'gmina miejska') | (tercbase['NAZWA_DOD'] == 'obszar wiejski') | (
+                                tercbase['NAZWA_DOD'] == 'gmina wiejska') | (
+                                 tercbase['NAZWA_DOD'] == 'gmina miejsko-wiejska')) & (
+                                tercbase['NAZWA'] == gmi)]
+
             gindex = gminy.index.tolist()
             teryt3 = {'GMI': tercbase.at[gindex[0], 'GMI']}
             teryt.update(teryt3)
@@ -73,9 +99,10 @@ def terencode(data):
 
 
 def filtersimc(data):
-    if str(data).find("Błąd") != -1:
-        # XD
-        return "<+Fiodorr> A próbowałeś Emacsem przez sendmail?"
+
+    global tw
+    global tp
+    global tg
 
     i = 0
 
@@ -92,36 +119,36 @@ def filtersimc(data):
         i += 1
 
     nazwa = data.at[0, 'NAZWA']
+    goal = simc.copy()
 
     if i == 3:
         goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw) & (simc['POW'] == tp) & (simc['GMI'] == tg)]
 
-        if goal.empty == True:
+        if goal.empty:
             goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw) & (simc['POW'] == tp)]
 
-            if goal.empty == True:
+            if goal.empty:
                 goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw)]
 
-                # The biggest chance to get >1 results etc.
-                if goal.empty == True:
+                if goal.empty:
                     goal = simc.loc[(simc['NAZWA'] == nazwa)]
 
     elif i == 2:
         goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw) & (simc['POW'] == tp)]
 
-        if goal.empty == True:
+        if goal.empty:
             goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw)]
 
-            if goal.empty == True:
+            if goal.empty:
                 goal = simc.loc[(simc['NAZWA'] == nazwa)]
 
     elif i == 1:
         goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw)]
 
-        if goal.empty == True:
+        if goal.empty:
             goal = simc.loc[(simc['NAZWA'] == nazwa)]
 
-    return goal
-
-def encode(data):
-    opdata = data.copy()
+    goal = goal[['NAZWA', 'SYM']].reset_index()
+    if goal.shape[0] > 1:
+        tmr()
+    return goal[['NAZWA', 'SYM']]
