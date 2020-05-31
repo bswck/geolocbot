@@ -5,10 +5,9 @@
 # Read more: http://eteryt.stat.gov.pl/eTeryt/english.aspx?contrast=default
 
 import pandas as pd
-from errors import Error
 
 
-class TooManyRows(Error):
+class TooManyRows:
     """Raised when too many rows appear in the table as an answer"""
     pass
 
