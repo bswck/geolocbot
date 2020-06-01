@@ -31,7 +31,7 @@ def findcats(c, title):  # this reviews all the categories, chooses needed
 
         # i'm still laughing at that point ↓
         elif c[i].find("Kategoria:Ujednoznacznienia") != -1:
-            return 0
+            raise ValueError('Podana strona to ujednoznacznienie.')
 
         # reading the category of category if it's one of these below
         elif c[i].find("Kategoria:Miasta w") != -1 or c[i].find("Kategoria:" + title) != -1 or c[i].find(

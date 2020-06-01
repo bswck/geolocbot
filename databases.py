@@ -4,9 +4,10 @@
 # This is a cool tool for returning TERYT codes of provinces etc.
 # Read more: http://eteryt.stat.gov.pl/eTeryt/english.aspx?contrast=default
 
+import pywikibot as pwbot
 import pandas as pd
 from errors import Error
-
+from pywikibot import pagegenerators as pg
 
 class TooManyRows(Error):
     """Raised when too many rows appear in the table as an answer"""
@@ -16,7 +17,12 @@ class TooManyRows(Error):
 simc = pd.read_csv("SIMC.csv", sep=';',
                    usecols=['WOJ', 'POW', 'GMI', 'RODZ_GMI', 'RM', 'MZ', 'NAZWA', 'SYM'])
 tercbase = pd.read_csv("TERC.csv", sep=';', usecols=['WOJ', 'POW', 'GMI', 'RODZ', 'NAZWA', 'NAZWA_DOD'])
+# with open('symquery.rq', 'r') as query_file:
+#     QUERY = query_file.read()
 
+# wikidata_site = pwbot.Site("wikidata", "wikidata")
+# generator = pg.WikidataSPARQLPageGenerator(QUERY, site=wikidata_site)
+# print(generator)
 
 def terencode(data):
     global fromindex

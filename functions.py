@@ -6,7 +6,7 @@ import sys
 from getcats import run
 from databases import filtersimc, terencode, TooManyRows
 from errors import EmptyNameError
-
+from pywikibot import InvalidTitle
 
 def checktitle(pagename):
     global from2index
@@ -51,6 +51,8 @@ def main(pagename):
         data = filtersimc(terencode(run(pagename)))
 
         if data.empty:
+            raise ValueError('Czy nie popełniłeś błędu w nazwie strony?')
+        elif data.columns.tolist() == ['NAZWA']:
             raise KeyError
 
     except TypeError:
@@ -66,8 +68,11 @@ def main(pagename):
         print(
             "(nonsa.pl) Błąd: Nie znaleziono odpowiednich kategorii lub strona '" + str(pagename) + "' nie istnieje.",
             file=sys.stderr)
+
+        kropa = "" if str(ve)[-1] == "." else "."
+
         print(
-            " " * 11 + "Hint: " + str(ve), file=sys.stderr)
+            " " * 11 + "Hint: " + str(ve) + kropa, file=sys.stderr)
         sys.exit()
 
     except TooManyRows as tmr:
@@ -75,6 +80,11 @@ def main(pagename):
         print(" " * 11 + "Wyjściowa baza:", file=sys.stderr)
         print()
         print(tmr, file=sys.stderr)
+        sys.exit()
+
+    except InvalidTitle as it:
+        print("(nonsa.pl) Błąd: Podany tytuł zawiera niedozwolone znaki.", file=sys.stderr)
+        print(" " * 11 + "Hint: " + str(it) + ".", file=sys.stderr)
         sys.exit()
 
     else:
