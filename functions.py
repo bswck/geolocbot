@@ -49,7 +49,6 @@ def checktitle(pagename):
 def main(pagename):
     try:
         data = filtersimc(terencode(run(pagename)))
-        print(data)
 
         if data.empty:
             raise KeyError
@@ -79,4 +78,4 @@ def main(pagename):
         sys.exit()
 
     else:
-        print(str(data))
+        print(data)
