@@ -5,9 +5,10 @@
 # Read more: http://eteryt.stat.gov.pl/eTeryt/english.aspx?contrast=default
 
 import pandas as pd
+from errors import Error
 
 
-class TooManyRows:
+class TooManyRows(Error):
     """Raised when too many rows appear in the table as an answer"""
     pass
 
@@ -20,6 +21,13 @@ tercbase = pd.read_csv("TERC.csv", sep=';', usecols=['WOJ', 'POW', 'GMI', 'RODZ'
 def terencode(data):
     global fromindex
     data = pd.DataFrame(data, index=[0])
+    dcols = data.columns.tolist()
+
+    if dcols == ['NAZWA']:
+        teryt = {'NAZWA': data.at[0, 'NAZWA']}
+        teryt = pd.DataFrame(teryt, index=[0])
+        return teryt
+
     datac = data.copy()
     dname = datac.at[0, 'NAZWA']
 
@@ -100,11 +108,11 @@ def terencode(data):
             teryt.update(teryt3)
 
     teryt = pd.DataFrame(teryt, index=[0])
+
     return teryt
 
 
 def filtersimc(data):
-
     global tw
     global tp
     global tg
@@ -153,9 +161,13 @@ def filtersimc(data):
         if goal.empty:
             goal = simc.loc[(simc['NAZWA'] == nazwa)]
 
+    elif i == 0:
+        goal = simc.loc[(simc['NAZWA'] == nazwa)]
+
     goal = goal[['NAZWA', 'SYM']].reset_index()
 
     if goal.shape[0] > 1:
-        raise TooManyRows
+        raise TooManyRows(goal[['NAZWA', 'SYM']])
 
-    return goal[['NAZWA', 'SYM']]
+    else:
+        return goal[['NAZWA', 'SYM']]

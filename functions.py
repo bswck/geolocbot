@@ -15,6 +15,8 @@ def checktitle(pagename):
         if len(pagename) == 0 or pagename == ' ' * len(pagename):
             raise EmptyNameError
 
+        st = pagename
+
         if pagename.find(':') != -1:
             for i in pagename:
 
@@ -24,10 +26,11 @@ def checktitle(pagename):
             # prints what has just been deleted (bot works only on the main namespace, sorry)
             print("Usunięto '" + pagename[:from2index] + "'.")
 
-        st = str(pagename[from2index::])
+            st = str(pagename[from2index::])
 
         # .capitalize() changes further characters to lower
         st = st[0].upper() + st[1::]
+
         return st
 
     except EmptyNameError:
@@ -46,6 +49,8 @@ def checktitle(pagename):
 def main(pagename):
     try:
         data = filtersimc(terencode(run(pagename)))
+        print(data)
+
         if data.empty:
             raise KeyError
 
@@ -66,10 +71,11 @@ def main(pagename):
             " " * 11 + "Hint: " + str(ve), file=sys.stderr)
         sys.exit()
 
-    except TooManyRows:
-        print(
-            "(nonsa.pl) Błąd: Więcej niż 1 rząd w odebranych danych!",
-            file=sys.stderr)
+    except TooManyRows as tmr:
+        print("(nonsa.pl) Błąd: Więcej niż 1 rząd w odebranych danych!", file=sys.stderr)
+        print(" " * 11 + "Wyjściowa baza:", file=sys.stderr)
+        print()
+        print(tmr, file=sys.stderr)
         sys.exit()
 
     else:
