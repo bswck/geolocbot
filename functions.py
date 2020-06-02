@@ -55,8 +55,11 @@ def main(pagename):
         elif data.columns.tolist() == ['NAZWA']:
             raise KeyError
 
-    except TypeError:
-        pass
+    # except TypeError:
+    #     print(
+    #         "(nonsa.pl) Błąd: TypeError.",
+    #         file=sys.stderr)
+    #     sys.exit()
 
     except KeyError:
         print(
@@ -69,7 +72,7 @@ def main(pagename):
             "(nonsa.pl) Błąd: Nie znaleziono odpowiednich kategorii lub strona '" + str(pagename) + "' nie istnieje.",
             file=sys.stderr)
 
-        kropa = "" if str(ve)[-1] == "." else "."
+        kropa = "" if str(ve)[-1] == "." or str(ve)[-1] == "?" or str(ve)[-1] == "!" else "."
 
         print(
             " " * 11 + "Hint: " + str(ve) + kropa, file=sys.stderr)

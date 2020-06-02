@@ -6,8 +6,11 @@
 
 import pywikibot as pwbot
 import pandas as pd
+import numpy as np
+import sys
 from errors import Error
 from pywikibot import pagegenerators as pg
+
 
 class TooManyRows(Error):
     """Raised when too many rows appear in the table as an answer"""
@@ -17,6 +20,8 @@ class TooManyRows(Error):
 simc = pd.read_csv("SIMC.csv", sep=';',
                    usecols=['WOJ', 'POW', 'GMI', 'RODZ_GMI', 'RM', 'MZ', 'NAZWA', 'SYM'])
 tercbase = pd.read_csv("TERC.csv", sep=';', usecols=['WOJ', 'POW', 'GMI', 'RODZ', 'NAZWA', 'NAZWA_DOD'])
+
+
 # with open('symquery.rq', 'r') as query_file:
 #     QUERY = query_file.read()
 
@@ -24,27 +29,52 @@ tercbase = pd.read_csv("TERC.csv", sep=';', usecols=['WOJ', 'POW', 'GMI', 'RODZ'
 # generator = pg.WikidataSPARQLPageGenerator(QUERY, site=wikidata_site)
 # print(generator)
 
+def cp(typ, name):
+    if typ == 'gmina':
+        gmina = tercbase.loc[(tercbase['NAZWA'] == name) & (
+                    (tercbase['NAZWA_DOD'] == 'gmina miejska') | (tercbase['NAZWA_DOD'] == 'obszar wiejski') | (
+                    tercbase['NAZWA_DOD'] == 'gmina wiejska') | (
+                            tercbase['NAZWA_DOD'] == 'gmina miejsko-wiejska'))]
+        if gmina.empty:
+            return False
+
+        else:
+            gmina = gmina.reset_index()
+            return gmina.at[0, 'NAZWA']
+
+    elif typ == 'powiat':
+        powiat = tercbase.loc[(tercbase['NAZWA'] == name) & (
+                    (tercbase['NAZWA_DOD'] == typ) | (tercbase['NAZWA_DOD'] == 'miasto na prawach powiatu'))]
+
+        if powiat.empty:
+            return False
+
+        else:
+            powiat = powiat.reset_index()
+            return powiat.at[0, 'NAZWA']
+
+
 def terencode(data):
-    global fromindex
     data = pd.DataFrame(data, index=[0])
-    dcols = data.columns.tolist()
-
-    if dcols == ['NAZWA']:
-        teryt = {'NAZWA': data.at[0, 'NAZWA']}
-        teryt = pd.DataFrame(teryt, index=[0])
-        return teryt
-
-    datac = data.copy()
-    dname = datac.at[0, 'NAZWA']
+    name = data.at[0, 'NAZWA']
+    dname = name[::-1]
+    dname = dname[::-1]
 
     if dname.find(" (") != -1:
         for i in dname:
 
             if i == '(':
                 fromindex = dname.find(i) - 1
+                print("Usunięto dopisek '" + dname[fromindex + 1:] + "'.")
+                dname = dname.replace(dname[fromindex::], '')
+                data = data.replace(name, dname)
 
-        # deleting annotation, eg. '(województwo śląskie)'
-        dname = dname.replace(dname[fromindex::], '')
+    dcols = data.columns.tolist()
+
+    if dcols == ['NAZWA']:
+        teryt = {'NAZWA': data.at[0, 'NAZWA']}
+        teryt = pd.DataFrame(teryt, index=[0])
+        return teryt
 
     teryt = {'NAZWA': dname}  # {name: pagename}
     woj = data.at[0, 'województwo']
