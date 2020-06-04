@@ -8,8 +8,12 @@ import pywikibot as pwbot
 import pandas as pd
 import numpy as np
 import sys
-from errors import Error
 from pywikibot import pagegenerators as pg
+
+
+class Error(Exception):
+    """Base class for other exceptions"""
+    pass
 
 
 class TooManyRows(Error):
@@ -31,10 +35,11 @@ tercbase = pd.read_csv("TERC.csv", sep=';', usecols=['WOJ', 'POW', 'GMI', 'RODZ'
 
 def cp(typ, name):
     if typ == 'gmina':
-        gmina = tercbase.loc[(tercbase['NAZWA'] == name) & (
-                    (tercbase['NAZWA_DOD'] == 'gmina miejska') | (tercbase['NAZWA_DOD'] == 'obszar wiejski') | (
-                    tercbase['NAZWA_DOD'] == 'gmina wiejska') | (
-                            tercbase['NAZWA_DOD'] == 'gmina miejsko-wiejska'))]
+        gmina = tercbase.loc[(tercbase['NAZWA'] == name) &
+                             ((tercbase['NAZWA_DOD'] == 'gmina miejska') |
+                              (tercbase['NAZWA_DOD'] == 'obszar wiejski') |
+                              (tercbase['NAZWA_DOD'] == 'gmina wiejska') |
+                              (tercbase['NAZWA_DOD'] == 'gmina miejsko-wiejska'))]
         if gmina.empty:
             return False
 
@@ -44,7 +49,7 @@ def cp(typ, name):
 
     elif typ == 'powiat':
         powiat = tercbase.loc[(tercbase['NAZWA'] == name) & (
-                    (tercbase['NAZWA_DOD'] == typ) | (tercbase['NAZWA_DOD'] == 'miasto na prawach powiatu'))]
+                (tercbase['NAZWA_DOD'] == typ) | (tercbase['NAZWA_DOD'] == 'miasto na prawach powiatu'))]
 
         if powiat.empty:
             return False
@@ -87,6 +92,7 @@ def terencode(data):
     if 'powiat' in cols:
         pot = data.at[0, 'powiat']
         if pot.find(" (") != -1:
+            fromindex = ''
             for i in pot:
 
                 if i == '(':
@@ -109,6 +115,7 @@ def terencode(data):
             gmi = data.at[0, 'gmina']
 
             if gmi.find(" (") != -1:
+                fromindex = ''
                 for i in gmi:
 
                     if i == '(':
@@ -117,27 +124,30 @@ def terencode(data):
                 # deleting annotation, eg. '(województwo śląskie)'
                 gmi = gmi.replace(gmi[fromindex::], '')
             gminy = tercbase.loc[
-                ((tercbase['NAZWA_DOD'] == 'gmina miejska') | (tercbase['NAZWA_DOD'] == 'obszar wiejski') | (
-                        tercbase['NAZWA_DOD'] == 'gmina wiejska') | (
-                         tercbase['NAZWA_DOD'] == 'gmina miejsko-wiejska')) & (
-                        tercbase['NAZWA'] == gmi) & (
-                        tercbase['POW'] == tercbase.at[pindex[0], 'POW'])]
+                ((tercbase['NAZWA_DOD'] == 'gmina miejska') |
+                 (tercbase['NAZWA_DOD'] == 'obszar wiejski') |
+                 (tercbase['NAZWA_DOD'] == 'gmina wiejska') |
+                 (tercbase['NAZWA_DOD'] == 'gmina miejsko-wiejska')) &
+                (tercbase['NAZWA'] == gmi) &
+                (tercbase['POW'] == tercbase.at[pindex[0], 'POW'])]
 
             if gminy.empty:
 
                 gminy = tercbase.loc[
-                    ((tercbase['NAZWA_DOD'] == 'gmina miejska') | (tercbase['NAZWA_DOD'] == 'obszar wiejski') | (
-                            tercbase['NAZWA_DOD'] == 'gmina wiejska') | (
-                             tercbase['NAZWA_DOD'] == 'gmina miejsko-wiejska')) & (
+                    ((tercbase['NAZWA_DOD'] == 'gmina miejska') |
+                     (tercbase['NAZWA_DOD'] == 'obszar wiejski') |
+                     (tercbase['NAZWA_DOD'] == 'gmina wiejska') |
+                     (tercbase['NAZWA_DOD'] == 'gmina miejsko-wiejska')) & (
                             tercbase['NAZWA'] == gmi) & (
                             tercbase['POW'] == tercbase.at[windex[0], 'WOJ'])]
 
                 if gminy.empty:
                     gminy = tercbase.loc[
-                        ((tercbase['NAZWA_DOD'] == 'gmina miejska') | (tercbase['NAZWA_DOD'] == 'obszar wiejski') | (
-                                tercbase['NAZWA_DOD'] == 'gmina wiejska') | (
-                                 tercbase['NAZWA_DOD'] == 'gmina miejsko-wiejska')) & (
-                                tercbase['NAZWA'] == gmi)]
+                        ((tercbase['NAZWA_DOD'] == 'gmina miejska') |
+                         (tercbase['NAZWA_DOD'] == 'obszar wiejski') |
+                         (tercbase['NAZWA_DOD'] == 'gmina wiejska') |
+                         (tercbase['NAZWA_DOD'] == 'gmina miejsko-wiejska')) &
+                        (tercbase['NAZWA'] == gmi)]
 
             gindex = gminy.index.tolist()
             teryt3 = {'GMI': tercbase.at[gindex[0], 'GMI']}
@@ -149,9 +159,9 @@ def terencode(data):
 
 
 def filtersimc(data):
-    global tw
-    global tp
-    global tg
+    tw = ''
+    tp = ''
+    tg = ''
 
     i = 0
 
@@ -206,4 +216,10 @@ def filtersimc(data):
         raise TooManyRows(goal[['NAZWA', 'SYM']])
 
     else:
+        SIMCint = goal.at[0, 'SYM']
+        SIMC = goal.at[0, 'SYM']
+        SIMC = str(SIMC).zfill(7)
+
+        # Wikidata requires SIMC with zeroes
+        goal = goal.replace(SIMCint, SIMC)
         return goal[['NAZWA', 'SYM']]

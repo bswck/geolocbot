@@ -1,7 +1,0 @@
-SELECT ?item ?itemLabel ?SIMC_place_ID ?coord
-WHERE
-{
-  ?item wdt:P4046 ?SIMC_place_ID.
-  ?item wdt:P625 ?coord.
-  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],pl". }
-}

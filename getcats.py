@@ -13,20 +13,22 @@ captured = {}  # this dictionary will be updated with geolocalisation info;
 def findcats(c, title):  # this reviews all the categories, chooses needed
     for i in range(0, len(c), 1):
 
-        if c[i].find("Kategoria:Gmina ") != -1:  # checks if the category contains "Gmina"
+        # checks if the category contains "Gmina"
+        if "Kategoria:Gmina " in c[i]:
             gmina = c[i].replace("Kategoria:Gmina ", "")  # no need for namespace name
             readcategories(c[i])
             add = {"gmina": gmina}
             captured.update(add)
 
-        elif c[i].find(
-                "Kategoria:Powiat ") != -1:  # checks if the category contains "Powiat "; disclaiming category "Powiaty"
+        # checks if the category contains "Powiat "; disclaiming category "Powiaty"
+        elif "Kategoria:Powiat " in c[i]:
             powiat = c[i].replace("Kategoria:Powiat ", "")
             readcategories(c[i])
             add = {"powiat": powiat.lower()}
             captured.update(add)
 
-        elif c[i].find("Kategoria:Województwo ") != -1:  # checks if the category contains "Gmina"
+        # checks if the category contains "Województwo "
+        elif "Kategoria:Województwo " in c[i]:
             wojewodztwo = c[i].replace("Kategoria:Województwo ", "")
             add = {"województwo": wojewodztwo.upper()}
             captured.update(add)

@@ -5,11 +5,20 @@
 import sys
 from getcats import run
 from databases import filtersimc, terencode, TooManyRows
-from errors import EmptyNameError
 from pywikibot import InvalidTitle
 
+
+class Error(Exception):
+    """Base class for other exceptions"""
+    pass
+
+
+class EmptyNameError(Error):
+    """Raised when no pagename has been provided"""
+    pass
+
+
 def checktitle(pagename):
-    global from2index
     try:
 
         if len(pagename) == 0 or pagename == ' ' * len(pagename):
@@ -18,6 +27,7 @@ def checktitle(pagename):
         st = pagename
 
         if pagename.find(':') != -1:
+            from2index = ''
             for i in pagename:
 
                 if i == ':':
@@ -55,11 +65,12 @@ def main(pagename):
         elif data.columns.tolist() == ['NAZWA']:
             raise KeyError
 
-    # except TypeError:
-    #     print(
-    #         "(nonsa.pl) Błąd: TypeError.",
-    #         file=sys.stderr)
-    #     sys.exit()
+    except TypeError:
+        print(
+            "(nonsa.pl) Błąd: Ha! TypeError wyskoczył.",
+            file=sys.stderr)
+        print(" " * 11 + "Hint: " + str(TypeError))
+        sys.exit()
 
     except KeyError:
         print(
