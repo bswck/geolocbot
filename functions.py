@@ -67,38 +67,41 @@ def main(pagename):
 
     except TypeError:
         print(
-            "(nonsa.pl) Błąd: Ha! TypeError wyskoczył.",
+            "(nonsa.pl) [TypeError]: Ha!",
             file=sys.stderr)
-        print(" " * 11 + "Hint: " + str(TypeError))
-        sys.exit()
-
-    except KeyError:
-        print(
-            "(nonsa.pl) Błąd: Nie znaleziono rekordu w bazie danych odpowiadającego zapytaniu '" + pagename + "'.",
-            file=sys.stderr)
+        print(" " * 11 + "Hint: " + " " * 8 + str(TypeError))
         sys.exit()
 
     except ValueError as ve:
         print(
-            "(nonsa.pl) Błąd: Nie znaleziono odpowiednich kategorii lub strona '" + str(pagename) + "' nie istnieje.",
+            "(nonsa.pl) [ValueError]: Nie znaleziono odpowiednich kategorii lub strona '" + str(pagename) + "' nie istnieje.",
             file=sys.stderr)
 
         kropa = "" if str(ve)[-1] == "." or str(ve)[-1] == "?" or str(ve)[-1] == "!" else "."
 
         print(
-            " " * 11 + "Hint: " + str(ve) + kropa, file=sys.stderr)
+            " " * 11 + "Hint: " + " " * 8 + str(ve) + kropa, file=sys.stderr)
+        sys.exit()
+
+    except KeyError:
+        print(
+            "(nonsa.pl) [KeyError]: Nie znaleziono odpowiednich kategorii lub strona '" + str(pagename) + "' nie istnieje.",
+            file=sys.stderr)
+
+        print(
+            " " * 11 + "Hint:" + " " * 7 + "Czy nie popełniłeś błędu w nazwie strony?", file=sys.stderr)
         sys.exit()
 
     except TooManyRows as tmr:
-        print("(nonsa.pl) Błąd: Więcej niż 1 rząd w odebranych danych!", file=sys.stderr)
+        print("(nonsa.pl) [TooManyRows]: Więcej niż 1 rząd w odebranych danych!", file=sys.stderr)
         print(" " * 11 + "Wyjściowa baza:", file=sys.stderr)
         print()
         print(tmr, file=sys.stderr)
         sys.exit()
 
     except InvalidTitle as it:
-        print("(nonsa.pl) Błąd: Podany tytuł zawiera niedozwolone znaki.", file=sys.stderr)
-        print(" " * 11 + "Hint: " + str(it) + ".", file=sys.stderr)
+        print("(nonsa.pl) [InvalidTitle]: Podany tytuł zawiera niedozwolone znaki.", file=sys.stderr)
+        print(" " * 11 + "Hint:" + " " * 11 + str(it) + ".", file=sys.stderr)
         sys.exit()
 
     else:

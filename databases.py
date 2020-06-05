@@ -216,10 +216,10 @@ def filtersimc(data):
         raise TooManyRows(goal[['NAZWA', 'SYM']])
 
     else:
-        SIMCint = goal.at[0, 'SYM']
-        SIMC = goal.at[0, 'SYM']
-        SIMC = str(SIMC).zfill(7)
+        symint = goal.at[0, 'SYM']
+        sym = goal.at[0, 'SYM']
+        sym = str(sym).zfill(7)
 
         # Wikidata requires SIMC with zeroes
-        goal = goal.replace(SIMCint, SIMC)
+        goal = goal.replace(symint, sym)
         return goal[['NAZWA', 'SYM']]

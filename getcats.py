@@ -13,6 +13,7 @@ captured = {}  # this dictionary will be updated with geolocalisation info;
 def findcats(c, title):  # this reviews all the categories, chooses needed
     for i in range(0, len(c), 1):
 
+
         # checks if the category contains "Gmina"
         if "Kategoria:Gmina " in c[i]:
             gmina = c[i].replace("Kategoria:Gmina ", "")  # no need for namespace name
@@ -33,9 +34,15 @@ def findcats(c, title):  # this reviews all the categories, chooses needed
             add = {"województwo": wojewodztwo.upper()}
             captured.update(add)
 
-        # i'm still laughing at that point ↓
-        elif c[i].find("Kategoria:Ujednoznacznienia") != -1:
+        # exceptions
+        elif "Kategoria:Ujednoznacznienia" in c[i]:
             raise ValueError('Podana strona to ujednoznacznienie.')
+
+        elif "Kategoria:Dzielnic" in c[i]:
+            raise ValueError('Dotyczy dzielnicy, nie miejscowości!')
+
+        elif "Kategoria:Osiedl" in c[i]:
+            raise ValueError('Dotyczy osiedla, nie miejscowości!')
 
         # reading the category of category if it's one of these below
         elif c[i].find("Kategoria:Miasta w") != -1 or c[i].find("Kategoria:" + title) != -1 or c[i].find(
@@ -68,6 +75,12 @@ def readcategories(title):
 
 
 def run(title):
+    page = pwbot.Page(site, title)
+    text = page.text
+    if "dzielnic" in text[:100]:
+        print('Uwaga: Artykuł prawdopodobnie dotyczy dzielnicy… (TooManyRows)')
+    elif "osiedle" in text[:100]:
+        print('Uwaga: Artykuł prawdopodobnie dotyczy osiedla… (TooManyRows)')
     readcategories(title)  # script starts
     return withkeypagename(title)
 
