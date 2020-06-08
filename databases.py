@@ -1,12 +1,11 @@
-# Author: Stim, 2020
-# Geolocalisation bot for Nonsensopedia
-# License: GNU GPLv3
+# Author: Stim, 2020.
+# Geolocalisation bot for Nonsensopedia.
+# License: GNU GPLv3.
 # This is a cool tool for returning TERYT codes of provinces etc.
-# Read more: http://eteryt.stat.gov.pl/eTeryt/english.aspx?contrast=default
+# Read more: http://eteryt.stat.gov.pl/eTeryt/english.aspx?contrast=default.
 
 import pywikibot as pwbot
 import pandas as pd
-import numpy as np
 import sys
 from pywikibot import pagegenerators as pg
 
@@ -26,13 +25,13 @@ simc = pd.read_csv("SIMC.csv", sep=';',
 tercbase = pd.read_csv("TERC.csv", sep=';', usecols=['WOJ', 'POW', 'GMI', 'RODZ', 'NAZWA', 'NAZWA_DOD'])
 
 
-# with open('symquery.rq', 'r') as query_file:
-#     QUERY = query_file.read()
-
-# wikidata_site = pwbot.Site("wikidata", "wikidata")
-# generator = pg.WikidataSPARQLPageGenerator(QUERY, site=wikidata_site)
-# print(generator)
-
+# This function is checking exactly if a category
+# without info at the beginning in its name
+# as "powiat (…)", "gmina (…)" etc. isn't
+# in fact a powiat or gmina.
+# For example: "Warszawa". Warsaw is a city,
+# but it's rights are as big as powiat's rights.
+# That means that Warsaw's localities' powiat is just Warsaw.
 def cp(typ, name):
     if typ == 'gmina':
         gmina = tercbase.loc[(tercbase['NAZWA'] == name) &
@@ -59,6 +58,10 @@ def cp(typ, name):
             return powiat.at[0, 'NAZWA']
 
 
+# "Terencode" means "TERYT-encode". This function
+# searches captured gmina, powiat and voivoidship
+# and returns its TERYT codes.
+# For example: "MAŁOPOLSKIE" returns 12.
 def terencode(data):
     data = pd.DataFrame(data, index=[0])
     name = data.at[0, 'NAZWA']
@@ -81,6 +84,7 @@ def terencode(data):
         teryt = pd.DataFrame(teryt, index=[0])
         return teryt
 
+    # Capturing voivoidship's TERYT ID.
     teryt = {'NAZWA': dname}  # {name: pagename}
     woj = data.at[0, 'województwo']
     wojewodztwa = tercbase.loc[(tercbase['NAZWA_DOD'] == 'województwo') & (tercbase['NAZWA'] == woj)]
@@ -89,6 +93,7 @@ def terencode(data):
     teryt.update(teryt1)
     cols = data.columns.tolist()
 
+    # Cleaning powiat's name.
     if 'powiat' in cols:
         pot = data.at[0, 'powiat']
         if pot.find(" (") != -1:
@@ -98,8 +103,10 @@ def terencode(data):
                 if i == '(':
                     fromindex = pot.find(i) - 1
 
-            # deleting annotation, eg. '(województwo śląskie)'
+            # Deleting annotation, eg. '(województwo śląskie)'.
             pot = pot.replace(pot[fromindex::], '')
+
+        # Adding powiat name.
         powiaty = tercbase.loc[(tercbase['NAZWA_DOD'] == 'powiat') & (tercbase['NAZWA'] == pot) & (
                 tercbase['WOJ'] == tercbase.at[windex[0], 'WOJ'])]
 
@@ -121,7 +128,7 @@ def terencode(data):
                     if i == '(':
                         fromindex = gmi.find(i) - 1
 
-                # deleting annotation, eg. '(województwo śląskie)'
+                # Deleting annotation, eg. '(województwo śląskie)'.
                 gmi = gmi.replace(gmi[fromindex::], '')
             gminy = tercbase.loc[
                 ((tercbase['NAZWA_DOD'] == 'gmina miejska') |
@@ -155,9 +162,15 @@ def terencode(data):
 
     teryt = pd.DataFrame(teryt, index=[0])
 
+    # Done encoding!
     return teryt
 
 
+# Function predestinated to capture SIMC IDs
+# from the government's official database.
+# For example, 'Strzebiń' returns 0135540.
+# Data captured from terencode() are obviously
+# required.
 def filtersimc(data):
     tw = ''
     tp = ''
@@ -180,6 +193,9 @@ def filtersimc(data):
     nazwa = data.at[0, 'NAZWA']
     goal = simc.copy()
 
+    # Advanced filtering the SIMC database.
+    # Capturing the data is maximally optimized
+    # and based on reduction.
     if i == 3:
         goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw) & (simc['POW'] == tp) & (simc['GMI'] == tg)]
 
@@ -212,14 +228,17 @@ def filtersimc(data):
 
     goal = goal[['NAZWA', 'SYM']].reset_index()
 
+    # If the number of rows is bigger than 1,
+    # it means the captured data isn't certain.
     if goal.shape[0] > 1:
         raise TooManyRows(goal[['NAZWA', 'SYM']])
 
     else:
+        # (Expecting only one row, please look above).
         symint = goal.at[0, 'SYM']
         sym = goal.at[0, 'SYM']
         sym = str(sym).zfill(7)
 
-        # Wikidata requires SIMC with zeroes
+        # Wikidata requires SIMC with zeroes.
         goal = goal.replace(symint, sym)
         return goal[['NAZWA', 'SYM']]
