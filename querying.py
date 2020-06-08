@@ -12,6 +12,7 @@ from pywikibot import pagegenerators as pg
 
 
 def getqid(sid):
+    print(sid)
     query = """SELECT ?coord ?item ?itemLabel 
     WHERE
     {
@@ -22,8 +23,11 @@ def getqid(sid):
     wikidata_site = pwbot.Site("wikidata", "wikidata")
     generator = pg.WikidataSPARQLPageGenerator(query, site=wikidata_site)
     x = list(generator)
+    if x == []:
+        raise ValueError('Nie znaleziono identyfikatora SIMC w bazie WikiData.')
     string = ''.join(map(str, x))
     qidentificator = string.replace("[[wikidata:", "").replace("]]", "")
+    print(qidentificator)
     return qidentificator
 
 

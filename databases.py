@@ -237,5 +237,5 @@ def filtersimc(data):
         # (Expecting only one row, please look above).
         sym = goal.at[0, 'SYM']
         sym = str(sym).zfill(7)
-
+        print(sym)
         return sym

@@ -105,14 +105,14 @@ def main(pagename):
             " " * 11 + "Hint: " + " " * 8 + str(ve) + kropa, file=sys.stderr)
         sys.exit()
 
-    except KeyError:
+    except KeyError as ke:
         print(
             "(nonsa.pl) [KeyError]: Nie znaleziono odpowiednich kategorii lub strona '" + str(pagename) + "' nie "
                                                                                                           "istnieje.",
             file=sys.stderr)
 
         print(
-            " " * 11 + "Hint:" + " " * 7 + "Czy nie popełniłeś błędu w nazwie strony?", file=sys.stderr)
+            " " * 11 + "Hint:" + " " * 7 + str(ke), file=sys.stderr)
         sys.exit()
 
     except TooManyRows as tmr:
@@ -125,6 +125,10 @@ def main(pagename):
     except InvalidTitle as it:
         print("(nonsa.pl) [InvalidTitle]: Podany tytuł jest nieprawidłowy.", file=sys.stderr)
         print(" " * 11 + "Hint:" + " " * 11 + str(it) + ".", file=sys.stderr)
+        sys.exit()
+
+    except KeyboardInterrupt:
+        print("(nonsa.pl) [KeyboardInterrupt]: Pomyślnie przerwano operację.", file=sys.stderr)
         sys.exit()
 
     else:
