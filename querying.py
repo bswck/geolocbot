@@ -42,4 +42,3 @@ def coords(qid):
         if 'P625' in item.claims:
             coordinates = item.claims['P625'][0].getTarget()
             return coordinates
-

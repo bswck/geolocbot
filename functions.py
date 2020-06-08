@@ -95,7 +95,8 @@ def main(pagename):
 
     except ValueError as ve:
         print(
-            "(nonsa.pl) [ValueError]: Nie znaleziono odpowiednich kategorii lub strona '" + str(pagename) + "' nie istnieje.",
+            "(nonsa.pl) [ValueError]: Nie znaleziono odpowiednich kategorii lub strona '" + str(pagename) + "' nie "
+                                                                                                            "istnieje.",
             file=sys.stderr)
 
         kropa = "" if str(ve)[-1] == "." or str(ve)[-1] == "?" or str(ve)[-1] == "!" else "."
@@ -106,7 +107,8 @@ def main(pagename):
 
     except KeyError:
         print(
-            "(nonsa.pl) [KeyError]: Nie znaleziono odpowiednich kategorii lub strona '" + str(pagename) + "' nie istnieje.",
+            "(nonsa.pl) [KeyError]: Nie znaleziono odpowiednich kategorii lub strona '" + str(pagename) + "' nie "
+                                                                                                          "istnieje.",
             file=sys.stderr)
 
         print(
