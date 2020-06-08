@@ -235,10 +235,7 @@ def filtersimc(data):
 
     else:
         # (Expecting only one row, please look above).
-        symint = goal.at[0, 'SYM']
         sym = goal.at[0, 'SYM']
         sym = str(sym).zfill(7)
 
-        # Wikidata requires SIMC with zeroes.
-        goal = goal.replace(symint, sym)
-        return goal[['NAZWA', 'SYM']]
+        return sym

@@ -1,6 +1,6 @@
-# Author: Stim, 2020
-# Geolocalisation bot for Nonsensopedia
-# License: GNU GPLv3
+# Author: Stim, 2020.
+# Geolocalisation bot for Nonsensopedia.
+# License: GNU GPLv3.
 
 # Import time to measure the time spent on completing the function.
 import time

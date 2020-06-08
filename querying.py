@@ -1,54 +1,45 @@
-# Generated using "<code>" button @ query.wikidata.org.
-# --------
-# !/usr/bin/python
+#!/usr/bin/python
 # -*- coding: utf-8 -*-
 
 # Pywikibot will automatically set the user-agent to include your username.
 # To customise the user-agent see
 # https://www.mediawiki.org/wiki/Manual:Pywikibot/User-agent
 
-import pywikibot
-import pandas as pd
-from getcats import site
+import pywikibot as pwbot
 from pywikibot.pagegenerators import WikidataSPARQLPageGenerator
 from pywikibot.bot import SingleSiteBot
-from functions import main
-
-class WikidataQueryBot(SingleSiteBot):
-    """
-    Basic bot to show wikidata queries.
-
-    See https://www.mediawiki.org/wiki/Special:MyLanguage/Manual:Pywikibot
-    for more information.
-    """
-
-    def __init__(self, generator, **kwargs):
-        """
-        Initializer.
-
-        @param generator: the page generator that determines on which pages
-            to print
-        @type generator: generator
-        """
-        super(WikidataQueryBot, self).__init__(**kwargs)
-        self.generator = generator
-
-    def treat(self, page):
-        print(page)
+from pywikibot import pagegenerators as pg
 
 
-def ask(data):
-    sym = str(data.at[0, 'SYM'])
-
-    if __name__ == '__main__':
-        query = """SELECT ?coord ?SIMC_place_ID ?item ?itemLabel WHERE {
-      ?item wdt:P4046 '""" + sym + """'.
-      OPTIONAL { ?item wdt:P625 ?coord. }
+def getqid(sid):
+    query = """SELECT ?coord ?item ?itemLabel 
+    WHERE
+    {
+      ?item wdt:P4046 '""" + sid + """'.
+      ?item wdt:P625 ?coord.
       SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],pl". }
     }"""
-        gen = WikidataSPARQLPageGenerator(query, site=site.data_repository())
-        bot = WikidataQueryBot(gen, site=site)
-        bot.run()
+    wikidata_site = pwbot.Site("wikidata", "wikidata")
+    generator = pg.WikidataSPARQLPageGenerator(query, site=wikidata_site)
+    x = list(generator)
+    string = ''.join(map(str, x))
+    qidentificator = string.replace("[[wikidata:", "").replace("]]", "")
+    return qidentificator
 
 
-print(ask(main('Strzebiń')))
+site = pwbot.Site("wikidata", "wikidata")
+repo = site.data_repository()
+
+
+def coords(qid):
+    item = pwbot.ItemPage(repo, qid)
+    item.get()
+
+    if item.claims:
+        item = pwbot.ItemPage(repo, qid)  # This will be functionally the same as the other item we defined
+        item.get()
+
+        if 'P625' in item.claims:
+            coordinates = item.claims['P625'][0].getTarget()
+            return coordinates
+

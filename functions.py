@@ -6,6 +6,7 @@ import sys
 from getcats import run
 from databases import filtersimc, terencode, TooManyRows
 from pywikibot import InvalidTitle
+from querying import coords, getqid
 
 
 # Errors definitions.
@@ -79,17 +80,11 @@ def main(pagename):
         # If even a name hasn't been captured,
         # that might mean the page doesn't exist.
         # The question is: "haven't you made a mistake whilst inputing?".
-        if data.empty:
+        if data is None:
             raise ValueError('Czy nie popełniłeś błędu w nazwie strony?')
 
-        # If no data, other than the name
-        # hasn't been captured, that might mean
-        # the article is not about a locality.
-        elif data.columns.tolist() == ['NAZWA']:
-            raise KeyError
-        #
-        # else:
-        #     data = ask(data)
+        else:
+            data = coords(getqid(data))
 
     except TypeError:
         print(
@@ -126,7 +121,7 @@ def main(pagename):
         sys.exit()
 
     except InvalidTitle as it:
-        print("(nonsa.pl) [InvalidTitle]: Podany tytuł zawiera niedozwolone znaki.", file=sys.stderr)
+        print("(nonsa.pl) [InvalidTitle]: Podany tytuł jest nieprawidłowy.", file=sys.stderr)
         print(" " * 11 + "Hint:" + " " * 11 + str(it) + ".", file=sys.stderr)
         sys.exit()
 
