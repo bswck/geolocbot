@@ -1,8 +1,9 @@
-# Author: Stim, 2020
-# Geolocalisation bot for Nonsensopedia
-# License: GNU GPLv3
+# Author: Stim, 2020.
+# Geolocalisation bot for Nonsensopedia.
+# License: GNU GPLv3.
 
 import pywikibot as pwbot
+import sys
 from databases import cp
 
 site = pwbot.Site('pl', 'nonsensopedia')  # we're on nonsa.pl
@@ -15,6 +16,15 @@ captured = {}
 # whether it is needed or not.
 def findcats(c, title):
     for i in range(0, len(c), 1):
+        page = pwbot.Page(site, title)
+        text = page.text
+
+        if "osiedl" in text[:100] or "dzielnic" in text[:100]:
+            print()
+            print("-" * (73 // 2) + "UWAGA!" + "-" * ((73 // 2) + 1))
+            print('(nonsa.pl) [TooManyRows]: Artykuł prawdopodobnie dotyczy osiedla lub dzielnicy.')
+            print("-" * 79)
+            print()
 
         # Checks if the category contains "Gmina".
         if "Kategoria:Gmina " in c[i]:
@@ -40,16 +50,8 @@ def findcats(c, title):
         elif "Kategoria:Ujednoznacznienia" in c[i]:
             raise ValueError('Podana strona to ujednoznacznienie.')
 
-        elif "Kategoria:Dzielnic" in c[i] or "Kategoria:Osiedl" in c[i]:
-            page = pwbot.Page(site, title)
-            text = page.text
-            if "dzielnic" in text[:100]:
-                print('Uwaga: Artykuł prawdopodobnie dotyczy dzielnicy… (TooManyRows)')
-            elif "osiedle" in text[:100]:
-                print('Uwaga: Artykuł prawdopodobnie dotyczy osiedla… (TooManyRows)')
-
         # Reading the category of category if it's one of these below.
-        elif c[i].find("Kategoria:Miasta w") != -1 or c[i].find("Kategoria:" + title) != -1 or c[i].find(
+        elif c[i].find("Kategoria:Miasta w") != -1 or c[i].find(
                 "Kategoria:Powiaty w") != -1 or c[i].find("Kategoria:Gminy w") != -1:
             readcategories(c[i])
 
@@ -79,6 +81,14 @@ def readcategories(title):
 
 
 def run(title):
+    page = pwbot.Page(site, title)
+    text = page.text
+    if text == '':
+        raise KeyError('Nie ma takiej strony. [bot]')
+    elif page.isRedirectPage():
+        print('To jest przekierowanie.')
+        title = str(page.getRedirectTarget()).replace('[[pl:', '').replace(']]', '')
+        print('Cel: ' + str(title))
     readcategories(title)  # script starts
     return withkeypagename(title)
 

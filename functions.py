@@ -3,10 +3,11 @@
 # License: GNU GPLv3.
 
 import sys
+from termcolor import colored
 from getcats import run
 from databases import filtersimc, terencode, TooManyRows
 from pywikibot import InvalidTitle
-from querying import coords, getqid
+# from querying import coords, getqid
 
 
 # Errors definitions.
@@ -45,9 +46,17 @@ def checktitle(pagename):
                     from2index = pagename.find(i) + 1
 
             # Prints out that namespace name has been excluded from the pagename.
-            print("Usunięto '" + pagename[:from2index] + "'.")
+            print("[bot] Usunięto '" + pagename[:from2index] + "'.")
 
             st = str(pagename[from2index::])
+            checktitle(st)
+
+        if " (" in pagename:
+            for i in pagename:
+
+                if i == '(':
+                    fromindex = pagename.find(i) - 1
+                    print("[bot] Usunięto dopisek '" + pagename[fromindex + 1:] + "'.")
 
         # .capitalize() changes further characters to lower,
         # that is why I use this method.
@@ -77,21 +86,19 @@ def main(pagename):
     try:
         data = filtersimc(terencode(run(pagename)))
 
-        # If even a name hasn't been captured,
-        # that might mean the page doesn't exist.
         # The question is: "haven't you made a mistake whilst inputing?".
         if data is None:
             raise ValueError('Czy nie popełniłeś błędu w nazwie strony?')
+        #
+        # else:
+        #     data = coords(getqid(data))
 
-        else:
-            data = coords(getqid(data))
-
-    except TypeError:
-        print(
-            "(nonsa.pl) [TypeError]: Ha!",
-            file=sys.stderr)
-        print(" " * 11 + "Hint: " + " " * 8 + str(TypeError))
-        sys.exit()
+    # except TypeError:
+    #     print(
+    #         "(nonsa.pl) [TypeError]: Ha!",
+    #         file=sys.stderr)
+    #     print(" " * 11 + "Hint: " + " " * 8 + str(TypeError))
+    #     sys.exit()
 
     except ValueError as ve:
         print(
@@ -112,7 +119,7 @@ def main(pagename):
             file=sys.stderr)
 
         print(
-            " " * 11 + "Hint:" + " " * 7 + str(ke), file=sys.stderr)
+            " " * 11 + "Hint:" + " " * 7 + str(ke).replace("'", '') if str(ke) != '0' else " " * 11 + "Hint:" + " " * 7 + 'Nic nie znalazłem. [bot]', file=sys.stderr)
         sys.exit()
 
     except TooManyRows as tmr:

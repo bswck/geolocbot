@@ -73,7 +73,6 @@ def terencode(data):
 
             if i == '(':
                 fromindex = dname.find(i) - 1
-                print("Usunięto dopisek '" + dname[fromindex + 1:] + "'.")
                 dname = dname.replace(dname[fromindex::], '')
                 data = data.replace(name, dname)
 
@@ -226,7 +225,32 @@ def filtersimc(data):
     elif i == 0:
         goal = simc.loc[(simc['NAZWA'] == nazwa)]
 
-    goal = goal[['NAZWA', 'SYM']].reset_index()
+    # Despite that TERYT is already captured,
+    # it doesn't need to be correct. To be sure of it,
+    # TERYT will have to pass a 'verification'
+    # of its correctness. If it's different than providen
+    # at the beginning, that means some data need
+    # to be actualised, doesn't it? ;)
+    goal = goal[['NAZWA', 'WOJ', 'POW', 'GMI', 'SYM']].reset_index()
+
+    oldterc = [str(data.at[0, 'WOJ']).zfill(2) if 'WOJ' in data else str(goal.at[0, 'WOJ']).zfill(2), str(int(data.at[0, 'POW'])).zfill(2) if 'POW' in data else str(goal.at[0, 'POW']).zfill(2), str(int(data.at[0, 'GMI'])).zfill(3) if 'GMI' in data else str(goal.at[0, 'GMI']).zfill(3)]
+    oldtercd = oldterc
+    oldterc = oldterc[0] + oldterc[1] + oldterc[2]
+    newterc = str(goal.at[0, 'WOJ']).zfill(2) + str(goal.at[0, 'POW']).zfill(2) + str(goal.at[0, 'GMI']).zfill(3)
+    newtercd = {'województwo': str(goal.at[0, 'WOJ']).zfill(2), 'powiat': str(goal.at[0, 'POW']).zfill(2), 'gmina': str(goal.at[0, 'GMI']).zfill(3)}
+    elements = ['województwo', 'powiat', 'gmina']
+    print('(1.) TERC: ' + newterc)
+
+    if oldterc != newterc:
+        for i in range(0, len(elements), 1):
+            if oldtercd[i] != newtercd[elements[i]]:
+                print("[bot] Sugeruję uaktualnienie danych, Anżej,")
+                print(" " * 6 + 'bo w polu ' + elements[i] + ' są nieaktualne dane.')
+                print(" " * 6 + 'Porównaj:')
+                print()
+                print(" " * 6 + 'Nasze:    ' + oldterc)
+                print(" " * 6 + 'Aktualne: ' + newterc)
+                print()
 
     # If the number of rows is bigger than 1,
     # it means the captured data isn't certain.
@@ -237,5 +261,6 @@ def filtersimc(data):
         # (Expecting only one row, please look above).
         sym = goal.at[0, 'SYM']
         sym = str(sym).zfill(7)
-        print(sym)
-        return sym
+        print('(::) SIMC: ' + sym)
+        alldata = {'SIMC': sym, 'TERC': newterc}
+        return alldata

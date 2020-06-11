@@ -11,20 +11,35 @@ from pywikibot.bot import SingleSiteBot
 from pywikibot import pagegenerators as pg
 
 
-def getqid(sid):
-    print(sid)
+def getqid(data):
+    sid = data['SIMC']
+    terid = data['TERC']
     query = """SELECT ?coord ?item ?itemLabel 
     WHERE
     {
       ?item wdt:P4046 '""" + sid + """'.
-      ?item wdt:P625 ?coord.
+      OPTIONAL {?item wdt:P625 ?coord}.
       SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],pl". }
     }"""
     wikidata_site = pwbot.Site("wikidata", "wikidata")
     generator = pg.WikidataSPARQLPageGenerator(query, site=wikidata_site)
     x = list(generator)
+
     if x == []:
-        raise ValueError('Nie znaleziono identyfikatora SIMC w bazie WikiData.')
+        query = """SELECT ?coord ?item ?itemLabel 
+            WHERE
+            {
+              ?item wdt:P1653 '""" + terid + """'.
+              OPTIONAL {?item wdt:P625 ?coord}.
+              SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],pl". }
+            }"""
+        wikidata_site = pwbot.Site("wikidata", "wikidata")
+        generator = pg.WikidataSPARQLPageGenerator(query, site=wikidata_site)
+        x = list(generator)
+
+        if x == []:
+            raise KeyError('Albo jestem głupi, albo nic nie ma w WikiData. [bot]')
+
     string = ''.join(map(str, x))
     qidentificator = string.replace("[[wikidata:", "").replace("]]", "")
     print(qidentificator)
