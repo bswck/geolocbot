@@ -239,7 +239,7 @@ def filtersimc(data):
     newterc = str(goal.at[0, 'WOJ']).zfill(2) + str(goal.at[0, 'POW']).zfill(2) + str(goal.at[0, 'GMI']).zfill(3)
     newtercd = {'województwo': str(goal.at[0, 'WOJ']).zfill(2), 'powiat': str(goal.at[0, 'POW']).zfill(2), 'gmina': str(goal.at[0, 'GMI']).zfill(3)}
     elements = ['województwo', 'powiat', 'gmina']
-    print('(1.) TERC: ' + newterc)
+    print('[bot] (1.) TERC: ' + newterc)
 
     if oldterc != newterc:
         for i in range(0, len(elements), 1):
@@ -261,6 +261,6 @@ def filtersimc(data):
         # (Expecting only one row, please look above).
         sym = goal.at[0, 'SYM']
         sym = str(sym).zfill(7)
-        print('(::) SIMC: ' + sym)
+        print('[bot] (::) SIMC: ' + sym)
         alldata = {'SIMC': sym, 'TERC': newterc}
         return alldata

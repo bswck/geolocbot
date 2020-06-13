@@ -11,10 +11,21 @@ from pywikibot.bot import SingleSiteBot
 from pywikibot import pagegenerators as pg
 from coordinates import Coordinate
 
+# Yet!
+everythingiknow = {}
+
 
 def getqid(data):
     sid = data['SIMC']
+
+    # Please don't confuse with 'Lidl'. :D
+    sidl = {'simc': sid}
+    everythingiknow.update(sidl)
+
     terid = data['TERC']
+    teridl = {'terc': terid}
+    everythingiknow.update(teridl)
+
     query = """SELECT ?coord ?item ?itemLabel 
     WHERE
     {
@@ -43,7 +54,9 @@ def getqid(data):
 
     string = ''.join(map(str, x))
     qidentificator = string.replace("[[wikidata:", "").replace("]]", "")
-    print(qidentificator)
+    qidl = {'wikidata': qidentificator}
+    everythingiknow.update(qidl)
+    print('[bot] (::) QID: ' + str(qidentificator))
     return qidentificator
 
 
@@ -62,5 +75,11 @@ def coords(qid):
         if 'P625' in item.claims:
             coordinates = item.claims['P625'][0].getTarget()
             coords = str(coordinates)
-            coordsd = dict(coords)
-            return coordsd
+            print(coords)
+
+            # Couldn't see any other way.
+            latitude = str(coords[(coords.find('"latitude": ') + 12):(coords.find('"longitude"') - 4)]).replace(',\n', '')
+            longitude = str(coords[(coords.find('"longitude": ') + 13):(coords.find('"precision"') - 4)]).replace(',\n', '')
+            coords = {'szerokosc': latitude, 'dlugosc': longitude}
+            everythingiknow.update(coords)
+            return everythingiknow  # ;)

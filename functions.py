@@ -67,27 +67,18 @@ def checktitle(pagename):
     return st
 
 
+def exit():
+    print('[bot] Zapraszam ponownie!')
+    print('***')
+    sys.exit()
+
+
 # This runs the whole code.
 def main():
     try:
-        print("""
-_________          ______           ______       _____ 
-__  ____/_____________  /______________  /_________  /_
-_  / __ _  _ \  __ \_  /_  __ \  ___/_  __ \  __ \  __/
-/ /_/ / /  __/ /_/ /  / / /_/ / /__ _  /_/ / /_/ / /_  
-\____/  \___/\____//_/  \____/\___/ /_.___/\____/\__/  
-                                                       
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Geolocbot 2020
-        """)
-        print('[bot] Ctrl + C przerywa wykonywanie operacji.')
-        print('[bot] Wpisanie *exit spowoduje zamknięcie programu.')
-        print('[bot] Ja na gitlabie: https://gitlab.com/nonsensopedia/bots/geolocbot.')
+        pagename = input('-bot- Podaj nazwę artykułu: ')
 
-        pagename = input('Podaj nazwę artykułu: ')
-
-        if '*exit' in pagename:
-            print('[bot] Zapraszam ponownie!')
-            sys.exit()
+        exit() if '*e' in pagename else None
 
         pagename = checktitle(pagename)
         data = filtersimc(terencode(run(pagename)))
@@ -104,6 +95,8 @@ _  / __ _  _ \  __ \_  /_  __ \  ___/_  __ \  __ \  __/
     #         "(nonsa.pl) [TypeError]: Ha!",
     #         file=sys.stderr)
     #     print(" " * 11 + "Hint: " + " " * 8 + str(TypeError))
+    #     print()
+    #     print()
     #     main()
 
     except ValueError as ve:
@@ -117,6 +110,8 @@ _  / __ _  _ \  __ \_  /_  __ \  ___/_  __ \  __ \  __/
         print(
             " " * 11 + "Hint: " + " " * 8 + str(ve) + kropa, file=sys.stderr)
         time.sleep(2)
+        print()
+        print()
         main()
 
     except KeyError as ke:
@@ -128,6 +123,8 @@ _  / __ _  _ \  __ \_  /_  __ \  ___/_  __ \  __ \  __/
         print(
             " " * 11 + "Hint:" + " " * 7 + str(ke).replace("'", '') if str(ke) != '0' else " " * 11 + "Hint:" + " " * 7 + 'Nic nie znalazłem. [bot]', file=sys.stderr)
         time.sleep(2)
+        print()
+        print()
         main()
 
     except TooManyRows as tmr:
@@ -136,12 +133,16 @@ _  / __ _  _ \  __ \_  /_  __ \  ___/_  __ \  __ \  __/
         print()
         print(tmr, file=sys.stderr)
         time.sleep(2)
+        print()
+        print()
         main()
 
     except InvalidTitle as it:
         print("(nonsa.pl) [InvalidTitle]: Podany tytuł jest nieprawidłowy.", file=sys.stderr)
         print(" " * 11 + "Hint:" + " " * 11 + str(it) + ".", file=sys.stderr)
         time.sleep(2)
+        print()
+        print()
         main()
 
     except EmptyNameError:
@@ -149,12 +150,26 @@ _  / __ _  _ \  __ \_  /_  __ \  ___/_  __ \  __ \  __/
         print("(nonsa.pl) Błąd: Nie podano tytułu strony.",
               file=sys.stderr)
         time.sleep(2)
+        print()
+        print()
         main()
 
     except KeyboardInterrupt:
         print("(nonsa.pl) [KeyboardInterrupt]: Pomyślnie przerwano operację.", file=sys.stderr)
-        time.sleep(2)
-        main()
+        print('-bot- Kontynuować? <T/N>')
+        ct = str(input('Odpowiedź: ')).upper()
+        ans = ['T', 'N']
+
+        while ct not in ans:
+            ct = str(input('Odpowiedź <T/N>: ')).upper()
+
+        if ct == 'T':
+            print()
+            print()
+            main()
+
+        else:
+            exit()
 
     else:
         print(data)
