@@ -6,13 +6,10 @@
 import time
 from functions import checktitle, main
 
-pagename = input('Podaj nazwę artykułu: ')
-pagename = checktitle(pagename)
-
 # 'Start' time-measure.
 start = time.time()
 
-main(pagename)
+main()
 
 # 'Stop' time-measure.
 end = time.time()

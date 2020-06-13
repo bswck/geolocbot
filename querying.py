@@ -9,6 +9,7 @@ import pywikibot as pwbot
 from pywikibot.pagegenerators import WikidataSPARQLPageGenerator
 from pywikibot.bot import SingleSiteBot
 from pywikibot import pagegenerators as pg
+from coordinates import Coordinate
 
 
 def getqid(data):
@@ -60,4 +61,6 @@ def coords(qid):
 
         if 'P625' in item.claims:
             coordinates = item.claims['P625'][0].getTarget()
-            return coordinates
+            coords = str(coordinates)
+            coordsd = dict(coords)
+            return coordsd

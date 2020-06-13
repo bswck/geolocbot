@@ -55,12 +55,12 @@ def findcats(c, title):
                 "Kategoria:Powiaty w") != -1 or c[i].find("Kategoria:Gminy w") != -1:
             readcategories(c[i])
 
-        elif cp('powiat', c[i]) != False:
+        elif cp('powiat', c[i]) is not False:
             powiat = cp('powiat', c[i])
             add = {"powiat": powiat}
             captured.update(add)
 
-        elif cp('gmina', c[i]) != False:
+        elif cp('gmina', c[i]) is not False:
             gmina = cp('gmina', c[i])
             add = {"gmina": gmina}
             captured.update(add)
@@ -86,9 +86,14 @@ def run(title):
     if text == '':
         raise KeyError('Nie ma takiej strony. [bot]')
     elif page.isRedirectPage():
-        print('To jest przekierowanie.')
-        title = str(page.getRedirectTarget()).replace('[[pl:', '').replace(']]', '')
-        print('Cel: ' + str(title))
+        print('[bot] To jest przekierowanie.')
+        title = str(page.getRedirectTarget()).replace('[[', '').replace(']]', '').replace('nonsensopedia:', '').replace('pl:', '')
+        if '#' in title:
+            for char in title:
+                if char == '#':
+                    sharpindex = title.find(char)
+                    title = title[:sharpindex]
+        print('[bot] Cel: ' + str(title))
     readcategories(title)  # script starts
     return withkeypagename(title)
 
