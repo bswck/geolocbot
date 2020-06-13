@@ -50,7 +50,7 @@ def getqid(data):
         x = list(generator)
 
         if x == []:
-            raise KeyError('Albo jestem głupi, albo nic nie ma w WikiData. [bot]')
+            raise KeyError('Albo jestem głupi, albo nic nie ma w Wikidata. [bot]')
 
     string = ''.join(map(str, x))
     qidentificator = string.replace("[[wikidata:", "").replace("]]", "")

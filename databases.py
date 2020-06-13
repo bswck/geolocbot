@@ -156,7 +156,7 @@ def terencode(data):
                         (tercbase['NAZWA'] == gmi)]
 
             gindex = gminy.index.tolist()
-            teryt3 = {'GMI': tercbase.at[gindex[0], 'GMI']}
+            teryt3 = {'GMI': (tercbase.at[gindex[0], 'GMI'] + tercbase.at[gindex[0], 'RODZ'])}
             teryt.update(teryt3)
 
     teryt = pd.DataFrame(teryt, index=[0])
@@ -231,13 +231,13 @@ def filtersimc(data):
     # of its correctness. If it's different than providen
     # at the beginning, that means some data need
     # to be actualised, doesn't it? ;)
-    goal = goal[['NAZWA', 'WOJ', 'POW', 'GMI', 'SYM']].reset_index()
+    goal = goal[['NAZWA', 'WOJ', 'POW', 'GMI', 'RODZ_GMI', 'SYM']].reset_index()
 
-    oldterc = [str(data.at[0, 'WOJ']).zfill(2) if 'WOJ' in data else str(goal.at[0, 'WOJ']).zfill(2), str(int(data.at[0, 'POW'])).zfill(2) if 'POW' in data else str(goal.at[0, 'POW']).zfill(2), str(int(data.at[0, 'GMI'])).zfill(3) if 'GMI' in data else str(goal.at[0, 'GMI']).zfill(3)]
+    oldterc = [str(data.at[0, 'WOJ']).zfill(2) if 'WOJ' in data else str(goal.at[0, 'WOJ']).zfill(2), str(int(data.at[0, 'POW'])).zfill(2) if 'POW' in data else str(goal.at[0, 'POW']).zfill(2), str(int(data.at[0, 'GMI'])).zfill(3) if 'GMI' in data else str(str(goal.at[0, 'GMI']).zfill(2) + str(goal.at[0, 'RODZ_GMI']).zfill(1))]
     oldtercd = oldterc
     oldterc = oldterc[0] + oldterc[1] + oldterc[2]
-    newterc = str(goal.at[0, 'WOJ']).zfill(2) + str(goal.at[0, 'POW']).zfill(2) + str(goal.at[0, 'GMI']).zfill(3)
-    newtercd = {'województwo': str(goal.at[0, 'WOJ']).zfill(2), 'powiat': str(goal.at[0, 'POW']).zfill(2), 'gmina': str(goal.at[0, 'GMI']).zfill(3)}
+    newterc = str(goal.at[0, 'WOJ']).zfill(2) + str(goal.at[0, 'POW']).zfill(2) + str(str(goal.at[0, 'GMI']).zfill(2) + str(goal.at[0, 'RODZ_GMI']).zfill(1))
+    newtercd = {'województwo': str(goal.at[0, 'WOJ']).zfill(2), 'powiat': str(goal.at[0, 'POW']).zfill(2), 'gmina': str(str(goal.at[0, 'GMI']).zfill(2) + str(goal.at[0, 'RODZ_GMI']).zfill(1))}
     elements = ['województwo', 'powiat', 'gmina']
     print('[bot] (1.) TERC: ' + newterc)
 

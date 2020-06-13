@@ -114,18 +114,18 @@ def main():
         print()
         main()
 
-    except KeyError as ke:
-        print(
-            "(nonsa.pl) [KeyError]: Nie znaleziono odpowiednich kategorii lub strona '" + str(pagename) + "' nie "
-                                                                                                          "istnieje.",
-            file=sys.stderr)
-
-        print(
-            " " * 11 + "Hint:" + " " * 7 + str(ke).replace("'", '') if str(ke) != '0' else " " * 11 + "Hint:" + " " * 7 + 'Nic nie znalazłem. [bot]', file=sys.stderr)
-        time.sleep(2)
-        print()
-        print()
-        main()
+    # except KeyError as ke:
+    #     print(
+    #         "(nonsa.pl) [KeyError]: Nie znaleziono odpowiednich kategorii lub strona '" + str(pagename) + "' nie "
+    #                                                                                                       "istnieje.",
+    #         file=sys.stderr)
+    #
+    #     print(
+    #         " " * 11 + "Hint:" + " " * 7 + str(ke).replace("'", '') if str(ke) != '0' else " " * 11 + "Hint:" + " " * 7 + 'Nic nie znalazłem. [bot]', file=sys.stderr)
+    #     time.sleep(2)
+    #     print()
+    #     print()
+    #     main()
 
     except TooManyRows as tmr:
         print("(nonsa.pl) [TooManyRows]: Więcej niż 1 rząd w odebranych danych!", file=sys.stderr)
