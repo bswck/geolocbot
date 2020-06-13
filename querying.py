@@ -75,11 +75,10 @@ def coords(qid):
         if 'P625' in item.claims:
             coordinates = item.claims['P625'][0].getTarget()
             coords = str(coordinates)
-            print(coords)
 
             # Couldn't see any other way.
-            latitude = str(coords[(coords.find('"latitude": ') + 12):(coords.find('"longitude"') - 4)]).replace(',\n', '')
-            longitude = str(coords[(coords.find('"longitude": ') + 13):(coords.find('"precision"') - 4)]).replace(',\n', '')
+            latitude = str(coords[(coords.find('"latitude": ') + 12):(coords.find('"longitude"') - 4)]).replace(',\n', '') + '° N'
+            longitude = str(coords[(coords.find('"longitude": ') + 13):(coords.find('"precision"') - 4)]).replace(',\n', '') + '° W'
             coords = {'szerokosc': latitude, 'dlugosc': longitude}
             everythingiknow.update(coords)
             return everythingiknow  # ;)

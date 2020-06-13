@@ -51,8 +51,7 @@ def findcats(c, title):
             raise ValueError('Podana strona to ujednoznacznienie.')
 
         # Reading the category of category if it's one of these below.
-        elif c[i].find("Kategoria:Miasta w") != -1 or c[i].find(
-                "Kategoria:Powiaty w") != -1 or c[i].find("Kategoria:Gminy w") != -1:
+        elif "Kategoria:Miasta w" in c[i] or "Kategoria:Powiaty w" in c[i] or "Kategoria:Gminy w" in c[i] or "Kategoria:" + title in c[i]:
             readcategories(c[i])
 
         elif cp('powiat', c[i]) is not False:
