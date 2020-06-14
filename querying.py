@@ -77,7 +77,7 @@ def coords(qid):
             coords = str(coordinates)
 
             # Couldn't see any other way.
-            latitude = str(coords[(coords.find('"latitude": ') + 12):(coords.find('"longitude"') - 4)]).replace(',\n', '') + '° N'
+            latitude = str(coords[(coords.find('"latitude": ') + 12):(coords.find('"longitude"') - 4)]).replace(',\n', '') + '° N,'
             longitude = str(coords[(coords.find('"longitude": ') + 13):(coords.find('"precision"') - 4)]).replace(',\n', '') + '° W'
             coords = {'szerokosc': latitude, 'dlugosc': longitude}
             everythingiknow.update(coords)

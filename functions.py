@@ -4,11 +4,13 @@
 
 import sys
 import time
+import pywikibot as pwbot
 from getcats import run
 from databases import filtersimc, terencode, TooManyRows
 from pywikibot import InvalidTitle
 from querying import coords, getqid
 
+site = pwbot.Site('pl', 'nonsensopedia')  # we're on nonsa.pl
 
 # Errors definitions.
 class Error(Exception):
@@ -20,6 +22,10 @@ class EmptyNameError(Error):
     """Raised when no pagename has been provided"""
     pass
 
+def apply(page, data):
+    text = page.text
+    page.text = text + str('\n <nowiki>{{Lokalizacja|' + data['szerokosc'] + ' ' + data['dlugosc'] + '|simc=' + data['simc'] + '|wikidata=' + data['wikidata'] + '|terc=' + data['terc'] + '}}</nowiki>')
+    page.save(u'Testuję pobór danych, szablon {Lokalizacja} w <nowiki>')
 
 # Function checktitle checks if the providen title is valid.
 def checktitle(pagename):
@@ -119,7 +125,7 @@ def main():
             "(nonsa.pl) [KeyError]: Nie znaleziono odpowiednich kategorii lub strona '" + str(pagename) + "' nie "
                                                                                                           "istnieje.",
             file=sys.stderr)
-    
+
         print(
             " " * 11 + "Hint:" + " " * 7 + str(ke).replace("'", '') if str(ke) != '0' else " " * 11 + "Hint:" + " " * 7 + 'Nic nie znalazłem. [bot]', file=sys.stderr)
         time.sleep(2)
@@ -173,4 +179,6 @@ def main():
 
     else:
         print(data)
+        apply(pwbot.Page(site, str('Użytkownik:Stim/' + pagename)), data)
         return data
+
