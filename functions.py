@@ -83,13 +83,15 @@ def exit():
 
 
 # This runs the whole code.
-def main():
+def main(pagename=''):
     try:
-        pagename = input('-bot- Podaj nazwę artykułu: ')
+        if pagename == '':
+            pagename = input('-bot- Podaj nazwę artykułu: ')
 
-        exit() if '*e' in pagename else None
+            exit() if '*e' in pagename else None
 
-        pagename = checktitle(pagename)
+            pagename = checktitle(pagename)
+
         data = filtersimc(terencode(run(pagename)))
 
         # The question is: "haven't you made a mistake whilst inputing?".
@@ -180,8 +182,8 @@ def main():
         else:
             exit()
 
-    except MaxlagTimeoutError:
-        apply(pwbot.Page(site, str('Użytkownik:Stim/' + pagename)), data)
+    except pwbot.exceptions.MaxlagTimeoutError:
+        main(pagename=pagename)
 
     else:
         print(data)
