@@ -114,7 +114,7 @@ def main():
         print()
         main()
 
-     except KeyError as ke:
+    except KeyError as ke:
         print(
             "(nonsa.pl) [KeyError]: Nie znaleziono odpowiednich kategorii lub strona '" + str(pagename) + "' nie "
                                                                                                           "istnieje.",
