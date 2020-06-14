@@ -12,6 +12,7 @@ from querying import coords, getqid
 
 site = pwbot.Site('pl', 'nonsensopedia')  # we're on nonsa.pl
 
+
 # Errors definitions.
 class Error(Exception):
     """Base class for other exceptions"""
@@ -22,10 +23,12 @@ class EmptyNameError(Error):
     """Raised when no pagename has been provided"""
     pass
 
+
 def apply(page, data):
     text = page.text
-    page.text = text + str('\n <nowiki>{{Lokalizacja|' + data['szerokosc'] + ' ' + data['dlugosc'] + '|simc=' + data['simc'] + '|wikidata=' + data['wikidata'] + '|terc=' + data['terc'] + '}}</nowiki>')
+    page.text = text + str('\n\n<nowiki>{{lokalizacja|' + data['koordynaty'] + '|simc=' + data['simc'] + '|wikidata=' + data['wikidata'] + ('|terc=' + data['terc'] if 'terc' in data.keys() else str()) + '}}</nowiki>')
     page.save(u'Testuję pobór danych, szablon {Lokalizacja} w <nowiki>')
+
 
 # Function checktitle checks if the providen title is valid.
 def checktitle(pagename):
@@ -176,6 +179,9 @@ def main():
 
         else:
             exit()
+
+    except MaxlagTimeoutError:
+        apply(pwbot.Page(site, str('Użytkownik:Stim/' + pagename)), data)
 
     else:
         print(data)

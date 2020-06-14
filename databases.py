@@ -24,6 +24,8 @@ simc = pd.read_csv("SIMC.csv", sep=';',
                    usecols=['WOJ', 'POW', 'GMI', 'RODZ_GMI', 'RM', 'MZ', 'NAZWA', 'SYM'])
 tercbase = pd.read_csv("TERC.csv", sep=';', usecols=['WOJ', 'POW', 'GMI', 'RODZ', 'NAZWA', 'NAZWA_DOD'])
 
+globname = []
+
 
 # This function is checking exactly if a category
 # without info at the beginning in its name
@@ -65,6 +67,8 @@ def cp(typ, name):
 def terencode(data):
     data = pd.DataFrame(data, index=[0])
     name = data.at[0, 'NAZWA']
+    globname.append(name)
+
     dname = name[::-1]
     dname = dname[::-1]
 
@@ -190,6 +194,7 @@ def filtersimc(data):
         i += 1
 
     nazwa = data.at[0, 'NAZWA']
+
     goal = simc.copy()
 
     # Advanced filtering the SIMC database.
@@ -251,6 +256,14 @@ def filtersimc(data):
                 print(" " * 6 + 'Nasze:    ' + oldterc)
                 print(" " * 6 + 'Aktualne: ' + newterc)
                 print()
+                site = pwbot.Site('pl', 'nonsensopedia')
+                pg = pwbot.Page(site, u"Dyskusja użytkownika:Stim")
+                text = pg.text
+                if globname[0] not in text:
+                    pg.text = text + '\n== Zgłoszenie nieprawidłowego TERC pochodzącego z [[' + globname[0] + ']]==\n\nW artykule [[' + globname[0] + ']] mogą być nieaktualne kategorie jednostek administracyjnych. Nieprawidłowość wykryto w polu ' + str(elements[i]) + '.\n\nSzczegóły błędu:\n# Nasz TERC: ' + oldterc + ';\n# Rządowy TERC: ' + newterc + '.\n\n[[Użytkownik:StimBOT|StimBOT]] ~~~~~'
+                    pg.save(u'Zgłaszam nieprawidłowy TERC')
+                else:
+                    None
 
     # If the number of rows is bigger than 1,
     # it means the captured data isn't certain.

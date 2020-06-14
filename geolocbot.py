@@ -33,4 +33,4 @@ end = time.time()
 print()
 
 # Prints the time spent on completing the function.
-print("Czas operacyjny: " + str(end - start)[:3].replace(".", ",") + "s.")
+print("Czas operacyjny: " + str(end - start)[:5].replace(".", ",") + "s.")
