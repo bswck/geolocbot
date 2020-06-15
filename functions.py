@@ -3,6 +3,7 @@
 # License: GNU GPLv3.
 
 import sys
+import requests
 import time
 import pywikibot as pwbot
 from getcats import run
@@ -91,6 +92,8 @@ def main(pagename=''):
             exit() if '*e' in pagename else None
 
             pagename = checktitle(pagename)
+        else:
+            print('[bot] Nazwa artykułu (' + pagename + ') w pamięci.')
 
         data = filtersimc(terencode(run(pagename)))
 
@@ -101,14 +104,12 @@ def main(pagename=''):
         else:
             data = coords(getqid(data))
 
-    # except TypeError:
-    #     print(
-    #         "(nonsa.pl) [TypeError]: Ha!",
-    #         file=sys.stderr)
-    #     print(" " * 11 + "Hint: " + " " * 8 + str(TypeError))
-    #     print()
-    #     print()
-    #     main()
+    except TypeError:
+        print(
+            "(nonsa.pl) [TypeError]: Ha! TypeError nam wyskoczył.",
+            file=sys.stderr)
+        print()
+        main()
 
     except ValueError as ve:
         print(
@@ -176,17 +177,26 @@ def main(pagename=''):
 
         if ct == 'T':
             print()
-            print()
-            main()
+            main(pagename=pagename)
 
         else:
             exit()
 
     except pwbot.exceptions.MaxlagTimeoutError:
+
         main(pagename=pagename)
+
+    except requests.exceptions.ConnectionError:
+
+        print("(nonsa.pl) [ConnectionError]: Bez neta ani rusz.", file=sys.stderr)
 
     else:
         print(data)
-        apply(pwbot.Page(site, str('Użytkownik:Stim/' + pagename)), data)
+        try:
+            apply(pwbot.Page(site, str('Użytkownik:Stim/' + pagename)), data)
+
+        except pwbot.exceptions.MaxlagTimeoutError:
+            apply(pwbot.Page(site, str('Użytkownik:Stim/' + pagename)), data)
+
         return data
 

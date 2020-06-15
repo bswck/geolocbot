@@ -6,6 +6,8 @@
 # https://www.mediawiki.org/wiki/Manual:Pywikibot/User-agent
 
 import pywikibot as pwbot
+import pandas as pd
+from databases import globname, globterc
 from pywikibot.pagegenerators import WikidataSPARQLPageGenerator
 from pywikibot.bot import SingleSiteBot
 from pywikibot import pagegenerators as pg
@@ -14,6 +16,40 @@ from coordinates import Coordinate
 # Yet!
 everythingiknow = {}
 
+tercbase = pd.read_csv("TERC.csv", sep=';', usecols=['WOJ', 'POW', 'GMI', 'RODZ', 'NAZWA', 'NAZWA_DOD'])
+
+
+def tercornot(data):
+    shouldbeterc = tercbase.copy()
+    shouldbeterc = shouldbeterc.loc[(shouldbeterc['NAZWA'] == globname[0])]
+    sterc = shouldbeterc.copy()
+
+    if sterc.empty:
+        print("[bot] " + globname[0] + " nie występuje w systemie TERC. Usuwam klucz…")
+        del data['terc']
+        return data
+
+    sterc = sterc.loc[
+        (sterc['WOJ'] == float(globterc['województwo'])) & (sterc['POW'] == float(globterc['powiat'])) & (sterc['GMI'] == float(globterc['gmina']))]
+
+    if shouldbeterc.empty:
+        shouldbeterc = shouldbeterc.loc[
+            (shouldbeterc['WOJ'] == float(globterc['województwo'])) & (shouldbeterc['POW'] == float(int(globterc['powiat'])))]
+
+        if shouldbeterc.empty:
+            tercb = tercbase.loc[
+                (tercbase['WOJ'] == float(globterc['województwo']))]
+            print(tercbase)
+
+            if tercb.empty:
+                print("[bot] Miejscowość " + globname[0] + " nie spełnia kryteriów TERC, więc identyfikator nie zostanie dołączony do szablonu. Usuwam klucz…")
+                del data['terc']
+                return data
+
+    print('[bot] Miejscowość ' + globname[0] + ' spełnia kryteria TERC, więc identyfikator zostanie dołączony do szablonu.')
+
+    return data
+
 
 def getqid(data):
     sid = data['SIMC']
@@ -21,6 +57,10 @@ def getqid(data):
     # Please don't confuse with 'Lidl'. :D
     sidl = {'simc': sid}
     everythingiknow.update(sidl)
+
+    terid = data['TERC']
+    tidl = {'terc': terid}
+    everythingiknow.update(tidl)
 
     query = """SELECT ?coord ?item ?itemLabel 
     WHERE
@@ -52,7 +92,7 @@ def getqid(data):
     qidentificator = string.replace("[[wikidata:", "").replace("]]", "")
     qidl = {'wikidata': qidentificator}
     everythingiknow.update(qidl)
-    print('[bot] (::) QID: ' + str(qidentificator))
+    print('[bot] (::) QID:  ' + str(qidentificator))
     return qidentificator
 
 
@@ -62,7 +102,11 @@ repo = site.data_repository()
 
 def coords(qid):
     item = pwbot.ItemPage(repo, qid)
-    item.get()
+
+    try:
+        item.get()
+    except pwbot.exceptions.MaxlagTimeoutError:
+        item.get()
 
     if item.claims:
         item = pwbot.ItemPage(repo, qid)  # This will be functionally the same as the other item we defined
@@ -70,11 +114,11 @@ def coords(qid):
 
         if 'P625' in item.claims:
             coordinates = item.claims['P625'][0].getTarget()
-            coords = str(coordinates)
 
             # Couldn't see any other way.
-            latitude = str(coords[(coords.find('"latitude": ') + 12):(coords.find('"longitude"') - 4)]).replace(',\n', '') + '° N, '
-            longitude = str(coords[(coords.find('"longitude": ') + 13):(coords.find('"precision"') - 4)]).replace(',\n', '') + '° W'
-            coords = {'koordynaty': latitude + longitude}
+            latitude = coordinates.lat
+            longitude = coordinates.lon
+            coords = {'koordynaty': str(latitude) + ', ' + str(longitude)}
             everythingiknow.update(coords)
-            return everythingiknow  # ;)
+
+    return tercornot(everythingiknow)  # ;)

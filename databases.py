@@ -7,7 +7,6 @@
 import pywikibot as pwbot
 import pandas as pd
 import sys
-from pywikibot import pagegenerators as pg
 
 
 class Error(Exception):
@@ -25,6 +24,7 @@ simc = pd.read_csv("SIMC.csv", sep=';',
 tercbase = pd.read_csv("TERC.csv", sep=';', usecols=['WOJ', 'POW', 'GMI', 'RODZ', 'NAZWA', 'NAZWA_DOD'])
 
 globname = []
+globterc = {}
 
 
 # This function is checking exactly if a category
@@ -243,6 +243,7 @@ def filtersimc(data):
     oldterc = oldterc[0] + oldterc[1] + oldterc[2]
     newterc = str(goal.at[0, 'WOJ']).zfill(2) + str(goal.at[0, 'POW']).zfill(2) + str(str(goal.at[0, 'GMI']).zfill(2) + str(goal.at[0, 'RODZ_GMI']).zfill(1))
     newtercd = {'województwo': str(goal.at[0, 'WOJ']).zfill(2), 'powiat': str(goal.at[0, 'POW']).zfill(2), 'gmina': str(str(goal.at[0, 'GMI']).zfill(2) + str(goal.at[0, 'RODZ_GMI']).zfill(1))}
+    globterc.update(newtercd)
     elements = ['województwo', 'powiat', 'gmina']
     print('[bot] (1.) TERC: ' + newterc)
 
@@ -259,11 +260,20 @@ def filtersimc(data):
                 site = pwbot.Site('pl', 'nonsensopedia')
                 pg = pwbot.Page(site, u"Dyskusja użytkownika:Stim")
                 text = pg.text
-                if globname[0] not in text:
-                    pg.text = text + '\n== Zgłoszenie nieprawidłowego TERC pochodzącego z [[' + globname[0] + ']]==\n\nW artykule [[' + globname[0] + ']] mogą być nieaktualne kategorie jednostek administracyjnych. Nieprawidłowość wykryto w polu ' + str(elements[i]) + '.\n\nSzczegóły błędu:\n# Nasz TERC: ' + oldterc + ';\n# Rządowy TERC: ' + newterc + '.\n\n[[Użytkownik:StimBOT|StimBOT]] ~~~~~'
-                    pg.save(u'Zgłaszam nieprawidłowy TERC')
-                else:
-                    None
+
+                try:
+                    if globname[0] not in text:
+                        pg.text = text + '\n== Zgłoszenie nieprawidłowego TERC pochodzącego z [[' + globname[0] + ']] ==\n\nW artykule [[' + globname[0] + ']] mogą być nieaktualne kategorie jednostek administracyjnych. Nieprawidłowość wykryto w polu ' + str(elements[i]) + '.\n\nSzczegóły błędu:\n# Nasz TERC: ' + oldterc + ';\n# Rządowy TERC: ' + newterc + '.\n\n[[Użytkownik:StimBOT|StimBOT]] ~~~~~'
+                        pg.save(u'Zgłaszam nieprawidłowy TERC')
+                    else:
+                        None
+
+                except pwbot.exceptions.MaxlagTimeoutError:
+                    if globname[0] not in text:
+                        pg.text = text + '\n== Zgłoszenie nieprawidłowego TERC pochodzącego z [[' + globname[0] + ']] ==\n\nW artykule [[' + globname[0] + ']] mogą być nieaktualne kategorie jednostek administracyjnych. Nieprawidłowość wykryto w polu ' + str(elements[i]) + '.\n\nSzczegóły błędu:\n# Nasz TERC: ' + oldterc + ';\n# Rządowy TERC: ' + newterc + '.\n\n[[Użytkownik:StimBOT|StimBOT]] ~~~~~'
+                        pg.save(u'Zgłaszam nieprawidłowy TERC')
+                    else:
+                        return
 
     # If the number of rows is bigger than 1,
     # it means the captured data isn't certain.

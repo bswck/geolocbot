@@ -82,17 +82,23 @@ def readcategories(title):
 def run(title):
     page = pwbot.Page(site, title)
     text = page.text
+
     if text == '':
         raise KeyError('Nie ma takiej strony. [bot]')
+
     elif page.isRedirectPage():
         print('[bot] To jest przekierowanie.')
         title = str(page.getRedirectTarget()).replace('[[', '').replace(']]', '').replace('nonsensopedia:', '').replace('pl:', '')
+
         if '#' in title:
             for char in title:
+
                 if char == '#':
                     sharpindex = title.find(char)
                     title = title[:sharpindex]
-        print('[bot] Cel: ' + str(title))
+
+        print('[bot] Cel przekierowania to [[' + str(title) + ']].')
+
     readcategories(title)  # script starts
     return withkeypagename(title)
 
