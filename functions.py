@@ -3,7 +3,7 @@
 # License: GNU GPLv3.
 
 import sys
-import requests
+import requests as rq
 import time
 import pywikibot as pwbot
 from getcats import run
@@ -27,8 +27,17 @@ class EmptyNameError(Error):
 
 def apply(page, data):
     text = page.text
-    page.text = text + str('\n\n<nowiki>{{lokalizacja|' + data['koordynaty'] + '|simc=' + data['simc'] + '|wikidata=' + data['wikidata'] + ('|terc=' + data['terc'] if 'terc' in data.keys() else str()) + '}}</nowiki>')
-    page.save(u'Testuję pobór danych, szablon {Lokalizacja} w <nowiki>')
+    place = text.find('[[Kategoria:')
+    template = str('\n{{lokalizacja|' + data['koordynaty'] + '|simc=' + data['simc'] + '|wikidata=' + data['wikidata'] + ('|terc=' + data['terc'] if 'terc' in data.keys() else str()) + '}}\n')
+
+    if '{{lokalizacja|' in text:
+        templace = text.find('{{lokalizacja|')
+        page.text = text.replace(text[templace:place], template.replace('\n', '') + '\n')
+        page.save('/* zastąpiono */ ' + template)
+
+    else:
+        page.text = text[:place] + template + text[place:]
+        page.save('/* dodano */ ' + template)
 
 
 # Function checktitle checks if the providen title is valid.
@@ -186,9 +195,11 @@ def main(pagename=''):
 
         main(pagename=pagename)
 
-    except requests.exceptions.ConnectionError:
+    except rq.exceptions.ConnectionError:
 
         print("(nonsa.pl) [ConnectionError]: Bez neta ani rusz.", file=sys.stderr)
+        time.sleep(2)
+        main(pagename=pagename)
 
     else:
         print(data)
@@ -199,4 +210,3 @@ def main(pagename=''):
             apply(pwbot.Page(site, str('Użytkownik:Stim/' + pagename)), data)
 
         return data
-
