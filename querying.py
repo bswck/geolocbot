@@ -1,9 +1,6 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
-
-# Pywikibot will automatically set the user-agent to include your username.
-# To customise the user-agent see
-# https://www.mediawiki.org/wiki/Manual:Pywikibot/User-agent
+# Author: Stim, 2020.
+# Geolocalisation bot for Nonsensopedia.
+# License: GNU GPLv3.
 
 import pywikibot as pwbot
 import pandas as pd
@@ -41,10 +38,12 @@ def ntsplease(mode='certain'):
         globnts = []
 
         for nts_index in range(filtered_nts.shape[0]):
-            nts_id = (str(int(filtered_nts.at[nts_index, 'REGION'])) + str(int(filtered_nts.at[nts_index, 'WOJ'])).zfill(
-                2) + str(int(filtered_nts.at[nts_index, 'PODREG'])).zfill(
-                2) + str(int(filtered_nts.at[nts_index, 'POW'])).zfill(
-                2) + (str(int(filtered_nts.at[nts_index, 'GMI'])).zfill(2) + str(int(filtered_nts.at[nts_index, 'RODZ']))).replace('.', ''))
+            nts_id = (str(int(filtered_nts.at[nts_index, 'REGION'])) +
+                      str(int(filtered_nts.at[nts_index, 'WOJ'])).zfill(2) +
+                      str(int(filtered_nts.at[nts_index, 'PODREG'])).zfill(2) +
+                      str(int(filtered_nts.at[nts_index, 'POW'])).zfill(2) +
+                      (str(int(filtered_nts.at[nts_index, 'GMI'])).zfill(2) +
+                       str(int(filtered_nts.at[nts_index, 'RODZ']))).replace('.', ''))
 
             terc_odp = nts_id[1:3] + nts_id[5::]
             line = {terc_odp: nts_id}
@@ -73,8 +72,8 @@ def ntsplease(mode='certain'):
                 int(filtered_nts.at[nts_index, 'WOJ'])).zfill(
                 2) + str(int(filtered_nts.at[nts_index, 'PODREG'])).zfill(
                 2) + str(int(filtered_nts.at[nts_index, 'POW'])).zfill(
-                2) + (str(int(filtered_nts.at[nts_index, 'GMI'])).zfill(2) + str(
-                int(filtered_nts.at[nts_index, 'RODZ']))).replace('.', ''))
+                2) + (str(int(filtered_nts.at[nts_index, 'GMI'])).zfill(2) +
+                      str(int(filtered_nts.at[nts_index, 'RODZ']))).replace('.', ''))
 
             print('[b] ' + str(nts_id))
             locnts.append(nts_id)
@@ -95,22 +94,27 @@ def tercornot(data):
         return data
 
     shouldbeterc = sterc.loc[
-        (sterc['WOJ'] == float(globterc['województwo'])) & (sterc['POW'] == float(globterc['powiat'])) & (sterc['GMI'] == float(globterc['gmina']))]
+        (sterc['WOJ'] == float(globterc['województwo'])) & (sterc['POW'] == float(globterc['powiat'])) &
+        (sterc['GMI'] == float(globterc['gmina']))]
 
     if shouldbeterc.empty:
         shouldbeterc = shouldbeterc.loc[
-            (shouldbeterc['WOJ'] == float(globterc['województwo'])) & (shouldbeterc['POW'] == float(int(globterc['powiat'])))]
+            (shouldbeterc['WOJ'] == float(globterc['województwo'])) &
+            (shouldbeterc['POW'] == float(int(globterc['powiat'])))]
 
         if shouldbeterc.empty:
             tercb = tercbase.loc[
                 (tercbase['WOJ'] == float(globterc['województwo']))]
 
             if tercb.empty:
-                print("[b] Miejscowość " + globname[0] + " nie spełnia kryteriów TERC, więc identyfikator nie zostanie dołączony do szablonu. Usuwam klucz…")
+                print("[b] Miejscowość " + globname[0] +
+                      " nie spełnia kryteriów TERC, więc identyfikator nie zostanie dołączony do szablonu." +
+                      "Usuwam klucz…")
                 del data['terc']
                 return data
 
-    print('[b] Miejscowość ' + globname[0] + ' spełnia kryteria TERC, więc identyfikator zostanie dołączony do szablonu.')
+    print('[b] Miejscowość ' + globname[0] + ' spełnia kryteria TERC, więc identyfikator zostanie dołączony' +
+          'do szablonu.')
 
     return data
 
@@ -133,11 +137,13 @@ def getqid(data):
       OPTIONAL {?item wdt:P625 ?coord}.
       SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],pl". }
     }"""
+
     wikidata_site = pwbot.Site("wikidata", "wikidata")
     generator = pg.WikidataSPARQLPageGenerator(query, site=wikidata_site)
     x = list(generator)
 
     if x == []:
+
         query = """SELECT ?coord ?item ?itemLabel 
             WHERE
             {
@@ -145,12 +151,14 @@ def getqid(data):
               OPTIONAL {?item wdt:P625 ?coord}.
               SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],pl". }
             }"""
+
         generator = pg.WikidataSPARQLPageGenerator(query, site=wikidata_site)
         x = list(generator)
 
         if x == []:
             try:
                 print('[b] Ustawiono tryb domyślny NTS.')
+
                 query = """SELECT ?coord ?item ?itemLabel 
                     WHERE
                     {
@@ -166,7 +174,9 @@ def getqid(data):
                 print('[b] ' + str(KeyError))
                 print('[b] Domyślny tryb NTS nie zwrócił wyniku.')
                 print('[b] Ustawiono niepewny tryb NTS.')
+
                 for i in range(len(ntsplease(mode='uncertain'))):
+
                     query = """SELECT ?coord ?item ?itemLabel 
                         WHERE
                         {
@@ -174,6 +184,7 @@ def getqid(data):
                           OPTIONAL {?item wdt:P625 ?coord}.
                           SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],pl". }
                         }"""
+
                     generator = pg.WikidataSPARQLPageGenerator(query, site=wikidata_site)
                     x = list(generator)
 
@@ -201,6 +212,7 @@ def coords(qid):
 
     try:
         item.get()
+
     except pwbot.exceptions.MaxlagTimeoutError:
         item.get()
 
@@ -214,7 +226,7 @@ def coords(qid):
             # Couldn't see any other way.
             latitude = coordinates.lat
             longitude = coordinates.lon
-            coords = {'koordynaty': str(latitude) + ', ' + str(longitude)}
-            everythingiknow.update(coords)
+            coordins = {'koordynaty': str(latitude) + ', ' + str(longitude)}
+            everythingiknow.update(coordins)
 
     return tercornot(everythingiknow)  # ;)

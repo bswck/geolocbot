@@ -56,8 +56,8 @@ def findcats(c, title):
             raise ValueError('Podana strona to ujednoznacznienie.')
 
         # Reading the category of category if it's one of these below.
-        elif "Kategoria:Miasta w" in c[i] or "Kategoria:Powiaty w" in c[i] or "Kategoria:Gminy w" in c[
-            i] or "Kategoria:" + title in c[i]:
+        elif "Kategoria:Miasta w" in c[i] or "Kategoria:Powiaty w" in c[i] or "Kategoria:Gminy w" in c[i] or \
+                "Kategoria:" + title in c[i]:
             readcategories(c[i])
 
         elif cp('powiat', c[i]) is not False:
@@ -94,8 +94,10 @@ def run(title):
 
     elif page.isRedirectPage():
         print('[bot] To jest przekierowanie.')
-        title = str(page.getRedirectTarget()).replace('[[', '').replace(']]', '').replace('nonsensopedia:', '').replace(
-            'pl:', '')
+        title = str(page.getRedirectTarget()).replace('[[', '') \
+                                             .replace(']]', '') \
+                                             .replace('nonsensopedia:', '') \
+                                             .replace('pl:', '')
 
         if '#' in title:
             for char in title:

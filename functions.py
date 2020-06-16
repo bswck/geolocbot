@@ -29,7 +29,9 @@ class EmptyNameError(Error):
 def apply(page, data):
     text = page.text
     place = text.find('[[Kategoria:')
-    template = str('\n{{lokalizacja|' + data['koordynaty'] + '|simc=' + data['simc'] + ('|terc=' + data['terc'] if 'terc' in data.keys() else str()) + '|wikidata=' + data['wikidata'] + ('|tryb=0' if uncertain == [] else '|tryb=1') + '}}\n')
+    template = str('\n{{lokalizacja|' + data['koordynaty'] + '|simc=' + data['simc'] +
+                   ('|terc=' + data['terc'] if 'terc' in data.keys() else str()) + '|wikidata=' + data['wikidata'] +
+                   ('|tryb=0' if uncertain == [] else '|tryb=1') + '}}\n')
 
     if '{{lokalizacja|' in text:
         templace = text.find('{{lokalizacja|')
@@ -89,7 +91,7 @@ def checktitle(pagename):
     return st
 
 
-def exit():
+def end():
     print('[b] Zapraszam ponownie!')
     print('***')
     sys.exit()
@@ -101,7 +103,7 @@ def main(pagename=None):
         if pagename is None:
             pagename = input('-b- Podaj nazwę artykułu: ')
 
-            exit() if '*e' in pagename else None
+            end() if '*e' in pagename else None
 
             print('[b] Zaczynam odmierzać czas.')
             r = time.time()
@@ -168,7 +170,9 @@ def main(pagename=None):
             file=sys.stderr)
 
         print(
-            " " * 11 + "Hint:" + " " * 7 + str(ke).replace("'", '') if str(ke) != '0' else " " * 11 + "Hint:" + " " * 7 + 'Nic nie znalazłem. [b]', file=sys.stderr)
+            " " * 11 + "Hint:" + " " * 7 +
+            str(ke).replace("'", '') if str(ke) != '0' else " " * 11 + "Hint:" +
+                                                            " " * 7 + 'Nic nie znalazłem. [b]', file=sys.stderr)
         time.sleep(2)
         print()
         print()
@@ -218,7 +222,7 @@ def main(pagename=None):
             main(pagename=pagename)
 
         else:
-            exit()
+            end()
 
     except pwbot.exceptions.MaxlagTimeoutError:
 

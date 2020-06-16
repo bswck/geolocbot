@@ -245,11 +245,20 @@ def filtersimc(data):
     # to be actualised, doesn't it? ;)
     goal = goal[['NAZWA', 'WOJ', 'POW', 'GMI', 'RODZ_GMI', 'SYM']].reset_index()
 
-    oldterc = [str(data.at[0, 'WOJ']).zfill(2) if 'WOJ' in data else str(goal.at[0, 'WOJ']).zfill(2), str(int(data.at[0, 'POW'])).zfill(2) if 'POW' in data else str(goal.at[0, 'POW']).zfill(2), str(int(data.at[0, 'GMI'])).zfill(3) if 'GMI' in data else str(str(goal.at[0, 'GMI']).zfill(2) + str(goal.at[0, 'RODZ_GMI']).zfill(1))]
+    oldterc = [str(data.at[0, 'WOJ']).zfill(2) if 'WOJ' in data else str(goal.at[0, 'WOJ']).zfill(2),
+               str(int(data.at[0, 'POW'])).zfill(2) if 'POW' in data else str(goal.at[0, 'POW']).zfill(2),
+               str(int(data.at[0, 'GMI'])).zfill(3) if 'GMI' in data else str(str(goal.at[0, 'GMI']).zfill(2) +
+                                                                              str(goal.at[0, 'RODZ_GMI']).zfill(1))]
     oldtercd = oldterc
     oldterc = oldterc[0] + oldterc[1] + oldterc[2]
-    newterc = str(goal.at[0, 'WOJ']).zfill(2) + str(goal.at[0, 'POW']).zfill(2) + str(str(goal.at[0, 'GMI']).zfill(2) + str(goal.at[0, 'RODZ_GMI']).zfill(1))
-    newtercd = {'województwo': str(goal.at[0, 'WOJ']).zfill(2), 'powiat': str(goal.at[0, 'POW']).zfill(2), 'gmina': str(str(goal.at[0, 'GMI']).zfill(2) + str(goal.at[0, 'RODZ_GMI']).zfill(1))}
+
+    newterc = str(str(goal.at[0, 'WOJ']).zfill(2) +
+                  str(goal.at[0, 'POW']).zfill(2) +
+                  str(goal.at[0, 'GMI']).zfill(2) +
+                  str(goal.at[0, 'RODZ_GMI']).zfill(1))
+
+    newtercd = {'województwo': str(goal.at[0, 'WOJ']).zfill(2), 'powiat': str(goal.at[0, 'POW']).zfill(2),
+                'gmina': str(str(goal.at[0, 'GMI']).zfill(2) + str(goal.at[0, 'RODZ_GMI']).zfill(1))}
     globtercc.append(newterc)
     globterc.update(newtercd)
 
@@ -271,16 +280,26 @@ def filtersimc(data):
 
                 try:
                     if globname[0] not in text:
-                        pg.text = text + '\n== Zgłoszenie nieprawidłowego TERC pochodzącego z [[' + globname[0] + ']] ==\n\nW artykule [[' + globname[0] + "]] mogą być nieaktualne kategorie jednostek administracyjnych. Nieprawidłowość wykryto w polu '''" + str(elements[i]) + "'''.\n\nSzczegóły błędu:\n# Nasz TERC: " + oldterc + ';\n# Rządowy TERC: ' + newterc + '.\n\n[[Specjalna:Wkład/StimBOT|StimBOT]] ~~~~~'
+                        pg.text = text + '\n== Zgłoszenie nieprawidłowego TERC pochodzącego z [[' + globname[0] + \
+                                  ']] ==\n\nW artykule [[' + globname[0] + \
+                                  "]] mogą być nieaktualne kategorie jednostek administracyjnych." + \
+                                  " Nieprawidłowość wykryto w polu '''" + str(elements[i]) + \
+                                  "'''.\n\nSzczegóły błędu:\n# Nasz TERC: " + oldterc + ';\n# Rządowy TERC: ' + \
+                                  newterc + '.\n\n[[Specjalna:Wkład/StimBOT|StimBOT]] ~~~~~'
                         pg.save(u'Zgłaszam nieprawidłowy TERC')
 
                 except pwbot.exceptions.MaxlagTimeoutError:
                     if globname[0] not in text:
-                        pg.text = text + '\n== Zgłoszenie nieprawidłowego TERC pochodzącego z [[' + globname[0] + ']] ==\n\nW artykule [[' + globname[0] + "]] mogą być nieaktualne kategorie jednostek administracyjnych. Nieprawidłowość wykryto w polu '''" + str(elements[i]) + "'''.\n\nSzczegóły błędu:\n# Nasz TERC: " + oldterc + ';\n# Rządowy TERC: ' + newterc + '.\n\n[[Specjalna:Wkład/StimBOT|StimBOT]] ~~~~~'
+                        pg.text = text + '\n== Zgłoszenie nieprawidłowego TERC pochodzącego z [[' + globname[0] + \
+                                  ']] ==\n\nW artykule [[' + globname[0] + \
+                                  "]] mogą być nieaktualne kategorie jednostek administracyjnych." + \
+                                  " Nieprawidłowość wykryto w polu '''" + str(elements[i]) + \
+                                  "'''.\n\nSzczegóły błędu:\n# Nasz TERC: " + oldterc + ';\n# Rządowy TERC: ' + \
+                                  newterc + '.\n\n[[Specjalna:Wkład/StimBOT|StimBOT]] ~~~~~'
                         pg.save(u'Zgłaszam nieprawidłowy TERC')
 
     # If the number of rows is bigger than 1,
-    # it means the captured data isn't certain.
+    # the captured data isn't certain.
     if goal.shape[0] > 1:
         raise TooManyRows(goal[['NAZWA', 'SYM']])
 
