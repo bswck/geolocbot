@@ -7,7 +7,7 @@
 
 import pywikibot as pwbot
 import pandas as pd
-from databases import globname, globterc
+from databases import globname, globterc, globnts
 from pywikibot.pagegenerators import WikidataSPARQLPageGenerator
 from pywikibot.bot import SingleSiteBot
 from pywikibot import pagegenerators as pg
@@ -25,11 +25,11 @@ def tercornot(data):
     sterc = shouldbeterc.copy()
 
     if sterc.empty:
-        print("[bot] " + globname[0] + " nie występuje w systemie TERC. Usuwam klucz…")
+        print("[b] " + globname[0] + " nie występuje w systemie TERC. Usuwam klucz…")
         del data['terc']
         return data
 
-    sterc = sterc.loc[
+    shouldbeterc = sterc.loc[
         (sterc['WOJ'] == float(globterc['województwo'])) & (sterc['POW'] == float(globterc['powiat'])) & (sterc['GMI'] == float(globterc['gmina']))]
 
     if shouldbeterc.empty:
@@ -42,11 +42,11 @@ def tercornot(data):
             print(tercbase)
 
             if tercb.empty:
-                print("[bot] Miejscowość " + globname[0] + " nie spełnia kryteriów TERC, więc identyfikator nie zostanie dołączony do szablonu. Usuwam klucz…")
+                print("[b] Miejscowość " + globname[0] + " nie spełnia kryteriów TERC, więc identyfikator nie zostanie dołączony do szablonu. Usuwam klucz…")
                 del data['terc']
                 return data
 
-    print('[bot] Miejscowość ' + globname[0] + ' spełnia kryteria TERC, więc identyfikator zostanie dołączony do szablonu.')
+    print('[b] Miejscowość ' + globname[0] + ' spełnia kryteria TERC, więc identyfikator zostanie dołączony do szablonu.')
 
     return data
 
@@ -86,13 +86,25 @@ def getqid(data):
         x = list(generator)
 
         if x == []:
-            raise KeyError('Albo jestem głupi, albo nic nie ma w Wikidata. [bot]')
+            query = """SELECT ?coord ?item ?itemLabel 
+                WHERE
+                {
+                  ?item wdt:P1653 '""" + globnts[0] + """'.
+                  OPTIONAL {?item wdt:P625 ?coord}.
+                  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],pl". }
+                }"""
+            wikidata_site = pwbot.Site("wikidata", "wikidata")
+            generator = pg.WikidataSPARQLPageGenerator(query, site=wikidata_site)
+            x = list(generator)
+
+            if x == []:
+                raise KeyError('Nic nie znalazłem w Wikidata. [b]')
 
     string = ''.join(map(str, x))
     qidentificator = string.replace("[[wikidata:", "").replace("]]", "")
     qidl = {'wikidata': qidentificator}
     everythingiknow.update(qidl)
-    print('[bot] (::) QID:  ' + str(qidentificator))
+    print('[b] (::) QID:  ' + str(qidentificator))
     return qidentificator
 
 

@@ -19,10 +19,12 @@ class TooManyRows(Error):
     pass
 
 
+nts = pd.read_csv("NTS.csv", sep=';')
 simc = pd.read_csv("SIMC.csv", sep=';',
                    usecols=['WOJ', 'POW', 'GMI', 'RODZ_GMI', 'RM', 'MZ', 'NAZWA', 'SYM'])
 tercbase = pd.read_csv("TERC.csv", sep=';', usecols=['WOJ', 'POW', 'GMI', 'RODZ', 'NAZWA', 'NAZWA_DOD'])
 
+globnts = []
 globname = []
 globterc = {}
 
@@ -244,19 +246,41 @@ def filtersimc(data):
     newterc = str(goal.at[0, 'WOJ']).zfill(2) + str(goal.at[0, 'POW']).zfill(2) + str(str(goal.at[0, 'GMI']).zfill(2) + str(goal.at[0, 'RODZ_GMI']).zfill(1))
     newtercd = {'województwo': str(goal.at[0, 'WOJ']).zfill(2), 'powiat': str(goal.at[0, 'POW']).zfill(2), 'gmina': str(str(goal.at[0, 'GMI']).zfill(2) + str(goal.at[0, 'RODZ_GMI']).zfill(1))}
     globterc.update(newtercd)
+    filtered_nts = nts.loc[nts['NAZWA'] == globname[0]].reset_index()
+    locnts = {}
+
+    for nts_index in range(filtered_nts.shape[0]):
+        nts_id = (str(int(filtered_nts.at[nts_index, 'REGION'])) + str(int(filtered_nts.at[nts_index, 'WOJ'])).zfill(
+            2) + str(int(filtered_nts.at[nts_index, 'PODREG'])).zfill(
+            2) + str(int(filtered_nts.at[nts_index, 'POW'])) + str(
+            int(filtered_nts.at[nts_index, 'GMI'])) + str(int(filtered_nts.at[nts_index, 'RODZ']))).replace('.', '')
+        terc_odp = nts_id[1:3] + nts_id[5::]
+        line = {terc_odp: nts_id}
+        locnts.update(line)
+
+    print(locnts)
+
+    for i in range(len(locnts) - 1):
+
+        if newterc != list(locnts.keys())[i]:
+            print('[b] ' + newterc + ' != ' + list(locnts.keys())[i] + ' – wartość usunięta.')
+            del locnts[list(locnts.keys())[i]]
+
+    print('[b] (1.) NTS:  ' + locnts[newterc])
+    globnts.append(locnts[newterc])
+
     elements = ['województwo', 'powiat', 'gmina']
-    print('[bot] (1.) TERC: ' + newterc)
+    print('[b] (1.) TERC: ' + newterc)
 
     if oldterc != newterc:
         for i in range(0, len(elements), 1):
             if oldtercd[i] != newtercd[elements[i]]:
-                print("[bot] Sugeruję uaktualnienie danych, Anżej,")
-                print(" " * 6 + 'bo w polu ' + elements[i] + ' są nieaktualne dane.')
-                print(" " * 6 + 'Porównaj:')
+                print("[b] Sugeruję uaktualnienie danych, Anżej,")
+                print(" " * 4 + 'bo w polu ' + elements[i] + ' są nieaktualne dane.')
+                print(" " * 4 + 'Porównaj:')
                 print()
-                print(" " * 6 + 'Nasze:    ' + oldterc)
-                print(" " * 6 + 'Aktualne: ' + newterc)
-                print()
+                print(" " * 4 + 'Nasze:    ' + oldterc)
+                print(" " * 4 + 'Aktualne: ' + newterc)
                 site = pwbot.Site('pl', 'nonsensopedia')
                 pg = pwbot.Page(site, u"Dyskusja użytkownika:Stim")
                 text = pg.text
@@ -265,15 +289,11 @@ def filtersimc(data):
                     if globname[0] not in text:
                         pg.text = text + '\n== Zgłoszenie nieprawidłowego TERC pochodzącego z [[' + globname[0] + ']] ==\n\nW artykule [[' + globname[0] + ']] mogą być nieaktualne kategorie jednostek administracyjnych. Nieprawidłowość wykryto w polu ' + str(elements[i]) + '.\n\nSzczegóły błędu:\n# Nasz TERC: ' + oldterc + ';\n# Rządowy TERC: ' + newterc + '.\n\n[[Użytkownik:StimBOT|StimBOT]] ~~~~~'
                         pg.save(u'Zgłaszam nieprawidłowy TERC')
-                    else:
-                        None
 
                 except pwbot.exceptions.MaxlagTimeoutError:
                     if globname[0] not in text:
                         pg.text = text + '\n== Zgłoszenie nieprawidłowego TERC pochodzącego z [[' + globname[0] + ']] ==\n\nW artykule [[' + globname[0] + ']] mogą być nieaktualne kategorie jednostek administracyjnych. Nieprawidłowość wykryto w polu ' + str(elements[i]) + '.\n\nSzczegóły błędu:\n# Nasz TERC: ' + oldterc + ';\n# Rządowy TERC: ' + newterc + '.\n\n[[Użytkownik:StimBOT|StimBOT]] ~~~~~'
                         pg.save(u'Zgłaszam nieprawidłowy TERC')
-                    else:
-                        return
 
     # If the number of rows is bigger than 1,
     # it means the captured data isn't certain.
@@ -284,6 +304,6 @@ def filtersimc(data):
         # (Expecting only one row, please look above).
         sym = goal.at[0, 'SYM']
         sym = str(sym).zfill(7)
-        print('[bot] (::) SIMC: ' + sym)
+        print('[b] (::) SIMC: ' + sym)
         alldata = {'SIMC': sym, 'TERC': newterc}
         return alldata

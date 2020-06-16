@@ -17,9 +17,9 @@ _  / __ _  _ \  __ \_  /_  __ \  ___/_  __ \  __ \  __/
         """)
 
 print()
-print('[bot] Ctrl + C przerywa wykonywanie operacji.')
-print('[bot] Wpisanie *e spowoduje zamknięcie programu.')
-print('[bot] Ja na gitlabie: https://gitlab.com/nonsensopedia/bots/geolocbot.')
+print('[b] Ctrl + C przerywa wykonywanie operacji.')
+print('[b] Wpisanie *e spowoduje zamknięcie programu.')
+print('[b] Ja na gitlabie: https://gitlab.com/nonsensopedia/bots/geolocbot.')
 print()
 
 # 'Start' time-measure.

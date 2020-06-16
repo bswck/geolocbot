@@ -63,7 +63,7 @@ def checktitle(pagename):
                 from2index = pagename.find(i) + 1
 
         # Prints out that namespace name has been excluded from the pagename.
-        print("[bot] Usunięto '" + pagename[:from2index] + "'.")
+        print("[b] Usunięto '" + pagename[:from2index] + "'.")
 
         st = str(pagename[from2index::])
         checktitle(st)
@@ -73,7 +73,7 @@ def checktitle(pagename):
 
             if i == '(':
                 fromindex = pagename.find(i) - 1
-                print("[bot] Usunięto dopisek '" + pagename[fromindex + 1:] + "'.")
+                print("[b] Usunięto dopisek '" + pagename[fromindex + 1:] + "'.")
 
     # .capitalize() changes further characters to lower,
     # that is why I use this method.
@@ -87,22 +87,22 @@ def checktitle(pagename):
 
 
 def exit():
-    print('[bot] Zapraszam ponownie!')
+    print('[b] Zapraszam ponownie!')
     print('***')
     sys.exit()
 
 
 # This runs the whole code.
-def main(pagename=''):
+def main(pagename=None):
     try:
-        if pagename == '':
-            pagename = input('-bot- Podaj nazwę artykułu: ')
+        if pagename is None:
+            pagename = input('-b- Podaj nazwę artykułu: ')
 
             exit() if '*e' in pagename else None
 
             pagename = checktitle(pagename)
         else:
-            print('[bot] Nazwa artykułu (' + pagename + ') w pamięci.')
+            print('[b] Nazwa artykułu (' + pagename + ') w pamięci.')
 
         data = filtersimc(terencode(run(pagename)))
 
@@ -142,7 +142,7 @@ def main(pagename=''):
             file=sys.stderr)
 
         print(
-            " " * 11 + "Hint:" + " " * 7 + str(ke).replace("'", '') if str(ke) != '0' else " " * 11 + "Hint:" + " " * 7 + 'Nic nie znalazłem. [bot]', file=sys.stderr)
+            " " * 11 + "Hint:" + " " * 7 + str(ke).replace("'", '') if str(ke) != '0' else " " * 11 + "Hint:" + " " * 7 + 'Nic nie znalazłem. [b]', file=sys.stderr)
         time.sleep(2)
         print()
         print()
@@ -177,7 +177,7 @@ def main(pagename=''):
 
     except KeyboardInterrupt:
         print("(nonsa.pl) [KeyboardInterrupt]: Pomyślnie przerwano operację.", file=sys.stderr)
-        print('-bot- Kontynuować? <T/N>')
+        print('-b- Kontynuować? <T/N>')
         ct = str(input('Odpowiedź: ')).upper()
         ans = ['T', 'N']
 
@@ -195,18 +195,12 @@ def main(pagename=''):
 
         main(pagename=pagename)
 
-    except rq.exceptions.ConnectionError:
-
-        print("(nonsa.pl) [ConnectionError]: Bez neta ani rusz.", file=sys.stderr)
-        time.sleep(2)
-        main(pagename=pagename)
-
     else:
         print(data)
         try:
-            apply(pwbot.Page(site, str('Użytkownik:Stim/' + pagename)), data)
+            apply(pwbot.Page(site, str(pagename)), data)
 
         except pwbot.exceptions.MaxlagTimeoutError:
-            apply(pwbot.Page(site, str('Użytkownik:Stim/' + pagename)), data)
+            apply(pwbot.Page(site, pagename), data)
 
         return data
