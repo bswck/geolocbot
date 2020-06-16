@@ -258,7 +258,7 @@ def filtersimc(data):
         line = {terc_odp: nts_id}
         locnts.update(line)
 
-    print(locnts)
+    print('[b] ' + str(locnts))
 
     for i in range(len(locnts) - 1):
 

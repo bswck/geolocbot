@@ -28,7 +28,7 @@ class EmptyNameError(Error):
 def apply(page, data):
     text = page.text
     place = text.find('[[Kategoria:')
-    template = str('\n{{lokalizacja|' + data['koordynaty'] + '|simc=' + data['simc'] + '|wikidata=' + data['wikidata'] + ('|terc=' + data['terc'] if 'terc' in data.keys() else str()) + '}}\n')
+    template = str('\n{{lokalizacja|' + data['koordynaty'] + '|simc=' + data['simc'] + ('|terc=' + data['terc'] if 'terc' in data.keys() else str()) + '|wikidata=' + data['wikidata'] + '}}\n')
 
     if '{{lokalizacja|' in text:
         templace = text.find('{{lokalizacja|')
@@ -198,9 +198,9 @@ def main(pagename=None):
     else:
         print(data)
         try:
-            apply(pwbot.Page(site, str(pagename)), data)
+            apply(pwbot.Page(site, 'Użytkownik:Stim/' + pagename), data)
 
         except pwbot.exceptions.MaxlagTimeoutError:
-            apply(pwbot.Page(site, pagename), data)
+            apply(pwbot.Page(site, 'Użytkownik:Stim/' + pagename), data)
 
         return data
