@@ -19,14 +19,20 @@ class TooManyRows(Error):
     pass
 
 
-nts = pd.read_csv("NTS.csv", sep=';')
 simc = pd.read_csv("SIMC.csv", sep=';',
                    usecols=['WOJ', 'POW', 'GMI', 'RODZ_GMI', 'RM', 'MZ', 'NAZWA', 'SYM'])
 tercbase = pd.read_csv("TERC.csv", sep=';', usecols=['WOJ', 'POW', 'GMI', 'RODZ', 'NAZWA', 'NAZWA_DOD'])
 
-globnts = []
 globname = []
 globterc = {}
+globtercc = []
+
+
+def updatename(name):
+    if len(globname) >= 1:
+        del globname[0]
+    globname.append(name)
+    print('[b] Aktualizacja docelowego adresu: [[' + name + ']].')
 
 
 # This function is checking exactly if a category
@@ -69,7 +75,6 @@ def cp(typ, name):
 def terencode(data):
     data = pd.DataFrame(data, index=[0])
     name = data.at[0, 'NAZWA']
-    globname.append(name)
 
     dname = name[::-1]
     dname = dname[::-1]
@@ -245,29 +250,8 @@ def filtersimc(data):
     oldterc = oldterc[0] + oldterc[1] + oldterc[2]
     newterc = str(goal.at[0, 'WOJ']).zfill(2) + str(goal.at[0, 'POW']).zfill(2) + str(str(goal.at[0, 'GMI']).zfill(2) + str(goal.at[0, 'RODZ_GMI']).zfill(1))
     newtercd = {'województwo': str(goal.at[0, 'WOJ']).zfill(2), 'powiat': str(goal.at[0, 'POW']).zfill(2), 'gmina': str(str(goal.at[0, 'GMI']).zfill(2) + str(goal.at[0, 'RODZ_GMI']).zfill(1))}
+    globtercc.append(newterc)
     globterc.update(newtercd)
-    filtered_nts = nts.loc[nts['NAZWA'] == globname[0]].reset_index()
-    locnts = {}
-
-    for nts_index in range(filtered_nts.shape[0]):
-        nts_id = (str(int(filtered_nts.at[nts_index, 'REGION'])) + str(int(filtered_nts.at[nts_index, 'WOJ'])).zfill(
-            2) + str(int(filtered_nts.at[nts_index, 'PODREG'])).zfill(
-            2) + str(int(filtered_nts.at[nts_index, 'POW'])) + str(
-            int(filtered_nts.at[nts_index, 'GMI'])) + str(int(filtered_nts.at[nts_index, 'RODZ']))).replace('.', '')
-        terc_odp = nts_id[1:3] + nts_id[5::]
-        line = {terc_odp: nts_id}
-        locnts.update(line)
-
-    print('[b] ' + str(locnts))
-
-    for i in range(len(locnts) - 1):
-
-        if newterc != list(locnts.keys())[i]:
-            print('[b] ' + newterc + ' != ' + list(locnts.keys())[i] + ' – wartość usunięta.')
-            del locnts[list(locnts.keys())[i]]
-
-    print('[b] (1.) NTS:  ' + locnts[newterc])
-    globnts.append(locnts[newterc])
 
     elements = ['województwo', 'powiat', 'gmina']
     print('[b] (1.) TERC: ' + newterc)
@@ -287,12 +271,12 @@ def filtersimc(data):
 
                 try:
                     if globname[0] not in text:
-                        pg.text = text + '\n== Zgłoszenie nieprawidłowego TERC pochodzącego z [[' + globname[0] + ']] ==\n\nW artykule [[' + globname[0] + ']] mogą być nieaktualne kategorie jednostek administracyjnych. Nieprawidłowość wykryto w polu ' + str(elements[i]) + '.\n\nSzczegóły błędu:\n# Nasz TERC: ' + oldterc + ';\n# Rządowy TERC: ' + newterc + '.\n\n[[Użytkownik:StimBOT|StimBOT]] ~~~~~'
+                        pg.text = text + '\n== Zgłoszenie nieprawidłowego TERC pochodzącego z [[' + globname[0] + ']] ==\n\nW artykule [[' + globname[0] + "]] mogą być nieaktualne kategorie jednostek administracyjnych. Nieprawidłowość wykryto w polu '''" + str(elements[i]) + "'''.\n\nSzczegóły błędu:\n# Nasz TERC: " + oldterc + ';\n# Rządowy TERC: ' + newterc + '.\n\n[[Specjalna:Wkład/StimBOT|StimBOT]] ~~~~~'
                         pg.save(u'Zgłaszam nieprawidłowy TERC')
 
                 except pwbot.exceptions.MaxlagTimeoutError:
                     if globname[0] not in text:
-                        pg.text = text + '\n== Zgłoszenie nieprawidłowego TERC pochodzącego z [[' + globname[0] + ']] ==\n\nW artykule [[' + globname[0] + ']] mogą być nieaktualne kategorie jednostek administracyjnych. Nieprawidłowość wykryto w polu ' + str(elements[i]) + '.\n\nSzczegóły błędu:\n# Nasz TERC: ' + oldterc + ';\n# Rządowy TERC: ' + newterc + '.\n\n[[Użytkownik:StimBOT|StimBOT]] ~~~~~'
+                        pg.text = text + '\n== Zgłoszenie nieprawidłowego TERC pochodzącego z [[' + globname[0] + ']] ==\n\nW artykule [[' + globname[0] + "]] mogą być nieaktualne kategorie jednostek administracyjnych. Nieprawidłowość wykryto w polu '''" + str(elements[i]) + "'''.\n\nSzczegóły błędu:\n# Nasz TERC: " + oldterc + ';\n# Rządowy TERC: ' + newterc + '.\n\n[[Specjalna:Wkład/StimBOT|StimBOT]] ~~~~~'
                         pg.save(u'Zgłaszam nieprawidłowy TERC')
 
     # If the number of rows is bigger than 1,

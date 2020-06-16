@@ -7,11 +7,12 @@ import requests as rq
 import time
 import pywikibot as pwbot
 from getcats import run
-from databases import filtersimc, terencode, TooManyRows
+from databases import filtersimc, terencode, TooManyRows, updatename
 from pywikibot import InvalidTitle
-from querying import coords, getqid
+from querying import coords, getqid, uncertain, changemode
 
 site = pwbot.Site('pl', 'nonsensopedia')  # we're on nonsa.pl
+start = []
 
 
 # Errors definitions.
@@ -28,7 +29,7 @@ class EmptyNameError(Error):
 def apply(page, data):
     text = page.text
     place = text.find('[[Kategoria:')
-    template = str('\n{{lokalizacja|' + data['koordynaty'] + '|simc=' + data['simc'] + ('|terc=' + data['terc'] if 'terc' in data.keys() else str()) + '|wikidata=' + data['wikidata'] + '}}\n')
+    template = str('\n{{lokalizacja|' + data['koordynaty'] + '|simc=' + data['simc'] + ('|terc=' + data['terc'] if 'terc' in data.keys() else str()) + '|wikidata=' + data['wikidata'] + ('|tryb=0' if uncertain == [] else '|tryb=1') + '}}\n')
 
     if '{{lokalizacja|' in text:
         templace = text.find('{{lokalizacja|')
@@ -38,6 +39,8 @@ def apply(page, data):
     else:
         page.text = text[:place] + template + text[place:]
         page.save('/* dodano */ ' + template)
+
+    changemode()
 
 
 # Function checktitle checks if the providen title is valid.
@@ -100,10 +103,30 @@ def main(pagename=None):
 
             exit() if '*e' in pagename else None
 
+            print('[b] Zaczynam odmierzać czas.')
+            r = time.time()
+
+            if start != []:
+                for i in range(len(start)):
+                    del start[i]
+
+            start.append(r)
+
             pagename = checktitle(pagename)
         else:
+
+            print('[b] Zaczynam odmierzać czas.')
+            r = time.time()
+
+            if start != []:
+                for i in range(len(start)):
+                    del start[i]
+
+            start.append(r)
+
             print('[b] Nazwa artykułu (' + pagename + ') w pamięci.')
 
+        updatename(pagename)
         data = filtersimc(terencode(run(pagename)))
 
         # The question is: "haven't you made a mistake whilst inputing?".
@@ -114,6 +137,7 @@ def main(pagename=None):
             data = coords(getqid(data))
 
     except TypeError:
+        print()
         print(
             "(nonsa.pl) [TypeError]: Ha! TypeError nam wyskoczył.",
             file=sys.stderr)
@@ -121,6 +145,7 @@ def main(pagename=None):
         main()
 
     except ValueError as ve:
+        print()
         print(
             "(nonsa.pl) [ValueError]: Nie znaleziono odpowiednich kategorii lub strona '" + str(pagename) + "' nie "
                                                                                                             "istnieje.",
@@ -136,6 +161,7 @@ def main(pagename=None):
         main()
 
     except KeyError as ke:
+        print()
         print(
             "(nonsa.pl) [KeyError]: Nie znaleziono odpowiednich kategorii lub strona '" + str(pagename) + "' nie "
                                                                                                           "istnieje.",
@@ -149,6 +175,7 @@ def main(pagename=None):
         main()
 
     except TooManyRows as tmr:
+        print()
         print("(nonsa.pl) [TooManyRows]: Więcej niż 1 rząd w odebranych danych!", file=sys.stderr)
         print(" " * 11 + "Wyjściowa baza:", file=sys.stderr)
         print()
@@ -159,6 +186,7 @@ def main(pagename=None):
         main()
 
     except InvalidTitle as it:
+        print()
         print("(nonsa.pl) [InvalidTitle]: Podany tytuł jest nieprawidłowy.", file=sys.stderr)
         print(" " * 11 + "Hint:" + " " * 11 + str(it) + ".", file=sys.stderr)
         time.sleep(2)
@@ -167,7 +195,7 @@ def main(pagename=None):
         main()
 
     except EmptyNameError:
-
+        print()
         print("(nonsa.pl) Błąd: Nie podano tytułu strony.",
               file=sys.stderr)
         time.sleep(2)
@@ -176,6 +204,7 @@ def main(pagename=None):
         main()
 
     except KeyboardInterrupt:
+        print()
         print("(nonsa.pl) [KeyboardInterrupt]: Pomyślnie przerwano operację.", file=sys.stderr)
         print('-b- Kontynuować? <T/N>')
         ct = str(input('Odpowiedź: ')).upper()
@@ -196,7 +225,9 @@ def main(pagename=None):
         main(pagename=pagename)
 
     else:
-        print(data)
+        print()
+        show = str(data).replace('{', '').replace('}', '').replace(': ', ' → ').replace("'", '')
+        print('[b] Pobrano: ' + show)
         try:
             apply(pwbot.Page(site, 'Użytkownik:Stim/' + pagename), data)
 

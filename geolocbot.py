@@ -4,16 +4,16 @@
 
 # Import time to measure the time spent on completing the function.
 import time
-from functions import checktitle, main
+from functions import checktitle, main, start
 
 print("""
-_________          ______           ______       _____ 
-__  ____/_____________  /______________  /_________  /_
-_  / __ _  _ \  __ \_  /_  __ \  ___/_  __ \  __ \  __/
-/ /_/ / /  __/ /_/ /  / / /_/ / /__ _  /_/ / /_/ / /_  
-\____/  \___/\____//_/  \____/\___/ /_.___/\____/\__/  
+[b] _________          ______           ______       _____ 
+[b] __  ____/_____________  /______________  /_________  /_
+[b] _  / __ _  _ \  __ \_  /_  __ \  ___/_  __ \  __ \  __/
+[b] / /_/ / /  __/ /_/ /  / / /_/ / /__ _  /_/ / /_/ / /_  
+[b] \____/  \___/\____//_/  \____/\___/ /_.___/\____/\__/  
 
-                                         Geolocbot 2020
+[b]                                         Geolocbot 2020
         """)
 
 print()
@@ -22,15 +22,13 @@ print('[b] Wpisanie *e spowoduje zamknięcie programu.')
 print('[b] Ja na gitlabie: https://gitlab.com/nonsensopedia/bots/geolocbot.')
 print()
 
-# 'Start' time-measure.
-start = time.time()
+while True:
+    main()
 
-main()
+    # 'Stop' time-measure.
+    end = time.time()
 
-# 'Stop' time-measure.
-end = time.time()
+    print()
 
-print()
-
-# Prints the time spent on completing the function.
-print("Czas operacyjny: " + str(end - start)[:5].replace(".", ",") + "s.")
+    # Prints the time spent on completing the function.
+    print("[b] Czas operacyjny: " + str(end - start[0])[:5].replace(".", ",") + "s.")

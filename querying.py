@@ -7,7 +7,7 @@
 
 import pywikibot as pwbot
 import pandas as pd
-from databases import globname, globterc, globnts
+from databases import globname, globterc, globtercc, updatename
 from pywikibot.pagegenerators import WikidataSPARQLPageGenerator
 from pywikibot.bot import SingleSiteBot
 from pywikibot import pagegenerators as pg
@@ -16,7 +16,72 @@ from coordinates import Coordinate
 # Yet!
 everythingiknow = {}
 
+nts = pd.read_csv("NTS.csv", sep=';')
 tercbase = pd.read_csv("TERC.csv", sep=';', usecols=['WOJ', 'POW', 'GMI', 'RODZ', 'NAZWA', 'NAZWA_DOD'])
+uncertain = []
+
+
+def changemode(integer=None):
+    if uncertain != []:
+        for i in range(len(uncertain)):
+            del uncertain[i]
+
+    if integer is None:
+        for i in range(len(uncertain)):
+            del uncertain[i]
+
+    else:
+        uncertain.append(integer)
+
+
+def ntsplease(mode='certain'):
+    if mode == 'certain':
+        filtered_nts = nts.loc[nts['NAZWA'] == globname[0]].reset_index()
+        locnts = {}
+        globnts = []
+
+        for nts_index in range(filtered_nts.shape[0]):
+            nts_id = (str(int(filtered_nts.at[nts_index, 'REGION'])) + str(int(filtered_nts.at[nts_index, 'WOJ'])).zfill(
+                2) + str(int(filtered_nts.at[nts_index, 'PODREG'])).zfill(
+                2) + str(int(filtered_nts.at[nts_index, 'POW'])).zfill(
+                2) + (str(int(filtered_nts.at[nts_index, 'GMI'])).zfill(2) + str(int(filtered_nts.at[nts_index, 'RODZ']))).replace('.', ''))
+
+            terc_odp = nts_id[1:3] + nts_id[5::]
+            line = {terc_odp: nts_id}
+            locnts.update(line)
+
+        print('[b] ' + str(locnts))
+
+        for i in range(len(locnts) - 1):
+
+            if globtercc[0] != list(locnts.keys())[i]:
+                print('[b] ' + globtercc[0] + ' != ' + list(locnts.keys())[i] + ' – wartość usunięta.')
+                del locnts[list(locnts.keys())[i]]
+
+        print('[b] (1.) NTS:  ' + locnts[globtercc[0]])
+        globnts.append(locnts[globtercc[0]])
+        return globnts[0]
+
+    elif mode == 'uncertain':
+        print('[b] Tryb domyślny (NTS) nie zwrócił wyniku.')
+        print('[b] Podejmuję próbę w trybie niepewnym (NTS)…')
+        filtered_nts = nts.loc[nts['NAZWA'] == globname[0]].reset_index()
+        locnts = []
+
+        for nts_index in range(filtered_nts.shape[0]):
+            nts_id = (str(int(filtered_nts.at[nts_index, 'REGION'])) + str(
+                int(filtered_nts.at[nts_index, 'WOJ'])).zfill(
+                2) + str(int(filtered_nts.at[nts_index, 'PODREG'])).zfill(
+                2) + str(int(filtered_nts.at[nts_index, 'POW'])).zfill(
+                2) + (str(int(filtered_nts.at[nts_index, 'GMI'])).zfill(2) + str(
+                int(filtered_nts.at[nts_index, 'RODZ']))).replace('.', ''))
+
+            print('[b] ' + str(nts_id))
+            locnts.append(nts_id)
+
+        print('[b] Zwracam tablicę: ' + str(locnts).replace('[', '').replace(']', '') + '.')
+
+        return locnts
 
 
 def tercornot(data):
@@ -39,7 +104,6 @@ def tercornot(data):
         if shouldbeterc.empty:
             tercb = tercbase.loc[
                 (tercbase['WOJ'] == float(globterc['województwo']))]
-            print(tercbase)
 
             if tercb.empty:
                 print("[b] Miejscowość " + globname[0] + " nie spełnia kryteriów TERC, więc identyfikator nie zostanie dołączony do szablonu. Usuwam klucz…")
@@ -81,21 +145,41 @@ def getqid(data):
               OPTIONAL {?item wdt:P625 ?coord}.
               SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],pl". }
             }"""
-        wikidata_site = pwbot.Site("wikidata", "wikidata")
         generator = pg.WikidataSPARQLPageGenerator(query, site=wikidata_site)
         x = list(generator)
 
         if x == []:
-            query = """SELECT ?coord ?item ?itemLabel 
-                WHERE
-                {
-                  ?item wdt:P1653 '""" + globnts[0] + """'.
-                  OPTIONAL {?item wdt:P625 ?coord}.
-                  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],pl". }
-                }"""
-            wikidata_site = pwbot.Site("wikidata", "wikidata")
-            generator = pg.WikidataSPARQLPageGenerator(query, site=wikidata_site)
-            x = list(generator)
+            try:
+                print('[b] Ustawiono tryb domyślny NTS.')
+                query = """SELECT ?coord ?item ?itemLabel 
+                    WHERE
+                    {
+                      ?item wdt:P1653 '""" + ntsplease() + """'.
+                      OPTIONAL {?item wdt:P625 ?coord}.
+                      SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],pl". }
+                    }"""
+
+                generator = pg.WikidataSPARQLPageGenerator(query, site=wikidata_site)
+                x = list(generator)
+
+            except KeyError:
+                print('[b] ' + str(KeyError))
+                print('[b] Domyślny tryb NTS nie zwrócił wyniku.')
+                print('[b] Ustawiono niepewny tryb NTS.')
+                for i in range(len(ntsplease(mode='uncertain'))):
+                    query = """SELECT ?coord ?item ?itemLabel 
+                        WHERE
+                        {
+                          ?item wdt:P1653 '""" + ntsplease(mode='uncertain')[i] + """'.
+                          OPTIONAL {?item wdt:P625 ?coord}.
+                          SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],pl". }
+                        }"""
+                    generator = pg.WikidataSPARQLPageGenerator(query, site=wikidata_site)
+                    x = list(generator)
+
+                    if x != []:
+                        changemode(1)
+                        break
 
             if x == []:
                 raise KeyError('Nic nie znalazłem w Wikidata. [b]')

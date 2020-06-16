@@ -5,11 +5,13 @@
 import pywikibot as pwbot
 import sys
 from databases import cp
+from querying import changemode
 
 site = pwbot.Site('pl', 'nonsensopedia')  # we're on nonsa.pl
 
 # Dictionary storing the captured information.
 captured = {}
+p = []
 
 
 # This function reviews a category and decides,
@@ -19,12 +21,15 @@ def findcats(c, title):
         page = pwbot.Page(site, title)
         text = page.text
 
-        if "osiedl" in text[:100] or "dzielnic" in text[:100]:
-            print()
-            print("-" * (73 // 2) + "UWAGA!" + "-" * ((73 // 2) + 1))
-            print('(nonsa.pl) [TooManyRows]: Artykuł prawdopodobnie dotyczy osiedla lub dzielnicy.')
-            print("-" * 79)
-            print()
+        if "osiedl" in text[:250] or "dzielnic" in text[:250]:
+            if p == []:
+                changemode(1)
+                print()
+                print("-" * (73 // 2) + "UWAGA!" + "-" * ((73 // 2) + 1))
+                print('(nonsa.pl) [TooManyRows]: Artykuł prawdopodobnie dotyczy osiedla lub dzielnicy.')
+                print("-" * 79)
+                print()
+                p.append(' ')
 
         # Checks if the category contains "Gmina".
         if "Kategoria:Gmina " in c[i]:
@@ -51,7 +56,8 @@ def findcats(c, title):
             raise ValueError('Podana strona to ujednoznacznienie.')
 
         # Reading the category of category if it's one of these below.
-        elif "Kategoria:Miasta w" in c[i] or "Kategoria:Powiaty w" in c[i] or "Kategoria:Gminy w" in c[i] or "Kategoria:" + title in c[i]:
+        elif "Kategoria:Miasta w" in c[i] or "Kategoria:Powiaty w" in c[i] or "Kategoria:Gminy w" in c[
+            i] or "Kategoria:" + title in c[i]:
             readcategories(c[i])
 
         elif cp('powiat', c[i]) is not False:
@@ -88,7 +94,8 @@ def run(title):
 
     elif page.isRedirectPage():
         print('[bot] To jest przekierowanie.')
-        title = str(page.getRedirectTarget()).replace('[[', '').replace(']]', '').replace('nonsensopedia:', '').replace('pl:', '')
+        title = str(page.getRedirectTarget()).replace('[[', '').replace(']]', '').replace('nonsensopedia:', '').replace(
+            'pl:', '')
 
         if '#' in title:
             for char in title:
