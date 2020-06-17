@@ -7,6 +7,7 @@
 import pywikibot as pwbot
 import pandas as pd
 import sys
+from __init__ import geolocbot
 
 
 class Error(Exception):
@@ -32,7 +33,7 @@ def updatename(name):
     if len(globname) >= 1:
         del globname[0]
     globname.append(name)
-    print('[b] Aktualizacja docelowego adresu: [[' + name + ']].')
+    geolocbot.output('Aktualizacja docelowego adresu: [[' + name + ']].')
 
 
 # This function is checking exactly if a category
@@ -263,40 +264,35 @@ def filtersimc(data):
     globterc.update(newtercd)
 
     elements = ['województwo', 'powiat', 'gmina']
-    print('[b] (1.) TERC: ' + newterc)
+    geolocbot.output('(1.) TERC: ' + newterc)
 
     if oldterc != newterc:
         for i in range(0, len(elements), 1):
             if oldtercd[i] != newtercd[elements[i]]:
-                print("[b] Sugeruję uaktualnienie danych, Anżej,")
-                print(" " * 4 + 'bo w polu ' + elements[i] + ' są nieaktualne dane.')
-                print(" " * 4 + 'Porównaj:')
-                print()
-                print(" " * 4 + 'Nasze:    ' + oldterc)
-                print(" " * 4 + 'Aktualne: ' + newterc)
+                print("Zauważono potencjalną niepoprawność w kategoriach jednostek terytorialnych.")
+                print(" " * 4 + 'W polu ' + elements[i] + ' prawdopodobnie są nieaktualne dane.')
+                print(" " * 4 + 'Szczegóły błędu:')
+                print(" " * 17 + 'Nasze:    ' + oldterc)
+                print(" " * 17 + 'Aktualne: ' + newterc)
                 site = pwbot.Site('pl', 'nonsensopedia')
-                pg = pwbot.Page(site, u"Dyskusja użytkownika:Stim")
+                pg = pwbot.Page(site, u"Szablon:Lokalizacja/raporty")
                 text = pg.text
 
                 try:
                     if globname[0] not in text:
-                        pg.text = text + '\n== Zgłoszenie nieprawidłowego TERC pochodzącego z [[' + globname[0] + \
-                                  ']] ==\n\nW artykule [[' + globname[0] + \
-                                  "]] mogą być nieaktualne kategorie jednostek administracyjnych." + \
-                                  " Nieprawidłowość wykryto w polu '''" + str(elements[i]) + \
-                                  "'''.\n\nSzczegóły błędu:\n# Nasz TERC: " + oldterc + ';\n# Rządowy TERC: ' + \
-                                  newterc + '.\n\n[[Specjalna:Wkład/StimBOT|StimBOT]] ~~~~~'
-                        pg.save(u'Zgłaszam nieprawidłowy TERC')
+                        pg.text = text + '== [[' + globname[0] + \
+                                  ']] ==\n\n<pre>* Pole:         ' + str(elements[i]) + \
+                                  "\n* TERC lokalny: " + oldterc + '\n* TERC rządowy: ' + \
+                                  newterc + '</pre>\n\n~~~~~\n----\n\n'
+                        pg.save(u'/* raport */ ' + globname[0])
 
                 except pwbot.exceptions.MaxlagTimeoutError:
                     if globname[0] not in text:
-                        pg.text = text + '\n== Zgłoszenie nieprawidłowego TERC pochodzącego z [[' + globname[0] + \
-                                  ']] ==\n\nW artykule [[' + globname[0] + \
-                                  "]] mogą być nieaktualne kategorie jednostek administracyjnych." + \
-                                  " Nieprawidłowość wykryto w polu '''" + str(elements[i]) + \
-                                  "'''.\n\nSzczegóły błędu:\n# Nasz TERC: " + oldterc + ';\n# Rządowy TERC: ' + \
-                                  newterc + '.\n\n[[Specjalna:Wkład/StimBOT|StimBOT]] ~~~~~'
-                        pg.save(u'Zgłaszam nieprawidłowy TERC')
+                        pg.text = text + '== [[' + globname[0] + \
+                                  ']] ==\n\n<pre>* Pole:        ' + str(elements[i]) + \
+                                  "\n* TERC lokalny: " + oldterc + '\n* TERC rządowy: ' + \
+                                  newterc + '</pre>\n\n~~~~~\n----\n\n'
+                        pg.save(u'/* raport */ ' + globname[0])
 
     # If the number of rows is bigger than 1,
     # the captured data isn't certain.
@@ -307,6 +303,6 @@ def filtersimc(data):
         # (Expecting only one row, please look above).
         sym = goal.at[0, 'SYM']
         sym = str(sym).zfill(7)
-        print('[b] (::) SIMC: ' + sym)
+        geolocbot.output('(::) SIMC: ' + sym)
         alldata = {'SIMC': sym, 'TERC': newterc}
         return alldata

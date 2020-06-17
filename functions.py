@@ -6,6 +6,7 @@ import sys
 import requests as rq
 import time
 import pywikibot as pwbot
+from __init__ import geolocbot
 from getcats import run
 from databases import filtersimc, terencode, TooManyRows, updatename
 from pywikibot import InvalidTitle
@@ -29,9 +30,11 @@ class EmptyNameError(Error):
 def apply(page, data):
     text = page.text
     place = text.find('[[Kategoria:')
+    if '[[Kategoria:' not in text:
+        place = text.find('[[Category:')
     template = str('\n{{lokalizacja|' + data['koordynaty'] + '|simc=' + data['simc'] +
                    ('|terc=' + data['terc'] if 'terc' in data.keys() else str()) + '|wikidata=' + data['wikidata'] +
-                   ('|tryb=0' if uncertain == [] else '|tryb=1') + '}}\n')
+                   ('' if uncertain == [] else '|niepewne=1') + '}}\n')
 
     if '{{lokalizacja|' in text:
         templace = text.find('{{lokalizacja|')
@@ -68,7 +71,7 @@ def checktitle(pagename):
                 from2index = pagename.find(i) + 1
 
         # Prints out that namespace name has been excluded from the pagename.
-        print("[b] Usunięto '" + pagename[:from2index] + "'.")
+        geolocbot.output("Usunięto '" + pagename[:from2index] + "'.")
 
         st = str(pagename[from2index::])
         checktitle(st)
@@ -78,7 +81,7 @@ def checktitle(pagename):
 
             if i == '(':
                 fromindex = pagename.find(i) - 1
-                print("[b] Usunięto dopisek '" + pagename[fromindex + 1:] + "'.")
+                geolocbot.output("Usunięto dopisek '" + pagename[fromindex + 1:] + "'.")
 
     # .capitalize() changes further characters to lower,
     # that is why I use this method.
@@ -92,8 +95,8 @@ def checktitle(pagename):
 
 
 def end():
-    print('[b] Zapraszam ponownie!')
-    print('***')
+    geolocbot.output('Zapraszam ponownie!')
+    print('-*-*-*')
     sys.exit()
 
 
@@ -105,7 +108,7 @@ def main(pagename=None):
 
             end() if '*e' in pagename else None
 
-            print('[b] Zaczynam odmierzać czas.')
+            geolocbot.output('Zaczynam odmierzać czas.')
             r = time.time()
 
             if start != []:
@@ -117,7 +120,7 @@ def main(pagename=None):
             pagename = checktitle(pagename)
         else:
 
-            print('[b] Zaczynam odmierzać czas.')
+            geolocbot.output('Zaczynam odmierzać czas.')
             r = time.time()
 
             if start != []:
@@ -126,7 +129,7 @@ def main(pagename=None):
 
             start.append(r)
 
-            print('[b] Nazwa artykułu (' + pagename + ') w pamięci.')
+            geolocbot.output('Nazwa artykułu (' + pagename + ') w pamięci.')
 
         updatename(pagename)
         data = filtersimc(terencode(run(pagename)))
@@ -138,84 +141,33 @@ def main(pagename=None):
         else:
             data = coords(getqid(data))
 
-    except TypeError:
-        print()
-        print(
-            "(nonsa.pl) [TypeError]: Ha! TypeError nam wyskoczył.",
-            file=sys.stderr)
-        print()
+    except ValueError:
+        geolocbot.exceptions.ValueErr(pagename)
         main()
 
-    except ValueError as ve:
-        print()
-        print(
-            "(nonsa.pl) [ValueError]: Nie znaleziono odpowiednich kategorii lub strona '" + str(pagename) + "' nie "
-                                                                                                            "istnieje.",
-            file=sys.stderr)
-
-        kropa = "" if str(ve)[-1] == "." or str(ve)[-1] == "?" or str(ve)[-1] == "!" else "."
-
-        print(
-            " " * 11 + "Hint: " + " " * 8 + str(ve) + kropa, file=sys.stderr)
-        time.sleep(2)
-        print()
-        print()
+    except KeyError:
+        geolocbot.exceptions.ValueErr(pagename)
         main()
 
-    except KeyError as ke:
-        print()
-        print(
-            "(nonsa.pl) [KeyError]: Nie znaleziono odpowiednich kategorii lub strona '" + str(pagename) + "' nie "
-                                                                                                          "istnieje.",
-            file=sys.stderr)
-
-        print(
-            " " * 11 + "Hint:" + " " * 7 +
-            str(ke).replace("'", '') if str(ke) != '0' else " " * 11 + "Hint:" +
-                                                            " " * 7 + 'Nic nie znalazłem. [b]', file=sys.stderr)
-        time.sleep(2)
-        print()
-        print()
+    except TooManyRows:
+        geolocbot.exceptions.TooManyRowsErr(TooManyRows)
         main()
 
-    except TooManyRows as tmr:
-        print()
-        print("(nonsa.pl) [TooManyRows]: Więcej niż 1 rząd w odebranych danych!", file=sys.stderr)
-        print(" " * 11 + "Wyjściowa baza:", file=sys.stderr)
-        print()
-        print(tmr, file=sys.stderr)
-        time.sleep(2)
-        print()
-        print()
-        main()
-
-    except InvalidTitle as it:
-        print()
-        print("(nonsa.pl) [InvalidTitle]: Podany tytuł jest nieprawidłowy.", file=sys.stderr)
-        print(" " * 11 + "Hint:" + " " * 11 + str(it) + ".", file=sys.stderr)
-        time.sleep(2)
-        print()
-        print()
+    except InvalidTitle:
+        geolocbot.exceptions.InvalidTitleErr(InvalidTitle)
         main()
 
     except EmptyNameError:
-        print()
-        print("(nonsa.pl) Błąd: Nie podano tytułu strony.",
-              file=sys.stderr)
-        time.sleep(2)
-        print()
-        print()
+        geolocbot.exceptions.EmptyNameErr()
         main()
 
     except KeyboardInterrupt:
-        print()
-        print("(nonsa.pl) [KeyboardInterrupt]: Pomyślnie przerwano operację.", file=sys.stderr)
-        print('-b- Kontynuować? <T/N>')
-        ct = str(input('Odpowiedź: ')).upper()
+        geolocbot.exceptions.KeyboardInterruptErr()
+        ct = geolocbot.input().upper()
         ans = ['T', 'N']
 
         while ct not in ans:
-            ct = str(input('Odpowiedź <T/N>: ')).upper()
+            ct = geolocbot.input('Odpowiedź <T/N>: ').upper()
 
         if ct == 'T':
             print()
@@ -225,17 +177,25 @@ def main(pagename=None):
             end()
 
     except pwbot.exceptions.MaxlagTimeoutError:
-
         main(pagename=pagename)
+
+    except SystemExit:
+        sys.exit()
+
+    except:
+        geolocbot.err(sys.exc_info()[0].__name__, 'Oops, wystąpił nieznany błąd.')
+        main()
 
     else:
         print()
         show = str(data).replace('{', '').replace('}', '').replace(': ', ' → ').replace("'", '')
-        print('[b] Pobrano: ' + show)
+        geolocbot.output('Pobrano: ' + show)
+
         try:
             apply(pwbot.Page(site, 'Użytkownik:Stim/' + pagename), data)
 
         except pwbot.exceptions.MaxlagTimeoutError:
             apply(pwbot.Page(site, 'Użytkownik:Stim/' + pagename), data)
 
-        return data
+        finally:
+            return data

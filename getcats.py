@@ -4,6 +4,7 @@
 
 import pywikibot as pwbot
 import sys
+from __init__ import geolocbot
 from databases import cp
 from querying import changemode
 
@@ -25,9 +26,9 @@ def findcats(c, title):
             if p == []:
                 changemode(1)
                 print()
-                print("-" * (73 // 2) + "UWAGA!" + "-" * ((73 // 2) + 1))
-                print('(nonsa.pl) [TooManyRows]: Artykuł prawdopodobnie dotyczy osiedla lub dzielnicy.')
-                print("-" * 79)
+                geolocbot.output("-" * (73 // 2) + "UWAGA!" + "-" * ((73 // 2) + 1))
+                geolocbot.output('(nonsa.pl) [TooManyRows]: Artykuł prawdopodobnie dotyczy osiedla lub dzielnicy.')
+                geolocbot.output("-" * 79)
                 print()
                 p.append(' ')
 
@@ -93,7 +94,7 @@ def run(title):
         raise KeyError('Nie ma takiej strony. [bot]')
 
     elif page.isRedirectPage():
-        print('[bot] To jest przekierowanie.')
+        geolocbot.output('To jest przekierowanie.')
         title = str(page.getRedirectTarget()).replace('[[', '') \
                                              .replace(']]', '') \
                                              .replace('nonsensopedia:', '') \
@@ -106,7 +107,7 @@ def run(title):
                     sharpindex = title.find(char)
                     title = title[:sharpindex]
 
-        print('[bot] Cel przekierowania to [[' + str(title) + ']].')
+        geolocbot.output('Cel przekierowania to [[' + str(title) + ']].')
 
     readcategories(title)  # script starts
     return withkeypagename(title)

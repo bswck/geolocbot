@@ -4,11 +4,11 @@
 
 import pywikibot as pwbot
 import pandas as pd
+from __init__ import geolocbot
 from databases import globname, globterc, globtercc, updatename
 from pywikibot.pagegenerators import WikidataSPARQLPageGenerator
 from pywikibot.bot import SingleSiteBot
 from pywikibot import pagegenerators as pg
-from coordinates import Coordinate
 
 # Yet!
 everythingiknow = {}
@@ -19,17 +19,13 @@ uncertain = []
 
 
 def changemode(integer=None):
-    if uncertain != []:
-        for i in range(len(uncertain)):
-            del uncertain[i]
-
-    if integer is None:
+    if uncertain != [] or integer is None:
         for i in range(len(uncertain)):
             del uncertain[i]
 
     else:
         uncertain.append(integer)
-
+    geolocbot.output('Zmieniono tryb "niepewne" na ' + ('0.' if uncertain == [] else '1.'))
 
 def ntsplease(mode='certain'):
     if mode == 'certain':
@@ -49,21 +45,19 @@ def ntsplease(mode='certain'):
             line = {terc_odp: nts_id}
             locnts.update(line)
 
-        print('[b] ' + str(locnts))
+        geolocbot.output(str(locnts))
 
         for i in range(len(locnts) - 1):
 
             if globtercc[0] != list(locnts.keys())[i]:
-                print('[b] ' + globtercc[0] + ' != ' + list(locnts.keys())[i] + ' – wartość usunięta.')
+                geolocbot.output('' + globtercc[0] + ' != ' + list(locnts.keys())[i] + ' – wartość usunięta.')
                 del locnts[list(locnts.keys())[i]]
 
-        print('[b] (1.) NTS:  ' + locnts[globtercc[0]])
+        geolocbot.output('(1.) NTS:  ' + locnts[globtercc[0]])
         globnts.append(locnts[globtercc[0]])
         return globnts[0]
 
     elif mode == 'uncertain':
-        print('[b] Tryb domyślny (NTS) nie zwrócił wyniku.')
-        print('[b] Podejmuję próbę w trybie niepewnym (NTS)…')
         filtered_nts = nts.loc[nts['NAZWA'] == globname[0]].reset_index()
         locnts = []
 
@@ -75,10 +69,9 @@ def ntsplease(mode='certain'):
                 2) + (str(int(filtered_nts.at[nts_index, 'GMI'])).zfill(2) +
                       str(int(filtered_nts.at[nts_index, 'RODZ']))).replace('.', ''))
 
-            print('[b] ' + str(nts_id))
             locnts.append(nts_id)
 
-        print('[b] Zwracam tablicę: ' + str(locnts).replace('[', '').replace(']', '') + '.')
+        geolocbot.output('Zwracam tablicę: ' + str(locnts).replace('[', '').replace(']', '') + '.')
 
         return locnts
 
@@ -89,7 +82,7 @@ def tercornot(data):
     sterc = shouldbeterc.copy()
 
     if sterc.empty:
-        print("[b] " + globname[0] + " nie występuje w systemie TERC. Usuwam klucz…")
+        geolocbot.output("" + globname[0] + " nie występuje w systemie TERC. Usuwam klucz…")
         del data['terc']
         return data
 
@@ -107,14 +100,14 @@ def tercornot(data):
                 (tercbase['WOJ'] == float(globterc['województwo']))]
 
             if tercb.empty:
-                print("[b] Miejscowość " + globname[0] +
+                geolocbot.output("Miejscowość " + globname[0] +
                       " nie spełnia kryteriów TERC, więc identyfikator nie zostanie dołączony do szablonu." +
-                      "Usuwam klucz…")
+                      " Usuwam klucz…")
                 del data['terc']
                 return data
 
-    print('[b] Miejscowość ' + globname[0] + ' spełnia kryteria TERC, więc identyfikator zostanie dołączony' +
-          'do szablonu.')
+    geolocbot.output('Miejscowość ' + globname[0] + ' spełnia kryteria TERC, więc identyfikator zostanie dołączony' +
+          ' do szablonu.')
 
     return data
 
@@ -157,7 +150,7 @@ def getqid(data):
 
         if x == []:
             try:
-                print('[b] Ustawiono tryb domyślny NTS.')
+                geolocbot.output('Ustawiono tryb domyślny NTS.')
 
                 query = """SELECT ?coord ?item ?itemLabel 
                     WHERE
@@ -171,16 +164,16 @@ def getqid(data):
                 x = list(generator)
 
             except KeyError:
-                print('[b] ' + str(KeyError))
-                print('[b] Domyślny tryb NTS nie zwrócił wyniku.')
-                print('[b] Ustawiono niepewny tryb NTS.')
+                geolocbot.output('Domyślny tryb NTS nie zwrócił wyniku.')
+                geolocbot.output('Ustawiono niepewny tryb NTS.')
 
-                for i in range(len(ntsplease(mode='uncertain'))):
+                ntr = ntsplease(mode='uncertain')
+                for i in range(len(ntr)):
 
                     query = """SELECT ?coord ?item ?itemLabel 
                         WHERE
                         {
-                          ?item wdt:P1653 '""" + ntsplease(mode='uncertain')[i] + """'.
+                          ?item wdt:P1653 '""" + ntr[i] + """'.
                           OPTIONAL {?item wdt:P625 ?coord}.
                           SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],pl". }
                         }"""
@@ -199,7 +192,7 @@ def getqid(data):
     qidentificator = string.replace("[[wikidata:", "").replace("]]", "")
     qidl = {'wikidata': qidentificator}
     everythingiknow.update(qidl)
-    print('[b] (::) QID:  ' + str(qidentificator))
+    geolocbot.output('(::) QID:  ' + str(qidentificator))
     return qidentificator
 
 
