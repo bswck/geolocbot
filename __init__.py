@@ -21,7 +21,7 @@ class glb(object):
         print(self.o + output_message)
 
     def err(self, nmb, output_error_message):
-        error = ['ValueError', 'KeyError', 'TooManyRows', 'InvalidTitle', 'EmptyNameError', ]
+        error = ['ValueError', 'KeyError', 'TooManyRows', 'InvalidTitle', 'EmptyNameError', 'KeyboardInterrupt']
         bug_errors = ['AssertionError',
                       'AttributeError',
                       'MemoryError',
@@ -90,21 +90,21 @@ _  / __ _  _ \  __ \_  /_  __ \  ___/_  __ \  __ \  __/
 
         def InvalidTitleErr(self, it):
             print()
-            print("(nonsa.pl) [InvalidTitle]: Podany tytuł jest nieprawidłowy.", file=sys.stderr)
+            glb().err(4, "[InvalidTitle]: Podany tytuł jest nieprawidłowy.")
             time.sleep(2)
             print()
             print()
 
         def EmptyNameErr(self):
             print()
-            print("(nonsa.pl) Błąd: Nie podano tytułu strony.", file=sys.stderr)
+            glb().err(4, "Błąd: Nie podano tytułu strony.")
             time.sleep(2)
             print()
             print()
 
         def KeyboardInterruptErr(self):
             print()
-            print("(nonsa.pl) [KeyboardInterrupt]: Pomyślnie przerwano operację.", file=sys.stderr)
+            glb().err(5, "(nonsa.pl) [KeyboardInterrupt]: Pomyślnie przerwano operację.")
             print('-b- Kontynuować? <T/N>')
 
 geolocbot = glb()
