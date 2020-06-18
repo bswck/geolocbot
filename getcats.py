@@ -54,20 +54,20 @@ def findcats(c, title):
 
         # Exceptions.
         elif "Kategoria:Ujednoznacznienia" in c[i]:
-            raise ValueError('Podana strona to ujednoznacznienie.')
+            raise ValueError('Podana strona to ujednoznacznienie. [b]')
 
         # Reading the category of category if it's one of these below.
         elif "Kategoria:Miasta w" in c[i] or "Kategoria:Powiaty w" in c[i] or "Kategoria:Gminy w" in c[i] or \
                 "Kategoria:" + title in c[i]:
             readcategories(c[i])
 
-        elif cp('powiat', c[i]) is not False:
-            powiat = cp('powiat', c[i])
+        elif cp(c[i], 'powiat') is not False:
+            powiat = cp(c[i], 'powiat')
             add = {"powiat": powiat}
             captured.update(add)
 
-        elif cp('gmina', c[i]) is not False:
-            gmina = cp('gmina', c[i])
+        elif cp(c[i], 'gmina') is not False:
+            gmina = cp(c[i], 'gmina')
             add = {"gmina": gmina}
             captured.update(add)
 
@@ -91,7 +91,7 @@ def run(title):
     text = page.text
 
     if text == '':
-        raise KeyError('Nie ma takiej strony. [bot]')
+        raise KeyError('Nie ma takiej strony. [b]')
 
     elif page.isRedirectPage():
         geolocbot.output('To jest przekierowanie.')

@@ -27,6 +27,7 @@ def changemode(integer=None):
         uncertain.append(integer)
     geolocbot.output('Zmieniono tryb "niepewne" na ' + ('0.' if uncertain == [] else '1.'))
 
+
 def ntsplease(mode='certain'):
     if mode == 'certain':
         filtered_nts = nts.loc[nts['NAZWA'] == globname[0]].reset_index()

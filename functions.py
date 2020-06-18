@@ -6,9 +6,9 @@ import sys
 import requests as rq
 import time
 import pywikibot as pwbot
-from __init__ import geolocbot
+from __init__ import geolocbot, EmptyNameError
 from getcats import run
-from databases import filtersimc, terencode, TooManyRows, updatename
+from databases import delapterc, gapterc, filtersimc, terencode, TooManyRows, updatename
 from pywikibot import InvalidTitle
 from querying import coords, getqid, uncertain, changemode
 
@@ -16,24 +16,23 @@ site = pwbot.Site('pl', 'nonsensopedia')  # we're on nonsa.pl
 start = []
 
 
-# Errors definitions.
-class Error(Exception):
-    """Base class for other exceptions"""
-    pass
-
-
-class EmptyNameError(Error):
-    """Raised when no pagename has been provided"""
-    pass
-
-
 def apply(page, data):
     text = page.text
-    place = text.find('[[Kategoria:')
-    if '[[Kategoria:' not in text:
-        place = text.find('[[Category:')
-    template = str('\n{{lokalizacja|' + data['koordynaty'] + '|simc=' + data['simc'] +
-                   ('|terc=' + data['terc'] if 'terc' in data.keys() else str()) + '|wikidata=' + data['wikidata'] +
+
+    if '[[Kategoria:' in text or '[[Category:' in text:
+        if 'Kategoria:' in text and '[[Category:' not in text:
+            place = text.find('[[Kategoria:')
+
+        elif '[[Category:' in text and '[[Kategoria:' not in text:
+            place = text.find('[[Category:')
+
+        elif '[[Kategoria:' in text and '[[Category:' in text:
+            place1 = text.find('[[Kategoria:')
+            place2 = text.find('[[Category:')
+            place = place1 if (place1 < place2) else place2
+
+    template = str('{{lokalizacja|' + data['koordynaty'] + '|simc=' + data['simc'] +
+                   ('|terc=' + gapterc[0] if 'terc' in data.keys() and gapterc != [] else str()) + '|wikidata=' + data['wikidata'] +
                    ('' if uncertain == [] else '|niepewne=1') + '}}\n')
 
     if '{{lokalizacja|' in text:
@@ -45,6 +44,7 @@ def apply(page, data):
         page.text = text[:place] + template + text[place:]
         page.save('/* dodano */ ' + template)
 
+    delapterc()
     changemode()
 
 
@@ -94,21 +94,12 @@ def checktitle(pagename):
     return st
 
 
-def end():
-    geolocbot.output('Zapraszam ponownie!')
-    print('-*-*-*')
-    sys.exit()
-
-
 # This runs the whole code.
 def main(pagename=None):
     try:
         if pagename is None:
-            pagename = input('-b- Podaj nazwę artykułu: ')
+            pagename = geolocbot.input('Podaj nazwę artykułu: ', cannot_be_empty=True)
 
-            end() if '*e' in pagename else None
-
-            geolocbot.output('Zaczynam odmierzać czas.')
             r = time.time()
 
             if start != []:
@@ -118,8 +109,8 @@ def main(pagename=None):
             start.append(r)
 
             pagename = checktitle(pagename)
-        else:
 
+        else:
             geolocbot.output('Zaczynam odmierzać czas.')
             r = time.time()
 
@@ -141,12 +132,12 @@ def main(pagename=None):
         else:
             data = coords(getqid(data))
 
-    except ValueError:
-        geolocbot.exceptions.ValueErr(pagename)
+    except ValueError as ve:
+        geolocbot.exceptions.ValueErr(ve, pagename)
         main()
 
-    except KeyError:
-        geolocbot.exceptions.ValueErr(pagename)
+    except KeyError as ke:
+        geolocbot.exceptions.KeyErr(ke, pagename)
         main()
 
     except TooManyRows:
@@ -155,10 +146,6 @@ def main(pagename=None):
 
     except InvalidTitle:
         geolocbot.exceptions.InvalidTitleErr(InvalidTitle)
-        main()
-
-    except EmptyNameError:
-        geolocbot.exceptions.EmptyNameErr()
         main()
 
     except KeyboardInterrupt:
@@ -174,10 +161,14 @@ def main(pagename=None):
             main(pagename=pagename)
 
         else:
-            end()
+            geolocbot.end()
 
     except pwbot.exceptions.MaxlagTimeoutError:
         main(pagename=pagename)
+
+    except EmptyNameError:
+        geolocbot.exceptions.EmptyNameErr()
+        main()
 
     except SystemExit:
         sys.exit()

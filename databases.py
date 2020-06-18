@@ -27,7 +27,10 @@ tercbase = pd.read_csv("TERC.csv", sep=';', usecols=['WOJ', 'POW', 'GMI', 'RODZ'
 globname = []
 globterc = {}
 globtercc = []
+gapterc = []
 
+def delapterc():
+    del gapterc[0]
 
 def updatename(name):
     if len(globname) >= 1:
@@ -68,10 +71,29 @@ def cp(typ, name):
             powiat = powiat.reset_index()
             return powiat.at[0, 'NAZWA']
 
+    else:
+        x = tercbase.loc[(tercbase['NAZWA'] == name) & (
+                (tercbase['NAZWA_DOD'] == 'powiat') | (tercbase['NAZWA_DOD'] == 'miasto na prawach powiatu'))]
 
-# "Terencode" means "TERYT-encode". This function
+        if not x.empty:
+            x = x.reset_index()
+            skrocony_terc = str(x.at[0, 'WOJ']).zfill(2) + str(int(float(str(x.at[0, 'POW'])))).zfill(2)
+            return skrocony_terc
+
+        else:
+            x = tercbase.loc[(tercbase['NAZWA'] == name.upper()) & (tercbase['NAZWA_DOD'] == 'województwo')]
+
+            if not x.empty:
+                skrocony_terc = str(x.at[0, 'WOJ']).zfill(2)
+                return skrocony_terc
+
+            else:
+                return False
+
+
+# "Terencode" means "TERC-encode". This function
 # searches captured gmina, powiat and voivoidship
-# and returns its TERYT codes.
+# and returns its TERC codes.
 # For example: "MAŁOPOLSKIE" returns 12.
 def terencode(data):
     data = pd.DataFrame(data, index=[0])
@@ -95,7 +117,7 @@ def terencode(data):
         teryt = pd.DataFrame(teryt, index=[0])
         return teryt
 
-    # Capturing voivoidship's TERYT ID.
+    # Capturing voivoidship's TERC ID.
     teryt = {'NAZWA': dname}  # {name: pagename}
     woj = data.at[0, 'województwo']
     wojewodztwa = tercbase.loc[(tercbase['NAZWA_DOD'] == 'województwo') & (tercbase['NAZWA'] == woj)]
@@ -253,34 +275,37 @@ def filtersimc(data):
     oldtercd = oldterc
     oldterc = oldterc[0] + oldterc[1] + oldterc[2]
 
-    newterc = str(str(goal.at[0, 'WOJ']).zfill(2) +
-                  str(goal.at[0, 'POW']).zfill(2) +
-                  str(goal.at[0, 'GMI']).zfill(2) +
-                  str(goal.at[0, 'RODZ_GMI']).zfill(1))
-
     newtercd = {'województwo': str(goal.at[0, 'WOJ']).zfill(2), 'powiat': str(goal.at[0, 'POW']).zfill(2),
                 'gmina': str(str(goal.at[0, 'GMI']).zfill(2) + str(goal.at[0, 'RODZ_GMI']).zfill(1))}
+    newterc = newtercd['województwo'] + newtercd['powiat'] + newtercd['gmina']
+    elements = ['województwo', 'powiat', 'gmina']
+
+    apterc = ''
+
+    if cp('cokolwiek', nazwa):
+        apterc = cp('cokolwiek', nazwa)
+        gapterc.append(apterc)
+
     globtercc.append(newterc)
     globterc.update(newtercd)
 
-    elements = ['województwo', 'powiat', 'gmina']
-    geolocbot.output('(1.) TERC: ' + newterc)
+    geolocbot.output('(1.) TERC: ' + (apterc if not apterc == '' else newterc))
 
-    if oldterc != newterc:
+    if oldterc != newterc and len(newterc) == 7:
         for i in range(0, len(elements), 1):
             if oldtercd[i] != newtercd[elements[i]]:
-                print("Zauważono potencjalną niepoprawność w kategoriach jednostek terytorialnych.")
+                geolocbot.output("Zauważono potencjalną niepoprawność w kategoriach jednostek terytorialnych.")
                 print(" " * 4 + 'W polu ' + elements[i] + ' prawdopodobnie są nieaktualne dane.')
                 print(" " * 4 + 'Szczegóły błędu:')
-                print(" " * 17 + 'Nasze:    ' + oldterc)
-                print(" " * 17 + 'Aktualne: ' + newterc)
+                print(" " * 20 + 'Nasze:    ' + oldterc)
+                print(" " * 20 + 'Aktualne: ' + newterc)
                 site = pwbot.Site('pl', 'nonsensopedia')
-                pg = pwbot.Page(site, u"Szablon:Lokalizacja/raporty")
+                pg = pwbot.Page(site, u"Nonsensopedia:Lokalizacja/raporty")
                 text = pg.text
 
                 try:
                     if globname[0] not in text:
-                        pg.text = text + '== [[' + globname[0] + \
+                        pg.text = text + '\n== [[' + globname[0] + \
                                   ']] ==\n\n<pre>* Pole:         ' + str(elements[i]) + \
                                   "\n* TERC lokalny: " + oldterc + '\n* TERC rządowy: ' + \
                                   newterc + '</pre>\n\n~~~~~\n----\n\n'
@@ -288,7 +313,7 @@ def filtersimc(data):
 
                 except pwbot.exceptions.MaxlagTimeoutError:
                     if globname[0] not in text:
-                        pg.text = text + '== [[' + globname[0] + \
+                        pg.text = text + '\n== [[' + globname[0] + \
                                   ']] ==\n\n<pre>* Pole:        ' + str(elements[i]) + \
                                   "\n* TERC lokalny: " + oldterc + '\n* TERC rządowy: ' + \
                                   newterc + '</pre>\n\n~~~~~\n----\n\n'
