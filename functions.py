@@ -143,12 +143,12 @@ def main(pagename=None):
         geolocbot.exceptions.KeyErr(ke, pagename)
         main()
 
-    except TooManyRows:
-        geolocbot.exceptions.TooManyRowsErr(TooManyRows)
+    except TooManyRows as tmr:
+        geolocbot.exceptions.TooManyRowsErr(tmr)
         main()
 
-    except InvalidTitle:
-        geolocbot.exceptions.InvalidTitleErr(InvalidTitle)
+    except InvalidTitle as it:
+        geolocbot.exceptions.InvalidTitleErr(it)
         main()
 
     except KeyboardInterrupt:
