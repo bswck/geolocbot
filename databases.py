@@ -29,8 +29,10 @@ globterc = {}
 globtercc = []
 gapterc = []
 
+
 def delapterc():
     del gapterc[0]
+
 
 def updatename(name):
     if len(globname) >= 1:

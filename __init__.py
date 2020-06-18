@@ -16,6 +16,7 @@ class EmptyNameError(Error):
     """Raised when no pagename has been provided"""
     pass
 
+
 site = pwbot.Site('pl', 'nonsensopedia')  # we're on nonsa.pl
 
 
@@ -43,7 +44,6 @@ class glb(object):
         if cannot_be_empty:
             if answer == '' or answer == ' ' * len(answer):
                 raise EmptyNameError
-
 
         if answer[0] == '*':
             if '*e' in answer:
@@ -75,7 +75,8 @@ class glb(object):
                       'SyntaxError',
                       'TabError',
                       'UnboundLocalError']
-        print(self.n + '[' + (error[nmb] if isinstance(nmb, int) else nmb) + ']: ' + output_error_message, file=sys.stderr)
+        print(self.n + '[' + (error[nmb] if isinstance(nmb, int) else nmb) + ']: ' + output_error_message,
+              file=sys.stderr)
 
         if not isinstance(nmb, int):
 
@@ -83,7 +84,7 @@ class glb(object):
                 report_page = pwbot.Page(site, 'Dyskusja użytkownika:Stim/geolocbot-bugs')
                 text = report_page.text
                 report_page.text = text + '\n----\nID = {{#vardefine:bugid|{{#expr:{{#var:bugid}} + 1}}}} {{#var:bugid}}\n\n' \
-                              + str(traceback.format_exc()) + '~~~~~'
+                                   + str(traceback.format_exc()) + '~~~~~'
                 report_page.save(u'/* raport */ bugerror: ' + str(nmb))
 
     def intro(self):
@@ -161,6 +162,7 @@ _  / __ _  _ \  __ \_  /_  __ \  ___/_  __ \  __ \  __/
             print()
             glb().err(5, "Pomyślnie przerwano operację.")
             glb().output('Kontynuować? <T/N>')
+
 
 geolocbot = glb()
 geolocbot.exceptions = geolocbot.exceptions()

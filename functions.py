@@ -30,9 +30,12 @@ def apply(page, data):
             place1 = text.find('[[Kategoria:')
             place2 = text.find('[[Category:')
             place = place1 if (place1 < place2) else place2
+    else:
+        place = len(text) - 1
 
     template = str('{{lokalizacja|' + data['koordynaty'] + '|simc=' + data['simc'] +
-                   ('|terc=' + gapterc[0] if 'terc' in data.keys() and gapterc != [] else str()) + '|wikidata=' + data['wikidata'] +
+                   ('|terc=' + gapterc[0] if 'terc' in data.keys() and gapterc != [] else str()) + '|wikidata=' + data[
+                       'wikidata'] +
                    ('' if uncertain == [] else '|niepewne=1') + '}}\n')
 
     if '{{lokalizacja|' in text:
