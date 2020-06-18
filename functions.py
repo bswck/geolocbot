@@ -114,7 +114,6 @@ def main(pagename=None):
             pagename = checktitle(pagename)
 
         else:
-            geolocbot.output('Zaczynam odmierzać czas.')
             r = time.time()
 
             if start != []:

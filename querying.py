@@ -5,7 +5,7 @@
 import pywikibot as pwbot
 import pandas as pd
 from __init__ import geolocbot
-from databases import globname, globterc, globtercc, updatename
+from databases import gapterc, globname, globterc, globtercc, updatename
 from pywikibot.pagegenerators import WikidataSPARQLPageGenerator
 from pywikibot.bot import SingleSiteBot
 from pywikibot import pagegenerators as pg
@@ -109,6 +109,11 @@ def tercornot(data):
 
     geolocbot.output('Miejscowość ' + globname[0] + ' spełnia kryteria TERC, więc identyfikator zostanie dołączony' +
           ' do szablonu.')
+
+    if gapterc != []:
+        del data['terc']
+        nterc = {'terc': gapterc[0]}
+        data.update(nterc)
 
     return data
 
