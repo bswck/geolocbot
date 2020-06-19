@@ -58,9 +58,9 @@ class glb(object):
                     geolocbot.output('Niepoprawna komenda.')
                     answer = geolocbot.input()
 
-                else:
-                    geolocbot.output('Niepoprawna komenda.')
-                    answer = geolocbot.input()
+            else:
+                geolocbot.output('Niepoprawna komenda.')
+                answer = geolocbot.input()
 
         return answer
 
@@ -132,7 +132,6 @@ _  / __ _  _ \  __ \_  /_  __ \  ___/_  __ \  __ \  __/
         def KeyErr(self, ke, pagename):
             print()
             glb().err(1, "Nie znaleziono odpowiednich kategorii lub strona '" + str(pagename) + "' nie istnieje.")
-            print(traceback.format_exc())
             print(
                 " " * 11 + "Hint:" + " " * 7 +
                 str(ke).replace("'", '') if str(ke) != '0' else " " * 11 + "Hint:" +

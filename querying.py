@@ -5,7 +5,7 @@
 import pywikibot as pwbot
 import pandas as pd
 from __init__ import geolocbot
-from databases import gapterc, globname, globterc, globtercc, updatename
+from databases import deldatabasename, databasename, gapterc, globname, globterc, globtercc, updatename
 from pywikibot.pagegenerators import WikidataSPARQLPageGenerator
 from pywikibot.bot import SingleSiteBot
 from pywikibot import pagegenerators as pg
@@ -217,15 +217,30 @@ def coords(qid):
 
     if item.claims:
         item = pwbot.ItemPage(repo, qid)  # This will be functionally the same as the other item we defined
-        item.get()
+        wikidata_data = item.get()
+        attempts = []
+
+        for i in range(len(list(wikidata_data['labels']))):
+            if databasename[0] == wikidata_data['labels'][list(wikidata_data['labels'])[i]]:
+                geolocbot.output('Nazwy są jednakowe (wynik próby ' + str(len(attempts)) +').')
+                break
+
+            else:
+                attempts.append(i)
+
+        if len(attempts) == len(list(wikidata_data['labels'])):
+            deldatabasename()
+            raise KeyError(
+                'Na Wikidata są koordynaty miejscowości o tym samym identyfikatorze, jednak nie o tej samej nazwie. Liczba prób: ' + str(len(attempts)) + '.')
 
         if 'P625' in item.claims:
             coordinates = item.claims['P625'][0].getTarget()
-
-            # Couldn't see any other way.
             latitude = coordinates.lat
             longitude = coordinates.lon
             coordins = {'koordynaty': str(latitude) + ', ' + str(longitude)}
             everythingiknow.update(coordins)
+
+    if databasename != []:
+        deldatabasename()
 
     return tercornot(everythingiknow)  # ;)

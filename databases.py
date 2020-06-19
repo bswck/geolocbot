@@ -28,11 +28,13 @@ globname = []
 globterc = {}
 globtercc = []
 gapterc = []
-
+databasename = []
 
 def delapterc():
     del gapterc[0]
 
+def deldatabasename():
+    del databasename[0]
 
 def updatename(name):
     if len(globname) >= 1:
@@ -111,6 +113,8 @@ def terencode(data):
                 fromindex = dname.find(i) - 1
                 dname = dname.replace(dname[fromindex::], '')
                 data = data.replace(name, dname)
+
+    databasename.append(dname)
 
     dcols = data.columns.tolist()
 
