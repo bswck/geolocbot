@@ -6,7 +6,6 @@ import pywikibot as pwbot
 import sys
 from __init__ import geolocbot
 from databases import cp
-from querying import changemode
 
 site = pwbot.Site('pl', 'nonsensopedia')  # we're on nonsa.pl
 
@@ -24,7 +23,6 @@ def findcats(c, title):
 
         if "osiedl" in text[:250] or "dzielnic" in text[:250]:
             if p == []:
-                changemode(1)
                 print()
                 geolocbot.output("-" * (73 // 2) + "UWAGA!" + "-" * ((73 // 2) + 1))
                 geolocbot.output('(nonsa.pl) [TooManyRows]: Artykuł prawdopodobnie dotyczy osiedla lub dzielnicy.')

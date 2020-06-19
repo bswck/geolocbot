@@ -5,7 +5,7 @@
 import pywikibot as pwbot
 import pandas as pd
 from __init__ import geolocbot
-from databases import deldatabasename, databasename, gapterc, globname, globterc, globtercc, updatename
+from databases import deldatabasename, delglobtercc, databasename, gapterc, globname, globterc, globtercc, updatename
 from pywikibot.pagegenerators import WikidataSPARQLPageGenerator
 from pywikibot.bot import SingleSiteBot
 from pywikibot import pagegenerators as pg
@@ -30,7 +30,7 @@ def changemode(integer=None):
 
 def ntsplease(mode='certain'):
     if mode == 'certain':
-        filtered_nts = nts.loc[nts['NAZWA'] == globname[0]].reset_index()
+        filtered_nts = nts.loc[nts['NAZWA'] == databasename[0]].reset_index()
         locnts = {}
         globnts = []
 
@@ -46,7 +46,9 @@ def ntsplease(mode='certain'):
             line = {terc_odp: nts_id}
             locnts.update(line)
 
-        geolocbot.output(str(locnts))
+        show = str(locnts).replace('{', '').replace('}', '').replace(': ', ' → ').replace("'", '')
+
+        geolocbot.output(show)
 
         for i in range(len(locnts) - 1):
 
@@ -79,7 +81,7 @@ def ntsplease(mode='certain'):
 
 def tercornot(data):
     shouldbeterc = tercbase.copy()
-    shouldbeterc = shouldbeterc.loc[(shouldbeterc['NAZWA'] == globname[0])]
+    shouldbeterc = shouldbeterc.loc[(shouldbeterc['NAZWA'] == databasename[0])]
     sterc = shouldbeterc.copy()
 
     if sterc.empty:
@@ -237,10 +239,12 @@ def coords(qid):
             coordinates = item.claims['P625'][0].getTarget()
             latitude = coordinates.lat
             longitude = coordinates.lon
-            coordins = {'koordynaty': str(latitude) + ', ' + str(longitude)}
+            coordins = {'koordynaty': str(latitude)[:10] + ', ' + str(longitude)[:10]}
             everythingiknow.update(coordins)
 
     if databasename != []:
         deldatabasename()
+
+    delglobtercc()
 
     return tercornot(everythingiknow)  # ;)

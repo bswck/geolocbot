@@ -22,7 +22,7 @@ site = pwbot.Site('pl', 'nonsensopedia')  # we're on nonsa.pl
 
 class glb(object):
     def __init__(self):
-        self.i = '-b- '
+        self.i = '>b< '
         self.o = '[b] '
         self.n = '(nonsa.pl) '
 

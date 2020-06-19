@@ -34,7 +34,7 @@ def apply(page, data):
         place = len(text) - 1
 
     template = str('{{lokalizacja|' + data['koordynaty'] + '|simc=' + data['simc'] +
-                   ('|terc=' + gapterc[0] if 'terc' in data.keys() and gapterc != [] else str()) + '|wikidata=' + data[
+                   ('|terc=' + data['terc'] if 'terc' in data.keys() else str()) + '|wikidata=' + data[
                        'wikidata'] +
                    ('' if uncertain == [] else '|niepewne=1') + '}}\n')
 
@@ -185,10 +185,10 @@ def main(pagename=None):
         geolocbot.output('Pobrano: ' + show)
 
         try:
-            apply(pwbot.Page(site, 'Użytkownik:Stim/' + pagename), data)
+            apply(pwbot.Page(site, pagename), data)
 
         except pwbot.exceptions.MaxlagTimeoutError:
-            apply(pwbot.Page(site, 'Użytkownik:Stim/' + pagename), data)
+            apply(pwbot.Page(site, pagename), data)
 
         finally:
             return data

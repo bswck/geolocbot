@@ -31,16 +31,22 @@ gapterc = []
 databasename = []
 
 def delapterc():
-    del gapterc[0]
+    if gapterc != []:
+        del gapterc[0]
 
 def deldatabasename():
-    del databasename[0]
+    if databasename != []:
+        del databasename[0]
+
+def delglobtercc():
+    if globtercc != []:
+        del globtercc[0]
 
 def updatename(name):
     if len(globname) >= 1:
         del globname[0]
     globname.append(name)
-    geolocbot.output('Aktualizacja docelowego adresu: [[' + name + ']].')
+    geolocbot.output('Adres docelowy to [[' + name + ']].')
 
 
 # This function is checking exactly if a category
@@ -159,7 +165,6 @@ def terencode(data):
 
         if 'gmina' in cols:
             gmi = data.at[0, 'gmina']
-
             if gmi.find(" (") != -1:
                 fromindex = ''
                 for i in gmi:
@@ -170,7 +175,8 @@ def terencode(data):
                 # Deleting annotation, eg. '(województwo śląskie)'.
                 gmi = gmi.replace(gmi[fromindex::], '')
             gminy = tercbase.loc[
-                ((tercbase['NAZWA_DOD'] == 'gmina miejska') |
+                ((tercbase['NAZWA_DOD'] == 'miasto') |
+                 (tercbase['NAZWA_DOD'] == 'gmina miejska') |
                  (tercbase['NAZWA_DOD'] == 'obszar wiejski') |
                  (tercbase['NAZWA_DOD'] == 'gmina wiejska') |
                  (tercbase['NAZWA_DOD'] == 'gmina miejsko-wiejska')) &
@@ -180,23 +186,27 @@ def terencode(data):
             if gminy.empty:
 
                 gminy = tercbase.loc[
-                    ((tercbase['NAZWA_DOD'] == 'gmina miejska') |
+                    ((tercbase['NAZWA_DOD'] == 'miasto') |
+                     (tercbase['NAZWA_DOD'] == 'gmina miejska') |
                      (tercbase['NAZWA_DOD'] == 'obszar wiejski') |
                      (tercbase['NAZWA_DOD'] == 'gmina wiejska') |
                      (tercbase['NAZWA_DOD'] == 'gmina miejsko-wiejska')) & (
                             tercbase['NAZWA'] == gmi) & (
-                            tercbase['POW'] == tercbase.at[windex[0], 'WOJ'])]
+                            tercbase['POW'] == tercbase.at[pindex[0], 'WOJ'])]
 
                 if gminy.empty:
                     gminy = tercbase.loc[
-                        ((tercbase['NAZWA_DOD'] == 'gmina miejska') |
+                        ((tercbase['NAZWA_DOD'] == 'miasto') |
+                         (tercbase['NAZWA_DOD'] == 'gmina miejska') |
                          (tercbase['NAZWA_DOD'] == 'obszar wiejski') |
                          (tercbase['NAZWA_DOD'] == 'gmina wiejska') |
                          (tercbase['NAZWA_DOD'] == 'gmina miejsko-wiejska')) &
                         (tercbase['NAZWA'] == gmi)]
 
             gindex = gminy.index.tolist()
-            teryt3 = {'GMI': (tercbase.at[gindex[0], 'GMI'] + tercbase.at[gindex[0], 'RODZ'])}
+
+            teryt3 = {'GMI': str(int(tercbase.at[gindex[0], 'GMI'])) + str(int(tercbase.at[gindex[0], 'RODZ']))}
+
             teryt.update(teryt3)
 
     teryt = pd.DataFrame(teryt, index=[0])
@@ -284,20 +294,20 @@ def filtersimc(data):
     newtercd = {'województwo': str(goal.at[0, 'WOJ']).zfill(2), 'powiat': str(goal.at[0, 'POW']).zfill(2),
                 'gmina': str(str(goal.at[0, 'GMI']).zfill(2) + str(goal.at[0, 'RODZ_GMI']).zfill(1))}
     newterc = newtercd['województwo'] + newtercd['powiat'] + newtercd['gmina']
-    elements = ['województwo', 'powiat', 'gmina']
+    elements = ['województwo', 'powiat']
 
     apterc = ''
 
-    if cp('cokolwiek', nazwa):
-        apterc = cp('cokolwiek', nazwa)
+    if cp('nonsa wymiata', nazwa):
+        apterc = cp('rzer', nazwa)
         gapterc.append(apterc)
 
     globtercc.append(newterc)
     globterc.update(newtercd)
 
-    geolocbot.output('(1.) TERC: ' + (apterc if not apterc == '' else newterc))
+    geolocbot.output('(1.) TERC: ' + (apterc if apterc != '' else newterc))
 
-    if oldterc != newterc and len(newterc) == 7:
+    if oldterc[:5] != newterc[:5] and len(newterc) == 7:
         for i in range(0, len(elements), 1):
             if oldtercd[i] != newtercd[elements[i]]:
                 geolocbot.output("Zauważono potencjalną niepoprawność w kategoriach jednostek terytorialnych.")
