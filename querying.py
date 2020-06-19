@@ -102,13 +102,13 @@ def tercornot(data):
 
             if tercb.empty:
                 geolocbot.output("Miejscowość " + globname[0] +
-                      " nie spełnia kryteriów TERC, więc identyfikator nie zostanie dołączony do szablonu." +
-                      " Usuwam klucz…")
+                                 " nie spełnia kryteriów TERC, więc identyfikator nie zostanie dołączony do szablonu." +
+                                 " Usuwam klucz…")
                 del data['terc']
                 return data
 
     geolocbot.output('Miejscowość ' + globname[0] + ' spełnia kryteria TERC, więc identyfikator zostanie dołączony' +
-          ' do szablonu.')
+                     ' do szablonu.')
 
     if gapterc != []:
         del data['terc']

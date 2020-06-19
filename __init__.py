@@ -53,14 +53,19 @@ class glb(object):
                 glb().clear()
                 glb().input(input_message)
 
-            elif answer[1] not in ['c', 'e']:
-                geolocbot.output('Niepoprawna komenda.')
-                answer = geolocbot.input()
+            elif len(answer) >= 2:
+                if answer[1] not in ['c', 'e']:
+                    geolocbot.output('Niepoprawna komenda.')
+                    answer = geolocbot.input()
+
+                else:
+                    geolocbot.output('Niepoprawna komenda.')
+                    answer = geolocbot.input()
 
         return answer
 
     def output(self, output_message):
-        print(self.o + output_message)
+        print(self.o + str(output_message))
 
     def err(self, nmb, output_error_message):
         error = ['ValueError', 'KeyError', 'TooManyRows', 'InvalidTitle', 'EmptyNameError', 'KeyboardInterrupt']
@@ -83,8 +88,10 @@ class glb(object):
             if str(nmb) in bug_errors:
                 report_page = pwbot.Page(site, 'Dyskusja użytkownika:Stim/geolocbot-bugs')
                 text = report_page.text
-                report_page.text = text + '\n----\nID = {{#vardefine:bugid|{{#expr:{{#var:bugid}} + 1}}}} {{#var:bugid}}\n\n' \
-                                   + str(traceback.format_exc()) + '~~~~~'
+                put_place = text.find('|}\n{{Stim}}')
+                add = '| {{#vardefine:bugid|{{#expr:{{#var:bugid}} + 1}}}} {{#var:bugid}} || ' + \
+                      str(nmb) + ' || ' + str(traceback.format_exc()) + ' || ~~~~~ || {{/p}}\n|-\n'
+                report_page.text = text[:put_place] + add + text[put_place:]
                 report_page.save(u'/* raport */ bugerror: ' + str(nmb))
 
     def intro(self):
@@ -146,7 +153,7 @@ _  / __ _  _ \  __ \_  /_  __ \  ___/_  __ \  __ \  __/
 
         def InvalidTitleErr(self, it):
             print()
-            glb().err(4, "Podany tytuł jest nieprawidłowy.")
+            glb().err(3, "Podany tytuł jest nieprawidłowy.")
             time.sleep(2)
             print()
             print()

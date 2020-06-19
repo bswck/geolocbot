@@ -96,9 +96,9 @@ def run(title):
     elif page.isRedirectPage():
         geolocbot.output('To jest przekierowanie.')
         title = str(page.getRedirectTarget()).replace('[[', '') \
-                                             .replace(']]', '') \
-                                             .replace('nonsensopedia:', '') \
-                                             .replace('pl:', '')
+            .replace(']]', '') \
+            .replace('nonsensopedia:', '') \
+            .replace('pl:', '')
 
         if '#' in title:
             for char in title:
