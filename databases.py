@@ -272,8 +272,6 @@ def filtersimc(data):
         geolocbot.debug.output('Tera jedziemy na trybie 3.')
         goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw) & (simc['POW'] == tp) & (simc['GMI'] == tg) &
                         (simc['GMI'] == trg)]
-        
-        print(goal)
 
         if goal.empty:
             goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw) & (simc['POW'] == tp) & (simc['GMI'] == tg)]
