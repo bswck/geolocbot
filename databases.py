@@ -29,22 +29,35 @@ globterc = {}
 globtercc = []
 gapterc = []
 databasename = []
+belongs_to_61 = []
 
-def delapterc():
-    if gapterc != []:
-        del gapterc[0]
 
-def deldatabasename():
-    if databasename != []:
-        del databasename[0]
+def cleanup_databases():
+    if globname != []:
+        for i in range(len(globname)):
+            del globname[i]
 
-def delglobtercc():
+    if globterc != {}:
+        for key_value in list(globterc.keys()):
+            del globterc[key_value]
+
     if globtercc != []:
-        del globtercc[0]
+        for i in range(len(globtercc)):
+            del globtercc[i]
+
+    if gapterc != []:
+        for i in range(len(gapterc)):
+            del gapterc[i]
+
+    if databasename != []:
+        for i in range(len(databasename)):
+            del databasename[i]
+
 
 def updatename(name):
     if len(globname) >= 1:
         del globname[0]
+
     globname.append(name)
     geolocbot.output('Adres docelowy to [[' + name + ']].')
 
@@ -63,6 +76,7 @@ def cp(typ, name):
                               (tercbase['NAZWA_DOD'] == 'obszar wiejski') |
                               (tercbase['NAZWA_DOD'] == 'gmina wiejska') |
                               (tercbase['NAZWA_DOD'] == 'gmina miejsko-wiejska'))]
+
         if gmina.empty:
             return False
 
@@ -122,6 +136,7 @@ def terencode(data):
 
     databasename.append(dname)
 
+    geolocbot.output('Nazwa wykorzystywana w przeszukiwaniu baz danych: ' + databasename[0])
     dcols = data.columns.tolist()
 
     if dcols == ['NAZWA']:
@@ -141,6 +156,7 @@ def terencode(data):
     # Cleaning powiat's name.
     if 'powiat' in cols:
         pot = data.at[0, 'powiat']
+
         if pot.find(" (") != -1:
             fromindex = ''
             for i in pot:
@@ -152,15 +168,17 @@ def terencode(data):
             pot = pot.replace(pot[fromindex::], '')
 
         # Adding powiat name.
-        powiaty = tercbase.loc[(tercbase['NAZWA_DOD'] == 'powiat') & (tercbase['NAZWA'] == pot) & (
-                tercbase['WOJ'] == tercbase.at[windex[0], 'WOJ'])]
+        powiaty = tercbase.loc[((tercbase['NAZWA_DOD'] == 'powiat') | (tercbase['NAZWA_DOD'] == 'miasto na prawach '
+                                                                                                'powiatu')) &
+                               (tercbase['NAZWA'] == pot) & (tercbase['WOJ'] == tercbase.at[windex[0], 'WOJ'])]
 
         if powiaty.empty:
             powiaty = tercbase.loc[
-                ((tercbase['NAZWA_DOD'] == 'powiat') & (tercbase['NAZWA'] == pot))]
+                (((tercbase['NAZWA_DOD'] == 'powiat') | (tercbase['NAZWA_DOD'] == 'miasto na prawach powiatu')) &
+                 (tercbase['NAZWA'] == pot))]
 
         pindex = powiaty.index.tolist()
-        teryt2 = {'POW': tercbase.at[pindex[0], 'POW']}
+        teryt2 = {'POW': int(tercbase.at[pindex[0], 'POW'])}
         teryt.update(teryt2)
 
         if 'gmina' in cols:
@@ -210,6 +228,7 @@ def terencode(data):
             teryt.update(teryt3)
 
     teryt = pd.DataFrame(teryt, index=[0])
+    print(teryt)
 
     # Done encoding!
     return teryt
@@ -236,7 +255,10 @@ def filtersimc(data):
         i += 1
 
     if 'GMI' in data:
-        tg = int(data.at[0, 'GMI'])
+        twg = str(data.at[0, 'GMI'])[0]
+        trg = int(str(data.at[0, 'GMI'])[1])
+        tg = int(twg)
+
         i += 1
 
     nazwa = data.at[0, 'NAZWA']
@@ -247,16 +269,24 @@ def filtersimc(data):
     # Capturing the data is maximally optimized
     # and based on reduction.
     if i == 3:
-        goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw) & (simc['POW'] == tp) & (simc['GMI'] == tg)]
+        geolocbot.debug.output('Tera jedziemy na trybie 3.')
+        goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw) & (simc['POW'] == tp) & (simc['GMI'] == tg) &
+                        (simc['GMI'] == trg)]
+        
+        print(goal)
 
         if goal.empty:
-            goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw) & (simc['POW'] == tp)]
+            goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw) & (simc['POW'] == tp) & (simc['GMI'] == tg)]
 
             if goal.empty:
-                goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw)]
+                goal = simc.loc[
+                    (simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw) & (simc['POW'] == tp)]
 
                 if goal.empty:
-                    goal = simc.loc[(simc['NAZWA'] == nazwa)]
+                    goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw)]
+
+                    if goal.empty:
+                        goal = simc.loc[(simc['NAZWA'] == nazwa)]
 
     elif i == 2:
         goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw) & (simc['POW'] == tp)]
@@ -270,6 +300,7 @@ def filtersimc(data):
     elif i == 1:
         goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw)]
 
+        print(goal)
         if goal.empty:
             goal = simc.loc[(simc['NAZWA'] == nazwa)]
 
@@ -298,7 +329,7 @@ def filtersimc(data):
 
     apterc = ''
 
-    if cp('nonsa wymiata', nazwa):
+    if cp('nonsa wymiata', nazwa):  # this is an easter-egg
         apterc = cp('rzer', nazwa)
         gapterc.append(apterc)
 

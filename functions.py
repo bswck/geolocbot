@@ -3,14 +3,20 @@
 # License: GNU GPLv3.
 
 import sys
-import requests as rq
 import time
 import pywikibot as pwbot
 from __init__ import geolocbot, EmptyNameError
-from getcats import run
-from databases import delapterc, gapterc, filtersimc, terencode, TooManyRows, updatename
+from getcats import cleanup_getcats, run
+from databases import cleanup_databases, gapterc, filtersimc, terencode, TooManyRows, updatename
 from pywikibot import InvalidTitle
-from querying import coords, getqid, uncertain, changemode
+from querying import cleanup_querying, coords, getqid, uncertain, changemode
+
+
+def session_clean():
+    cleanup_databases()
+    cleanup_getcats()
+    cleanup_querying()
+
 
 site = pwbot.Site('pl', 'nonsensopedia')  # we're on nonsa.pl
 start = []
@@ -18,6 +24,7 @@ start = []
 
 def apply(page, data):
     text = page.text
+    place = len(text) - 1
 
     if '[[Kategoria:' in text or '[[Category:' in text:
         if 'Kategoria:' in text and '[[Category:' not in text:
@@ -30,8 +37,6 @@ def apply(page, data):
             place1 = text.find('[[Kategoria:')
             place2 = text.find('[[Category:')
             place = place1 if (place1 < place2) else place2
-    else:
-        place = len(text) - 1
 
     template = str('{{lokalizacja|' + data['koordynaty'] + '|simc=' + data['simc'] +
                    ('|terc=' + data['terc'] if 'terc' in data.keys() else str()) + '|wikidata=' + data[
@@ -47,7 +52,6 @@ def apply(page, data):
         page.text = text[:place] + template + text[place:]
         page.save('/* dodano */ ' + template)
 
-    delapterc()
     changemode()
 
 
@@ -61,7 +65,7 @@ def checktitle(pagename):
     # I'm putting the title into two strings:
     # * st is the corrected title,
     # * pagename is the title input at the beginning.
-    st = pagename
+    pagename_corrected = pagename
 
     # This condition erases namespaces from the pagename.
     # For example, if "Kategoria:Województwo śląskie" has been input,
@@ -76,8 +80,8 @@ def checktitle(pagename):
         # Prints out that namespace name has been excluded from the pagename.
         geolocbot.output("Usunięto '" + pagename[:from2index] + "'.")
 
-        st = str(pagename[from2index::])
-        checktitle(st)
+        pagename_corrected = str(pagename[from2index::])
+        checktitle(pagename_corrected)
 
     if " (" in pagename:
         for i in pagename:
@@ -91,14 +95,17 @@ def checktitle(pagename):
     # For example, if I used .capitalize(),
     # "ruciane-Nida" would be converted into "Ruciane-nida",
     # which is uncorrect.
-    st = st[0].upper() + st[1::]
+    pagename_corrected = pagename_corrected[0].upper() + pagename_corrected[1::]
 
     # Return the corrected pagename string.
-    return st
+    return pagename_corrected
 
 
 # This runs the whole code.
 def main(pagename=None):
+
+    session_clean()
+
     try:
         if pagename is None:
             pagename = geolocbot.input('Podaj nazwę artykułu: ', cannot_be_empty=True)

@@ -5,7 +5,7 @@
 import pywikibot as pwbot
 import pandas as pd
 from __init__ import geolocbot
-from databases import deldatabasename, delglobtercc, databasename, gapterc, globname, globterc, globtercc, updatename
+from databases import databasename, gapterc, globname, globterc, globtercc, updatename
 from pywikibot.pagegenerators import WikidataSPARQLPageGenerator
 from pywikibot.bot import SingleSiteBot
 from pywikibot import pagegenerators as pg
@@ -16,6 +16,12 @@ everythingiknow = {}
 nts = pd.read_csv("NTS.csv", sep=';')
 tercbase = pd.read_csv("TERC.csv", sep=';', usecols=['WOJ', 'POW', 'GMI', 'RODZ', 'NAZWA', 'NAZWA_DOD'])
 uncertain = []
+
+
+def cleanup_querying():
+    if everythingiknow != {}:
+        for key_value in list(everythingiknow.keys()):
+            del everythingiknow[key_value]
 
 
 def changemode(integer=None):
@@ -224,16 +230,16 @@ def coords(qid):
 
         for i in range(len(list(wikidata_data['labels']))):
             if databasename[0] == wikidata_data['labels'][list(wikidata_data['labels'])[i]]:
-                geolocbot.output('Nazwy są jednakowe (wynik próby ' + str(len(attempts)) +').')
+                geolocbot.output('Nazwy są jednakowe (wynik próby ' + str(len(attempts)) + ').')
                 break
 
             else:
                 attempts.append(i)
 
         if len(attempts) == len(list(wikidata_data['labels'])):
-            deldatabasename()
             raise KeyError(
-                'Na Wikidata są koordynaty miejscowości o tym samym identyfikatorze, jednak nie o tej samej nazwie. Liczba prób: ' + str(len(attempts)) + '.')
+                'Na Wikidata są koordynaty miejscowości o tym samym identyfikatorze, jednak nie o tej samej nazwie. '
+                'Liczba prób: ' + str(len(attempts)) + '.')
 
         if 'P625' in item.claims:
             coordinates = item.claims['P625'][0].getTarget()
@@ -241,10 +247,5 @@ def coords(qid):
             longitude = coordinates.lon
             coordins = {'koordynaty': str(latitude)[:10] + ', ' + str(longitude)[:10]}
             everythingiknow.update(coordins)
-
-    if databasename != []:
-        deldatabasename()
-
-    delglobtercc()
 
     return tercornot(everythingiknow)  # ;)

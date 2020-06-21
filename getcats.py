@@ -14,6 +14,16 @@ captured = {}
 p = []
 
 
+def cleanup_getcats():
+    if captured != {}:
+        for key_value in list(captured.keys()):
+            del captured[key_value]
+
+    if p != []:
+        for i in range(len(p)):
+            del p[i]
+
+
 # This function reviews a category and decides,
 # whether it is needed or not.
 def findcats(c, title):
@@ -57,20 +67,20 @@ def findcats(c, title):
         # Reading the category of category if it's one of these below.
         elif "Kategoria:Miasta w" in c[i] or "Kategoria:Powiaty w" in c[i] or "Kategoria:Gminy w" in c[i] or \
                 "Kategoria:" + title in c[i]:
+
+            if cp('powiat', title) is not False:
+                powiat = cp('powiat', title)
+                geolocbot.debug.output(powiat)
+                add = {"powiat": powiat}
+                captured.update(add)
+
+            if cp('gmina', title) is not False:
+                gmina = cp('gmina', title)
+                geolocbot.debug.output(gmina)
+                add = {"gmina": gmina}
+                captured.update(add)
+
             readcategories(c[i])
-
-        elif cp(c[i], 'powiat') is not False:
-            powiat = cp(c[i], 'powiat')
-            add = {"powiat": powiat}
-            captured.update(add)
-
-        elif cp(c[i], 'gmina') is not False:
-            gmina = cp(c[i], 'gmina')
-            add = {"gmina": gmina}
-            captured.update(add)
-
-        else:
-            i += 1
 
 
 def readcategories(title):
@@ -108,6 +118,11 @@ def run(title):
         geolocbot.output('Cel przekierowania to [[' + str(title) + ']].')
 
     readcategories(title)  # script starts
+    geolocbot.output('Z kategorii artykułu mam następujące dane:')
+    geolocbot.output('województwo: {0}.'.format(
+        (captured['województwo'].lower() if 'województwo' in list(captured.keys()) else '–')))
+    geolocbot.output('powiat: {0}.'.format((captured['powiat'] if 'powiat' in list(captured.keys()) else '–')))
+    geolocbot.output('gmina: {0}.'.format((captured['gmina'] if 'gmina' in list(captured.keys()) else '–')))
     return withkeypagename(title)
 
 

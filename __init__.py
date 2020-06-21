@@ -26,14 +26,16 @@ class glb(object):
         self.o = '[b] '
         self.n = '(nonsa.pl) '
 
-    def clear(self):
+    @staticmethod
+    def clear():
         if name == 'nt':
             _ = system('cls')
 
         else:
             _ = system('clear')
 
-    def end(self):
+    @staticmethod
+    def end():
         geolocbot.output('Zapraszam ponownie!')
         print('---')
         exit()
@@ -51,7 +53,7 @@ class glb(object):
 
             elif '*c' in answer and '*e' not in answer:
                 glb().clear()
-                glb().input(input_message)
+                answer = geolocbot.input(input_message)
 
             elif len(answer) >= 2:
                 if answer[1] not in ['c', 'e']:
@@ -94,7 +96,8 @@ class glb(object):
                 report_page.text = text[:put_place] + add + text[put_place:]
                 report_page.save(u'/* raport */ bugerror: ' + str(nmb))
 
-    def intro(self):
+    @staticmethod
+    def intro():
         print("""
 _________          ______           ______       _____ 
 __  ____/_____________  /______________  /_________  /_
@@ -114,7 +117,8 @@ _  / __ _  _ \  __ \_  /_  __ \  ___/_  __ \  __ \  __/
 
     class exceptions(object):
 
-        def ValueErr(self, ve, pagename):
+        @staticmethod
+        def ValueErr(ve, pagename):
             print()
             glb().err(0, "Nie znaleziono odpowiednich kategorii lub strona '" + str(pagename) + "' nie istnieje.")
             print(traceback.format_exc())
@@ -129,7 +133,8 @@ _  / __ _  _ \  __ \_  /_  __ \  ___/_  __ \  __ \  __/
             print()
             print()
 
-        def KeyErr(self, ke, pagename):
+        @staticmethod
+        def KeyErr(ke, pagename):
             print()
             glb().err(1, "Nie znaleziono odpowiednich kategorii lub strona '" + str(pagename) + "' nie istnieje.")
             print(
@@ -140,7 +145,8 @@ _  / __ _  _ \  __ \_  /_  __ \  ___/_  __ \  __ \  __/
             print()
             print()
 
-        def TooManyRowsErr(self, tmr):
+        @staticmethod
+        def TooManyRowsErr(tmr):
             print()
             glb().err(2, 'Więcej niż 1 rząd w odebranych danych!')
             print(" " * 11 + "Wyjściowa baza:", file=sys.stderr)
@@ -150,25 +156,36 @@ _  / __ _  _ \  __ \_  /_  __ \  ___/_  __ \  __ \  __/
             print()
             print()
 
-        def InvalidTitleErr(self, it):
+        @staticmethod
+        def InvalidTitleErr():
             print()
             glb().err(3, "Podany tytuł jest nieprawidłowy.")
             time.sleep(2)
             print()
             print()
 
-        def EmptyNameErr(self):
+        @staticmethod
+        def EmptyNameErr():
             print()
             glb().err(4, "Nie podano tytułu strony.")
             time.sleep(2)
             print()
             print()
 
-        def KeyboardInterruptErr(self):
+        @staticmethod
+        def KeyboardInterruptErr():
             print()
             glb().err(5, "Pomyślnie przerwano operację.")
             glb().output('Kontynuować? <T/N>')
 
+    class debug(object):
+        def __init__(self):
+            self.d = '<debug_info> '
+
+        def output(self, output_message):
+            geolocbot.output(self.d + str(output_message))
+
 
 geolocbot = glb()
+geolocbot.debug = geolocbot.debug()
 geolocbot.exceptions = geolocbot.exceptions()

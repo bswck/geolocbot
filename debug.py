@@ -6,7 +6,8 @@ from databases import terencode, filtersimc, updatename
 from querying import coords, getqid
 
 system('cls')
-for i in range(5): print()
+for i in range(5):
+    print()
 trackgoal = geolocbot.input('Wpisz nazwę miejscowości, której przetwarzanie chcesz prześledzić: ')
 print()
 print('--- updatename():')
