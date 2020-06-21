@@ -214,14 +214,18 @@ site = pwbot.Site("wikidata", "wikidata")
 repo = site.data_repository()
 
 
-def coords(qid):
-    item = pwbot.ItemPage(repo, qid)
-
+def boorish_pull(item):
     try:
         item.get()
 
     except pwbot.exceptions.MaxlagTimeoutError:
-        item.get()
+        boorish_pull(item)
+
+
+def coords(qid):
+    item = pwbot.ItemPage(repo, qid)
+
+    boorish_pull(item)
 
     if item.claims:
         item = pwbot.ItemPage(repo, qid)  # This will be functionally the same as the other item we defined
