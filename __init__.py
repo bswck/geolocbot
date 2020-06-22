@@ -1,8 +1,13 @@
-# -*- coding: utf-8 -*-
+# Author: Stim, 2020.
+# Geolocalisation bot for Nonsensopedia.
+# License: GNU GPLv3.
+
 import pywikibot as pwbot
+import pandas as pd
 import traceback
 import sys
 import time
+from pandas import DataFrame
 from os import system, name
 
 
@@ -18,6 +23,7 @@ class EmptyNameError(Error):
 
 
 site = pwbot.Site('pl', 'nonsensopedia')  # we're on nonsa.pl
+tmr_database = []
 
 
 class glb(object):
@@ -25,6 +31,11 @@ class glb(object):
         self.i = '>b< '
         self.o = '[b] '
         self.n = '(nonsa.pl) '
+
+    @staticmethod
+    def tmr(dataframe=''):
+        """Saving TooManyRows to call it"""
+        tmr_database.append(dataframe)
 
     @staticmethod
     def clear():
@@ -36,11 +47,13 @@ class glb(object):
 
     @staticmethod
     def end():
+        """Closes the program"""
         geolocbot.output('Zapraszam ponownie!')
         print('---')
         exit()
 
     def input(self, input_message='Odpowiedź: ', cannot_be_empty=False):
+        """Geolocbot's specific input method"""
         answer = input(str(self.i + input_message))
 
         if cannot_be_empty:
@@ -67,9 +80,11 @@ class glb(object):
         return answer
 
     def output(self, output_message):
+        """Geolocbot's specific output method"""
         print(self.o + str(output_message))
 
-    def err(self, nmb, output_error_message):
+    def err(self, nmb, output_error_message, tmr=False, pgn=False):
+        """Function printing, recognising and differentiating errors"""
         error = ['ValueError', 'KeyError', 'TooManyRows', 'InvalidTitle', 'EmptyNameError', 'KeyboardInterrupt']
         bug_errors = ['AssertionError',
                       'AttributeError',
@@ -85,6 +100,25 @@ class glb(object):
         print(self.n + '[' + (error[nmb] if isinstance(nmb, int) else nmb) + ']: ' + output_error_message,
               file=sys.stderr)
 
+        if isinstance(nmb, int) and error[nmb] == error[2]:
+            tmr = tmr_database[0]
+            raw_name = str(tmr.at[0, 'NAZWA'])
+            name = "'''[[" + str(pgn) + "]]'''\n"
+            report_page = pwbot.Page(site, 'Dyskusja użytkownika:Stim/TooManyRows-log')
+            text = report_page.text
+
+            if raw_name not in text:
+                how_many_indexes = tmr.shape[0]
+                add = '\n\n\n<center>\n' + name + '{| class="wikitable sortable"\n|-\n! NAZWA !! SIMC\n|-'
+
+                for index in range(how_many_indexes):
+                    add = add + '\n| [[' + str(raw_name) + ']] || ' + str(tmr.at[index, 'SYM']) + '\n|-'
+
+                add = add + '\n|}\n~~~~~\n</center>'
+                report_page.text = text + add
+                report_page.save(u'/* raport */ TooManyRows: ' + str(raw_name))
+            del tmr_database[0]
+
         if not isinstance(nmb, int):
 
             if str(nmb) in bug_errors:
@@ -92,12 +126,14 @@ class glb(object):
                 text = report_page.text
                 put_place = text.find('|}\n{{Stim}}')
                 add = '| {{#vardefine:bugid|{{#expr:{{#var:bugid}} + 1}}}} {{#var:bugid}} || ' + \
-                      str(nmb) + ' || ' + str(traceback.format_exc()) + ' || ~~~~~ || {{/p}}\n|-\n'
+                      str(nmb) + ' || <pre>' + str(traceback.format_exc()) + '</pre> || ~~~~~ || {{/p}}\n|-\n'
                 report_page.text = text[:put_place] + add + text[put_place:]
                 report_page.save(u'/* raport */ bugerror: ' + str(nmb))
 
     @staticmethod
     def intro():
+        system('@echo off')
+        system('title Geolocbot 2020 // Author: Stim // Bot for Nonsensopedia // https://nonsa.pl')
         print("""
 _________          ______           ______       _____ 
 __  ____/_____________  /______________  /_________  /_
@@ -116,12 +152,12 @@ _  / __ _  _ \  __ \_  /_  __ \  ___/_  __ \  __ \  __/
         print()
 
     class exceptions(object):
+        """Geolocbot's specific exceptions"""
 
         @staticmethod
         def ValueErr(ve, pagename):
             print()
             glb().err(0, "Nie znaleziono odpowiednich kategorii lub strona '" + str(pagename) + "' nie istnieje.")
-            print(traceback.format_exc())
             time.sleep(2)
 
             print(
@@ -141,17 +177,19 @@ _  / __ _  _ \  __ \_  /_  __ \  ___/_  __ \  __ \  __/
                 " " * 11 + "Hint:" + " " * 7 +
                 str(ke).replace("'", '') if str(ke) != '0' else " " * 11 + "Hint:" +
                                                                 " " * 7 + 'Nic nie znalazłem. [b]')
+            print(str(traceback.format_exc()))
             time.sleep(2)
             print()
             print()
 
         @staticmethod
-        def TooManyRowsErr(tmr):
+        def TooManyRowsErr(tmr, pagename):
             print()
-            glb().err(2, 'Więcej niż 1 rząd w odebranych danych!')
+            glb().err(2, 'Więcej niż 1 rząd w odebranych danych!', tmr=tmr, pgn=pagename)
             print(" " * 11 + "Wyjściowa baza:", file=sys.stderr)
             print()
             print(tmr, file=sys.stderr)
+            tmr_database.append(tmr)
             time.sleep(2)
             print()
             print()
@@ -179,13 +217,16 @@ _  / __ _  _ \  __ \_  /_  __ \  ___/_  __ \  __ \  __/
             glb().output('Kontynuować? <T/N>')
 
     class debug(object):
+        """Printing style for debugging purposes"""
+
         def __init__(self):
-            self.d = '<debug_info> '
+            self.d = 'debug_info >> '
 
         def output(self, output_message):
             geolocbot.output(self.d + str(output_message))
 
 
 geolocbot = glb()
+"""Base class for specific Geolocbot operations"""
 geolocbot.debug = geolocbot.debug()
 geolocbot.exceptions = geolocbot.exceptions()

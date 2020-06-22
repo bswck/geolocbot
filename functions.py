@@ -83,13 +83,6 @@ def checktitle(pagename):
         pagename_corrected = str(pagename[from2index::])
         checktitle(pagename_corrected)
 
-    if " (" in pagename:
-        for i in pagename:
-
-            if i == '(':
-                fromindex = pagename.find(i) - 1
-                geolocbot.output("Usunięto dopisek '" + pagename[fromindex + 1:] + "'.")
-
     # .capitalize() changes further characters to lower,
     # that is why I use this method.
     # For example, if I used .capitalize(),
@@ -97,17 +90,34 @@ def checktitle(pagename):
     # which is uncorrect.
     pagename_corrected = pagename_corrected[0].upper() + pagename_corrected[1::]
 
+    page = pwbot.Page(site, pagename_corrected)
+
+    if page.isRedirectPage():
+        geolocbot.output('To jest przekierowanie.')
+        pagename_corrected = str(page.getRedirectTarget()).replace('[[', '') \
+            .replace(']]', '') \
+            .replace('nonsensopedia:', '') \
+            .replace('pl:', '')
+
+        if '#' in pagename_corrected:
+            for char in pagename_corrected:
+
+                if char == '#':
+                    sharpindex = pagename_corrected.find(char)
+                    pagename_corrected = pagename_corrected[:sharpindex]
+
+        geolocbot.output('Cel przekierowania to [[' + str(pagename_corrected) + ']].')
+
     # Return the corrected pagename string.
     return pagename_corrected
 
 
 # This runs the whole code.
-def main(pagename=None):
-
+def main(pagename='preloaded'):
     session_clean()
 
     try:
-        if pagename is None:
+        if pagename == 'preloaded':
             pagename = geolocbot.input('Podaj nazwę artykułu: ', cannot_be_empty=True)
 
             r = time.time()
@@ -150,11 +160,11 @@ def main(pagename=None):
         main()
 
     except TooManyRows as tmr:
-        geolocbot.exceptions.TooManyRowsErr(tmr)
+        geolocbot.exceptions.TooManyRowsErr(tmr, pagename)
         main()
 
-    except InvalidTitle as it:
-        geolocbot.exceptions.InvalidTitleErr(it)
+    except InvalidTitle:
+        geolocbot.exceptions.InvalidTitleErr()
         main()
 
     except KeyboardInterrupt:

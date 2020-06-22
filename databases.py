@@ -10,14 +10,8 @@ import sys
 from __init__ import geolocbot
 
 
-class Error(Exception):
-    """Base class for other exceptions"""
-    pass
-
-
-class TooManyRows(Error):
+class TooManyRows(Exception):
     """Raised when too many rows appear in the table as an answer"""
-    pass
 
 
 simc = pd.read_csv("SIMC.csv", sep=';',
@@ -29,29 +23,24 @@ globterc = {}
 globtercc = []
 gapterc = []
 databasename = []
-belongs_to_61 = []
 
 
 def cleanup_databases():
-    if globname != []:
-        for i in range(len(globname)):
-            del globname[i]
+    while globname != []:
+        del globname[0]
 
     if globterc != {}:
         for key_value in list(globterc.keys()):
             del globterc[key_value]
 
-    if globtercc != []:
-        for i in range(len(globtercc)):
-            del globtercc[i]
+    while globtercc != []:
+        del globtercc[0]
 
-    if gapterc != []:
-        for i in range(len(gapterc)):
-            del gapterc[i]
+    while gapterc != []:
+        del gapterc[0]
 
-    if databasename != []:
-        for i in range(len(databasename)):
-            del databasename[i]
+    while databasename != []:
+        del databasename[0]
 
 
 def updatename(name):
@@ -132,11 +121,12 @@ def terencode(data):
             if i == '(':
                 fromindex = dname.find(i) - 1
                 dname = dname.replace(dname[fromindex::], '')
+                geolocbot.output("Usunięto z podanej nazwy dopisek '" + name[fromindex + 1::] + "' na potrzeby"
+                                                                                                " baz danych.")
                 data = data.replace(name, dname)
 
     databasename.append(dname)
-
-    geolocbot.output('Nazwa wykorzystywana w przeszukiwaniu baz danych: ' + databasename[0])
+    geolocbot.output('Nazwa wykorzystywana w przeszukiwaniu baz danych: ' + databasename[0] + '.')
     dcols = data.columns.tolist()
 
     if dcols == ['NAZWA']:
@@ -228,7 +218,6 @@ def terencode(data):
             teryt.update(teryt3)
 
     teryt = pd.DataFrame(teryt, index=[0])
-    print(teryt)
 
     # Done encoding!
     return teryt
@@ -244,22 +233,21 @@ def filtersimc(data):
     tp = ''
     tg = ''
 
-    i = 0
+    elements = []
 
     if 'WOJ' in data:
         tw = int(data.at[0, 'WOJ'])
-        i += 1
+        elements.append('województwo')
 
     if 'POW' in data:
         tp = int(data.at[0, 'POW'])
-        i += 1
+        elements.append('powiat')
 
     if 'GMI' in data:
         twg = str(data.at[0, 'GMI'])[0]
         trg = int(str(data.at[0, 'GMI'])[1])
         tg = int(twg)
-
-        i += 1
+        elements.append('gmina i rodzaj gminy')
 
     nazwa = data.at[0, 'NAZWA']
 
@@ -268,8 +256,7 @@ def filtersimc(data):
     # Advanced filtering the SIMC database.
     # Capturing the data is maximally optimized
     # and based on reduction.
-    if i == 3:
-        geolocbot.debug.output('Tera jedziemy na trybie 3.')
+    if elements == ['województwo', 'powiat', 'gmina i rodzaj gminy']:
         goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw) & (simc['POW'] == tp) & (simc['GMI'] == tg) &
                         (simc['GMI'] == trg)]
 
@@ -286,7 +273,7 @@ def filtersimc(data):
                     if goal.empty:
                         goal = simc.loc[(simc['NAZWA'] == nazwa)]
 
-    elif i == 2:
+    elif elements == ['województwo', 'powiat']:
         goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw) & (simc['POW'] == tp)]
 
         if goal.empty:
@@ -295,14 +282,26 @@ def filtersimc(data):
             if goal.empty:
                 goal = simc.loc[(simc['NAZWA'] == nazwa)]
 
-    elif i == 1:
+    elif elements == ['województwo', 'gmina i rodzaj gminy']:
+        goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw) & (simc['GMI'] == tg) &
+                        (simc['GMI'] == trg)]
+
+        if goal.empty:
+            goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw) & (simc['GMI'] == tg)]
+
+            if goal.empty:
+                goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw)]
+
+                if goal.empty:
+                    goal = simc.loc[(simc['NAZWA'] == nazwa)]
+
+    elif elements == ['województwo']:
         goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw)]
 
-        print(goal)
         if goal.empty:
             goal = simc.loc[(simc['NAZWA'] == nazwa)]
 
-    elif i == 0:
+    elif elements == []:
         goal = simc.loc[(simc['NAZWA'] == nazwa)]
 
     # Despite that TERYT is already captured,
@@ -336,6 +335,8 @@ def filtersimc(data):
 
     geolocbot.output('(1.) TERC: ' + (apterc if apterc != '' else newterc))
 
+    site = pwbot.Site('pl', 'nonsensopedia')
+
     if oldterc[:5] != newterc[:5] and len(newterc) == 7:
         for i in range(0, len(elements), 1):
             if oldtercd[i] != newtercd[elements[i]]:
@@ -344,7 +345,6 @@ def filtersimc(data):
                 print(" " * 4 + 'Szczegóły błędu:')
                 print(" " * 20 + 'Nasze:    ' + oldterc)
                 print(" " * 20 + 'Aktualne: ' + newterc)
-                site = pwbot.Site('pl', 'nonsensopedia')
                 pg = pwbot.Page(site, u"Nonsensopedia:Lokalizacja/raporty")
                 text = pg.text
 
@@ -366,13 +366,22 @@ def filtersimc(data):
 
     # If the number of rows is bigger than 1,
     # the captured data isn't certain.
-    if goal.shape[0] > 1:
+    hints_page = pwbot.Page(site, 'Dyskusja użytkownika:Stim/TooManyRows-hints')
+    hints = hints_page.text
+
+    if goal.shape[0] > 1 and globname[0] not in hints:
+        geolocbot.tmr(dataframe=goal[['NAZWA', 'SYM']])
         raise TooManyRows(goal[['NAZWA', 'SYM']])
 
-    else:
-        # (Expecting only one row, please look above).
-        sym = goal.at[0, 'SYM']
-        sym = str(sym).zfill(7)
-        geolocbot.output('(::) SIMC: ' + sym)
-        alldata = {'SIMC': sym, 'TERC': newterc}
-        return alldata
+    elif goal.shape[0] > 1 and globname[0] in hints:
+        line_start = hints[(hints.find('| [[' + globname[0] + ']] || '))::]
+        line = line_start[:(line_start.find('\n|-'))]
+        simc_hint = line[(line.find('|| ') + 3)::]
+        geolocbot.output('(nonsa.pl) [TooManyRows]: Pobrano wskazówkę SIMC: ' + str(simc_hint).zfill(7))
+        goal = goal[goal.NAZWA != int(simc_hint)]
+
+    sym = goal.at[0, 'SYM']
+    sym = str(sym).zfill(7)
+    geolocbot.output('(::) SIMC: ' + sym)
+    alldata = {'SIMC': sym, 'TERC': newterc}
+    return alldata

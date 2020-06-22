@@ -41,12 +41,13 @@ def ntsplease(mode='certain'):
         globnts = []
 
         for nts_index in range(filtered_nts.shape[0]):
-            nts_id = (str(int(filtered_nts.at[nts_index, 'REGION'])) +
-                      str(int(filtered_nts.at[nts_index, 'WOJ'])).zfill(2) +
-                      str(int(filtered_nts.at[nts_index, 'PODREG'])).zfill(2) +
-                      str(int(filtered_nts.at[nts_index, 'POW'])).zfill(2) +
-                      (str(int(filtered_nts.at[nts_index, 'GMI'])).zfill(2) +
-                       str(int(filtered_nts.at[nts_index, 'RODZ']))).replace('.', ''))
+            nts_id = ("{0}{1}{2}{3}{4}".format(str(int(filtered_nts.at[nts_index, 'REGION'])),
+                                               str(int(filtered_nts.at[nts_index, 'WOJ'])).zfill(2),
+                                               str(int(filtered_nts.at[nts_index, 'PODREG'])).zfill(2),
+                                               str(int(filtered_nts.at[nts_index, 'POW'])).zfill(2),
+                                               ((str(int(filtered_nts.at[nts_index, 'GMI'])).zfill(2) +
+                                                 str(int(filtered_nts.at[nts_index, 'RODZ']))).replace('.', '') if
+                                                pd.notna(filtered_nts.at[nts_index, 'GMI']) else '')))
 
             terc_odp = nts_id[1:3] + nts_id[5::]
             line = {terc_odp: nts_id}
@@ -219,6 +220,7 @@ def boorish_pull(item):
         item.get()
 
     except pwbot.exceptions.MaxlagTimeoutError:
+        geolocbot.output('Chamsko ponawiam pobór informacji…')
         boorish_pull(item)
 
 
@@ -234,7 +236,7 @@ def coords(qid):
 
         for i in range(len(list(wikidata_data['labels']))):
             if databasename[0] == wikidata_data['labels'][list(wikidata_data['labels'])[i]]:
-                geolocbot.output('Nazwy są jednakowe (wynik próby ' + str(len(attempts)) + ').')
+                geolocbot.output('Nazwy są jednakowe (wynik próby ' + str(len(attempts) + 1) + ').')
                 break
 
             else:
@@ -243,7 +245,7 @@ def coords(qid):
         if len(attempts) == len(list(wikidata_data['labels'])):
             raise KeyError(
                 'Na Wikidata są koordynaty miejscowości o tym samym identyfikatorze, jednak nie o tej samej nazwie. '
-                'Liczba prób: ' + str(len(attempts)) + '.')
+                'Liczba prób porównawczych: ' + str(len(attempts) + 1) + '.')
 
         if 'P625' in item.claims:
             coordinates = item.claims['P625'][0].getTarget()

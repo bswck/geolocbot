@@ -12,6 +12,8 @@ site = pwbot.Site('pl', 'nonsensopedia')  # we're on nonsa.pl
 # Dictionary storing the captured information.
 captured = {}
 p = []
+getcats_fors = []
+be_careful = []
 
 
 def cleanup_getcats():
@@ -19,15 +21,22 @@ def cleanup_getcats():
         for key_value in list(captured.keys()):
             del captured[key_value]
 
-    if p != []:
-        for i in range(len(p)):
-            del p[i]
+    while p != []:
+            del p[0]
+
+    while getcats_fors != []:
+            del getcats_fors[0]
+
+    while be_careful != []:
+            del be_careful[0]
+
 
 
 # This function reviews a category and decides,
 # whether it is needed or not.
 def findcats(c, title):
-    for i in range(0, len(c), 1):
+    for i in range(len(c)):
+        getcats_fors.append(str(len(getcats_fors) + 1))
         page = pwbot.Page(site, title)
         text = page.text
 
@@ -41,21 +50,22 @@ def findcats(c, title):
                 p.append(' ')
 
         # Checks if the category contains "Gmina".
-        if "Kategoria:Gmina " in c[i]:
+        if 'gmina' not in captured and "Kategoria:Gmina " in c[i]:
+            geolocbot.debug.output('Sprawdzam gminę.')
             gmina = c[i].replace("Kategoria:Gmina ", "")  # (No need for namespace and type name).
             readcategories(c[i])
             add = {"gmina": gmina}
             captured.update(add)
 
         # Checks if the category contains "Powiat "; disclaiming category "Powiaty".
-        elif "Kategoria:Powiat " in c[i]:
+        elif 'powiat' not in captured and "Kategoria:Powiat " in c[i]:
             powiat = c[i].replace("Kategoria:Powiat ", "")
             readcategories(c[i])
             add = {"powiat": powiat.lower()}
             captured.update(add)
 
         # Checks if the category contains "Województwo ".
-        elif "Kategoria:Województwo " in c[i]:
+        elif 'województwo' not in captured and "Kategoria:Województwo " in c[i]:
             wojewodztwo = c[i].replace("Kategoria:Województwo ", "")
             add = {"województwo": wojewodztwo.upper()}
             captured.update(add)
@@ -65,22 +75,25 @@ def findcats(c, title):
             raise ValueError('Podana strona to ujednoznacznienie. [b]')
 
         # Reading the category of category if it's one of these below.
-        elif "Kategoria:Miasta w" in c[i] or "Kategoria:Powiaty w" in c[i] or "Kategoria:Gminy w" in c[i] or \
-                "Kategoria:" + title in c[i]:
+        elif ("Kategoria:Miasta w" in c[i] or "Kategoria:Powiaty w" in c[i] or "Kategoria:Gminy w" in c[i] or \
+                "Kategoria:" + title in c[i]) and ('powiat' not in captured or 'gmina' not in captured):
 
             if cp('powiat', title) is not False:
                 powiat = cp('powiat', title)
-                geolocbot.debug.output(powiat)
                 add = {"powiat": powiat}
                 captured.update(add)
 
             if cp('gmina', title) is not False:
                 gmina = cp('gmina', title)
-                geolocbot.debug.output(gmina)
                 add = {"gmina": gmina}
                 captured.update(add)
 
             readcategories(c[i])
+
+        else:
+            if c[i] not in be_careful:
+                be_careful.append(c[i])
+                readcategories(c[i])
 
 
 def readcategories(title):
@@ -101,23 +114,9 @@ def run(title):
     if text == '':
         raise KeyError('Nie ma takiej strony. [b]')
 
-    elif page.isRedirectPage():
-        geolocbot.output('To jest przekierowanie.')
-        title = str(page.getRedirectTarget()).replace('[[', '') \
-            .replace(']]', '') \
-            .replace('nonsensopedia:', '') \
-            .replace('pl:', '')
-
-        if '#' in title:
-            for char in title:
-
-                if char == '#':
-                    sharpindex = title.find(char)
-                    title = title[:sharpindex]
-
-        geolocbot.output('Cel przekierowania to [[' + str(title) + ']].')
-
     readcategories(title)  # script starts
+    geolocbot.output('Ciekawostka: pętla for w funkcji findcats została wywołana ' + getcats_fors[-1] + \
+                     ' razy w tym zapytaniu.')
     geolocbot.output('Z kategorii artykułu mam następujące dane:')
     geolocbot.output('województwo: {0}.'.format(
         (captured['województwo'].lower() if 'województwo' in list(captured.keys()) else '–')))
