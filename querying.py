@@ -6,8 +6,6 @@ import pywikibot as pwbot
 import pandas as pd
 from __init__ import geolocbot
 from databases import databasename, gapterc, globname, globterc, globtercc, updatename
-from pywikibot.pagegenerators import WikidataSPARQLPageGenerator
-from pywikibot.bot import SingleSiteBot
 from pywikibot import pagegenerators as pg
 
 # Yet!

@@ -25,22 +25,27 @@ gapterc = []
 databasename = []
 
 
-def cleanup_databases():
-    while globname != []:
-        del globname[0]
+def cleanup_databases(exclude=[]):
+    if 'globname' not in exclude:
+        while globname != []:
+            del globname[0]
 
-    if globterc != {}:
-        for key_value in list(globterc.keys()):
-            del globterc[key_value]
+    if 'globterc' not in exclude:
+        if globterc != {}:
+            for key_value in list(globterc.keys()):
+                del globterc[key_value]
 
-    while globtercc != []:
-        del globtercc[0]
+    if 'globtercc' not in exclude:
+        while globtercc != []:
+            del globtercc[0]
 
-    while gapterc != []:
-        del gapterc[0]
+    if 'gapterc' not in exclude:
+        while gapterc != []:
+            del gapterc[0]
 
-    while databasename != []:
-        del databasename[0]
+    if 'databasename' not in exclude:
+        while databasename != []:
+            del databasename[0]
 
 
 def updatename(name):
@@ -228,66 +233,54 @@ def terencode(data):
 # For example, 'Strzebiń' returns 0135540.
 # Data captured from terencode() are obviously
 # required.
-def filtersimc(data):
-    tw = ''
-    tp = ''
-    tg = ''
+def filtersimc(data, mode=0):
+    if mode == 0:
+        tw = ''
+        tp = ''
+        tg = ''
 
-    elements = []
+        elements = []
 
-    if 'WOJ' in data:
-        tw = int(data.at[0, 'WOJ'])
-        elements.append('województwo')
+        if 'WOJ' in data:
+            tw = int(data.at[0, 'WOJ'])
+            elements.append('województwo')
 
-    if 'POW' in data:
-        tp = int(data.at[0, 'POW'])
-        elements.append('powiat')
+        if 'POW' in data:
+            tp = int(data.at[0, 'POW'])
+            elements.append('powiat')
 
-    if 'GMI' in data:
-        twg = str(data.at[0, 'GMI'])[0]
-        trg = int(str(data.at[0, 'GMI'])[1])
-        tg = int(twg)
-        elements.append('gmina i rodzaj gminy')
+        if 'GMI' in data:
+            twg = str(data.at[0, 'GMI'])[0]
+            trg = int(str(data.at[0, 'GMI'])[1])
+            tg = int(twg)
+            elements.append('gmina i rodzaj gminy')
 
-    nazwa = data.at[0, 'NAZWA']
+        nazwa = databasename[0]
 
-    goal = simc.copy()
+        goal = simc.copy()
 
-    # Advanced filtering the SIMC database.
-    # Capturing the data is maximally optimized
-    # and based on reduction.
-    if elements == ['województwo', 'powiat', 'gmina i rodzaj gminy']:
-        goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw) & (simc['POW'] == tp) & (simc['GMI'] == tg) &
-                        (simc['GMI'] == trg)]
-
-        if goal.empty:
-            goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw) & (simc['POW'] == tp) & (simc['GMI'] == tg)]
+        # Advanced filtering the SIMC database.
+        # Capturing the data is maximally optimized
+        # and based on reduction.
+        if elements == ['województwo', 'powiat', 'gmina i rodzaj gminy']:
+            goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw) & (simc['POW'] == tp) & (simc['GMI'] == tg) &
+                            (simc['GMI'] == trg)]
 
             if goal.empty:
-                goal = simc.loc[
-                    (simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw) & (simc['POW'] == tp)]
+                goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw) & (simc['POW'] == tp) & (simc['GMI'] == tg)]
 
                 if goal.empty:
-                    goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw)]
+                    goal = simc.loc[
+                        (simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw) & (simc['POW'] == tp)]
 
                     if goal.empty:
-                        goal = simc.loc[(simc['NAZWA'] == nazwa)]
+                        goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw)]
 
-    elif elements == ['województwo', 'powiat']:
-        goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw) & (simc['POW'] == tp)]
+                        if goal.empty:
+                            goal = simc.loc[(simc['NAZWA'] == nazwa)]
 
-        if goal.empty:
-            goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw)]
-
-            if goal.empty:
-                goal = simc.loc[(simc['NAZWA'] == nazwa)]
-
-    elif elements == ['województwo', 'gmina i rodzaj gminy']:
-        goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw) & (simc['GMI'] == tg) &
-                        (simc['GMI'] == trg)]
-
-        if goal.empty:
-            goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw) & (simc['GMI'] == tg)]
+        elif elements == ['województwo', 'powiat']:
+            goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw) & (simc['POW'] == tp)]
 
             if goal.empty:
                 goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw)]
@@ -295,93 +288,124 @@ def filtersimc(data):
                 if goal.empty:
                     goal = simc.loc[(simc['NAZWA'] == nazwa)]
 
-    elif elements == ['województwo']:
-        goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw)]
+        elif elements == ['województwo', 'gmina i rodzaj gminy']:
+            goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw) & (simc['GMI'] == tg) &
+                            (simc['GMI'] == trg)]
 
-        if goal.empty:
+            if goal.empty:
+                goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw) & (simc['GMI'] == tg)]
+
+                if goal.empty:
+                    goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw)]
+
+                    if goal.empty:
+                        goal = simc.loc[(simc['NAZWA'] == nazwa)]
+
+        elif elements == ['województwo']:
+            goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw)]
+
+            if goal.empty:
+                goal = simc.loc[(simc['NAZWA'] == nazwa)]
+
+        elif elements == []:
             goal = simc.loc[(simc['NAZWA'] == nazwa)]
 
-    elif elements == []:
-        goal = simc.loc[(simc['NAZWA'] == nazwa)]
+        # Despite that TERYT is already captured,
+        # it doesn't need to be correct. To be sure of it,
+        # TERYT will have to pass a 'verification'
+        # of its correctness. If it's different than providen
+        # at the beginning, that means some data need
+        # to be actualised, doesn't it? ;)
+        goal = goal[['NAZWA', 'WOJ', 'POW', 'GMI', 'RODZ_GMI', 'SYM']].reset_index()
 
-    # Despite that TERYT is already captured,
-    # it doesn't need to be correct. To be sure of it,
-    # TERYT will have to pass a 'verification'
-    # of its correctness. If it's different than providen
-    # at the beginning, that means some data need
-    # to be actualised, doesn't it? ;)
-    goal = goal[['NAZWA', 'WOJ', 'POW', 'GMI', 'RODZ_GMI', 'SYM']].reset_index()
+        oldterc = [str(data.at[0, 'WOJ']).zfill(2) if 'WOJ' in data else str(goal.at[0, 'WOJ']).zfill(2),
+                   str(int(data.at[0, 'POW'])).zfill(2) if 'POW' in data else str(goal.at[0, 'POW']).zfill(2),
+                   str(int(data.at[0, 'GMI'])).zfill(3) if 'GMI' in data else str(str(goal.at[0, 'GMI']).zfill(2) +
+                                                                                  str(goal.at[0, 'RODZ_GMI']).zfill(1))]
+        oldtercd = oldterc
+        oldterc = oldterc[0] + oldterc[1] + oldterc[2]
 
-    oldterc = [str(data.at[0, 'WOJ']).zfill(2) if 'WOJ' in data else str(goal.at[0, 'WOJ']).zfill(2),
-               str(int(data.at[0, 'POW'])).zfill(2) if 'POW' in data else str(goal.at[0, 'POW']).zfill(2),
-               str(int(data.at[0, 'GMI'])).zfill(3) if 'GMI' in data else str(str(goal.at[0, 'GMI']).zfill(2) +
-                                                                              str(goal.at[0, 'RODZ_GMI']).zfill(1))]
-    oldtercd = oldterc
-    oldterc = oldterc[0] + oldterc[1] + oldterc[2]
+        newtercd = {'województwo': str(goal.at[0, 'WOJ']).zfill(2), 'powiat': str(goal.at[0, 'POW']).zfill(2),
+                    'gmina': str(str(goal.at[0, 'GMI']).zfill(2) + str(goal.at[0, 'RODZ_GMI']).zfill(1))}
+        newterc = newtercd['województwo'] + newtercd['powiat'] + newtercd['gmina']
+        elements = ['województwo', 'powiat']
 
-    newtercd = {'województwo': str(goal.at[0, 'WOJ']).zfill(2), 'powiat': str(goal.at[0, 'POW']).zfill(2),
-                'gmina': str(str(goal.at[0, 'GMI']).zfill(2) + str(goal.at[0, 'RODZ_GMI']).zfill(1))}
-    newterc = newtercd['województwo'] + newtercd['powiat'] + newtercd['gmina']
-    elements = ['województwo', 'powiat']
+        apterc = ''
 
-    apterc = ''
+        if cp('nonsa wymiata', nazwa):  # this is an easter-egg
+            apterc = cp('rzer', nazwa)
+            gapterc.append(apterc)
 
-    if cp('nonsa wymiata', nazwa):  # this is an easter-egg
-        apterc = cp('rzer', nazwa)
-        gapterc.append(apterc)
+        globtercc.append(newterc)
+        globterc.update(newtercd)
 
-    globtercc.append(newterc)
-    globterc.update(newtercd)
+        geolocbot.output('(1.) TERC: ' + (apterc if apterc != '' else newterc))
 
-    geolocbot.output('(1.) TERC: ' + (apterc if apterc != '' else newterc))
+        site = pwbot.Site('pl', 'nonsensopedia')
 
-    site = pwbot.Site('pl', 'nonsensopedia')
+        if oldterc[:5] != newterc[:5] and len(newterc) == 7:
+            for i in range(0, len(elements), 1):
+                if oldtercd[i] != newtercd[elements[i]]:
+                    geolocbot.output("Zauważono potencjalną niepoprawność w kategoriach jednostek terytorialnych.")
+                    print(" " * 4 + 'W polu ' + elements[i] + ' prawdopodobnie są nieaktualne dane.')
+                    print(" " * 4 + 'Szczegóły błędu:')
+                    print(" " * 20 + 'Nasze:    ' + oldterc)
+                    print(" " * 20 + 'Aktualne: ' + newterc)
+                    pg = pwbot.Page(site, u"Nonsensopedia:Lokalizacja/raporty")
+                    text = pg.text
 
-    if oldterc[:5] != newterc[:5] and len(newterc) == 7:
-        for i in range(0, len(elements), 1):
-            if oldtercd[i] != newtercd[elements[i]]:
-                geolocbot.output("Zauważono potencjalną niepoprawność w kategoriach jednostek terytorialnych.")
-                print(" " * 4 + 'W polu ' + elements[i] + ' prawdopodobnie są nieaktualne dane.')
-                print(" " * 4 + 'Szczegóły błędu:')
-                print(" " * 20 + 'Nasze:    ' + oldterc)
-                print(" " * 20 + 'Aktualne: ' + newterc)
-                pg = pwbot.Page(site, u"Nonsensopedia:Lokalizacja/raporty")
-                text = pg.text
+                    try:
+                        if globname[0] not in text:
+                            pg.text = text + '\n== [[' + globname[0] + \
+                                      ']] ==\n\n<pre>* Pole:         ' + str(elements[i]) + \
+                                      "\n* TERC lokalny: " + oldterc + '\n* TERC rządowy: ' + \
+                                      newterc + '</pre>\n\n~~~~~\n----\n\n'
+                            pg.save(u'/* raport */ ' + globname[0])
 
-                try:
-                    if globname[0] not in text:
-                        pg.text = text + '\n== [[' + globname[0] + \
-                                  ']] ==\n\n<pre>* Pole:         ' + str(elements[i]) + \
-                                  "\n* TERC lokalny: " + oldterc + '\n* TERC rządowy: ' + \
-                                  newterc + '</pre>\n\n~~~~~\n----\n\n'
-                        pg.save(u'/* raport */ ' + globname[0])
+                    except pwbot.exceptions.MaxlagTimeoutError:
+                        if globname[0] not in text:
+                            pg.text = text + '\n== [[' + globname[0] + \
+                                      ']] ==\n\n<pre>* Pole:        ' + str(elements[i]) + \
+                                      "\n* TERC lokalny: " + oldterc + '\n* TERC rządowy: ' + \
+                                      newterc + '</pre>\n\n~~~~~\n----\n\n'
+                            pg.save(u'/* raport */ ' + globname[0])
 
-                except pwbot.exceptions.MaxlagTimeoutError:
-                    if globname[0] not in text:
-                        pg.text = text + '\n== [[' + globname[0] + \
-                                  ']] ==\n\n<pre>* Pole:        ' + str(elements[i]) + \
-                                  "\n* TERC lokalny: " + oldterc + '\n* TERC rządowy: ' + \
-                                  newterc + '</pre>\n\n~~~~~\n----\n\n'
-                        pg.save(u'/* raport */ ' + globname[0])
+        # If the number of rows is bigger than 1,
+        # the captured data isn't certain.
+        hints_page = pwbot.Page(site, 'Dyskusja użytkownika:Stim/TooManyRows-hints')
+        hints = hints_page.text
 
-    # If the number of rows is bigger than 1,
-    # the captured data isn't certain.
-    hints_page = pwbot.Page(site, 'Dyskusja użytkownika:Stim/TooManyRows-hints')
-    hints = hints_page.text
+        if goal.shape[0] > 1 and globname[0] not in hints:
+            geolocbot.tmr(dataframe=goal[['NAZWA', 'SYM']])
+            raise TooManyRows(goal[['NAZWA', 'SYM']])
 
-    if goal.shape[0] > 1 and globname[0] not in hints:
-        geolocbot.tmr(dataframe=goal[['NAZWA', 'SYM']])
-        raise TooManyRows(goal[['NAZWA', 'SYM']])
+        elif goal.shape[0] > 1 and globname[0] in hints:
+            line_start = hints[(hints.find('| [[' + globname[0] + ']] || '))::]
+            line = line_start[:(line_start.find('\n|-'))]
+            simc_hint = line[(line.find('|| ') + 3)::]
+            geolocbot.output('(nonsa.pl) [TooManyRows]: Pobrano wskazówkę SIMC: ' + str(simc_hint).zfill(7))
+            filtersimc(filtersimc(simc_hint, mode=1), mode=0)
 
-    elif goal.shape[0] > 1 and globname[0] in hints:
-        line_start = hints[(hints.find('| [[' + globname[0] + ']] || '))::]
-        line = line_start[:(line_start.find('\n|-'))]
-        simc_hint = line[(line.find('|| ') + 3)::]
-        geolocbot.output('(nonsa.pl) [TooManyRows]: Pobrano wskazówkę SIMC: ' + str(simc_hint).zfill(7))
-        goal = goal[goal.NAZWA != int(simc_hint)]
+        sym = goal.at[0, 'SYM']
+        sym = str(sym).zfill(7)
+        geolocbot.output('(::) SIMC: ' + sym)
+        alldata = {'SIMC': sym, 'TERC': newterc}
+        return alldata
 
-    sym = goal.at[0, 'SYM']
-    sym = str(sym).zfill(7)
-    geolocbot.output('(::) SIMC: ' + sym)
-    alldata = {'SIMC': sym, 'TERC': newterc}
-    return alldata
+    elif mode == 1:
+        dataframe = simc.loc[simc['SYM'] == data]
+        cleanup_databases(exclude=['globname', 'databasename'])
+        line = {'WOJ': dataframe.at[0, 'WOJ'],
+                'POW': dataframe.at[0, 'POW']}
+
+        if notna(dataframe.at[0, 'GMI']):
+            gmiadd = {'GMI': int(str(dataframe.at[0, 'GMI'] + dataframe.at[0, 'RODZ_GMI']))}
+            line.update(gmiadd)
+
+        globterc.update(line)
+
+        newtercc = str(line['WOJ']).zfill(2) + str(line['POW']).zfill(2) + \
+                   (str(line['GMI']).zfill(3) if 'GMI' in list(line.keys()) else '')
+        globtercc.append(newtercc)
+        newdata = pd.Series[globterc]
+        return newdata

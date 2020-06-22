@@ -51,7 +51,6 @@ def findcats(c, title):
 
         # Checks if the category contains "Gmina".
         if 'gmina' not in captured and "Kategoria:Gmina " in c[i]:
-            geolocbot.debug.output('Sprawdzam gminę.')
             gmina = c[i].replace("Kategoria:Gmina ", "")  # (No need for namespace and type name).
             readcategories(c[i])
             add = {"gmina": gmina}
