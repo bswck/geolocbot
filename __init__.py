@@ -133,7 +133,8 @@ class glb(object):
     @staticmethod
     def intro():
         system('@echo off')
-        system('title Geolocbot 2020 // Author: Stim // Bot for Nonsensopedia // https://nonsa.pl')
+        system('title Geolocbot 2020 // Bot for Nonsensopedia // https://nonsa.pl/wiki/Strona_główna')
+        geolocbot.clear()
         print("""
 _________          ______           ______       _____ 
 __  ____/_____________  /______________  /_________  /_
@@ -177,7 +178,6 @@ _  / __ _  _ \  __ \_  /_  __ \  ___/_  __ \  __ \  __/
                 " " * 11 + "Hint:" + " " * 7 +
                 str(ke).replace("'", '') if str(ke) != '0' else " " * 11 + "Hint:" +
                                                                 " " * 7 + 'Nic nie znalazłem. [b]')
-            print(str(traceback.format_exc()))
             time.sleep(2)
             print()
             print()

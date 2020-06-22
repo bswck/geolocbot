@@ -18,4 +18,8 @@ while True:
     print()
 
     # Prints the time spent on completing the function.
-    geolocbot.output("Czas operacyjny: " + str(end - start[0])[:5].replace(".", ",") + "s.")
+    time_taken = str(end - start[0]).replace(".", ",")
+    before_comma = time_taken[:time_taken.find(',')]
+    after_comma = time_taken[time_taken.find(',')::]
+    time_to_print = before_comma + after_comma[:1]
+    geolocbot.output("Czas operacyjny: " + time_to_print + "s.")
