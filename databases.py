@@ -25,7 +25,10 @@ gapterc = []
 databasename = []
 
 
-def cleanup_databases(exclude=[]):
+def cleanup_databases(exclude=None):
+    if exclude is None:
+        exclude = ['']
+
     if 'globname' not in exclude:
         while globname != []:
             del globname[0]
@@ -237,6 +240,8 @@ def filtersimc(data):
     tw = ''
     tp = ''
     tg = ''
+    ts = ''
+    trg = ''
 
     elements = []
 
@@ -398,6 +403,7 @@ def filtersimc(data):
     alldata = {'SIMC': sym, 'TERC': newterc}
     return alldata
 
+
 def tmr_supported(data):
     dataframe = simc.loc[simc['SYM'] == int(data)].reset_index()
     cleanup_databases(exclude=['globname', 'databasename'])
@@ -409,8 +415,8 @@ def tmr_supported(data):
         line.update(gmiadd)
 
     globterc.update(line)
-    newtercc = str(line['WOJ']).zfill(2) + str(line['POW']).zfill(2) + \
-               (str(line['GMI']).zfill(3) if 'GMI' in list(line.keys()) else '')
+    newtercc = "{0}{1}{2}".format(str(line['WOJ']).zfill(2), str(line['POW']).zfill(2),
+                                  (str(line['GMI']).zfill(3) if 'GMI' in list(line.keys()) else ''))
     globtercc.append(newtercc)
     for_df = {'SIMC': [dataframe.at[0, 'SYM']],
               'WOJ': [dataframe.at[0, 'WOJ']],

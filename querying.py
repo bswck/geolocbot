@@ -29,7 +29,6 @@ def changemode(integer=None):
 
     else:
         uncertain.append(integer)
-    geolocbot.output('Zmieniono tryb "niepewne" na ' + ('0.' if uncertain == [] else '1.'))
 
 
 def ntsplease(mode='certain'):

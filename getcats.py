@@ -22,14 +22,13 @@ def cleanup_getcats():
             del captured[key_value]
 
     while p != []:
-            del p[0]
+        del p[0]
 
     while getcats_fors != []:
-            del getcats_fors[0]
+        del getcats_fors[0]
 
     while be_careful != []:
-            del be_careful[0]
-
+        del be_careful[0]
 
 
 # This function reviews a category and decides,
@@ -74,8 +73,8 @@ def findcats(c, title):
             raise ValueError('Podana strona to ujednoznacznienie. [b]')
 
         # Reading the category of category if it's one of these below.
-        elif ("Kategoria:Miasta w" in c[i] or "Kategoria:Powiaty w" in c[i] or "Kategoria:Gminy w" in c[i] or \
-                "Kategoria:" + title in c[i]) and ('powiat' not in captured or 'gmina' not in captured):
+        elif ("Kategoria:Miasta w" in c[i] or "Kategoria:Powiaty w" in c[i] or "Kategoria:Gminy w" in c[i] or
+              "Kategoria:" + title in c[i]) and ('powiat' not in captured or 'gmina' not in captured):
 
             if cp('powiat', title) is not False:
                 powiat = cp('powiat', title)
@@ -114,8 +113,6 @@ def run(title):
         raise KeyError('Nie ma takiej strony. [b]')
 
     readcategories(title)  # script starts
-    geolocbot.output('Ciekawostka: pętla for w funkcji findcats została wywołana ' + getcats_fors[-1] + \
-                     ' razy w tym zapytaniu.')
     geolocbot.output('Z kategorii artykułu mam następujące dane:')
     geolocbot.output('województwo: {0}.'.format(
         (captured['województwo'].lower() if 'województwo' in list(captured.keys()) else '–')))

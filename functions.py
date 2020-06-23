@@ -113,12 +113,18 @@ def checktitle(pagename):
 
 
 # This runs the whole code.
-def main(pagename='preloaded'):
+def main(pagename='unpreloaded'):
     session_clean()
 
     try:
-        if pagename == 'preloaded':
+        if pagename == 'unpreloaded':
             pagename = geolocbot.input('Podaj nazwę artykułu: ', cannot_be_empty=True)
+
+            if pagename == 'key::c3!*DZ+Tx!h2ua!X':
+                articles = geolocbot.list()
+
+                for article in articles:
+                    main(pagename=article)
 
             r = time.time()
 
@@ -139,7 +145,7 @@ def main(pagename='preloaded'):
 
             start.append(r)
 
-            geolocbot.output('Nazwa artykułu (' + pagename + ') w pamięci.')
+            geolocbot.output('Przetwarzam stronę z listy (' + str(pagename) + ').')
 
         updatename(pagename)
         data = filtersimc(terencode(run(pagename)))
@@ -151,21 +157,24 @@ def main(pagename='preloaded'):
         else:
             data = coords(getqid(data))
 
+        if pagename != 'unpreloaded':
+            geolocbot.unhook(pagename, data.replace('{{', '').replace('}}', ''))
+
     except ValueError as ve:
         geolocbot.exceptions.ValueErr(ve, pagename)
-        main()
+        main() if pagename == 'unpreloaded' else None
 
     except KeyError as ke:
         geolocbot.exceptions.KeyErr(ke, pagename)
-        main()
+        main() if pagename == 'unpreloaded' else None
 
     except TooManyRows as tmr:
         geolocbot.exceptions.TooManyRowsErr(tmr, pagename)
-        main()
+        main() if pagename == 'unpreloaded' else None
 
     except InvalidTitle:
         geolocbot.exceptions.InvalidTitleErr()
-        main()
+        main() if pagename == 'unpreloaded' else None
 
     except KeyboardInterrupt:
         geolocbot.exceptions.KeyboardInterruptErr()
@@ -187,14 +196,14 @@ def main(pagename='preloaded'):
 
     except EmptyNameError:
         geolocbot.exceptions.EmptyNameErr()
-        main()
+        main() if pagename == 'unpreloaded' else None
 
     except SystemExit:
         sys.exit()
 
     except:
         geolocbot.err(sys.exc_info()[0].__name__, 'Oops, wystąpił nieznany błąd.')
-        main()
+        main() if pagename == 'unpreloaded' else None
 
     else:
         print()
