@@ -234,7 +234,7 @@ class glb(object):
         if pagename in to_unhook:
             unhook_row = to_unhook[to_unhook.find(pagename):]
             unhook_row = unhook_row[:unhook_row.find('\n')]
-            unhook_place = to_unhook.find('* ' + pagename) + 2
+            unhook_place = to_unhook.find('* ' + pagename + '\n') + 2
 
             if '{{/unhook' in unhook_row:
                 unhook_place = unhook_row.find(' {{/unhook|')
