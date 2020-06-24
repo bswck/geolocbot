@@ -381,12 +381,11 @@ def filtersimc(data):
                                   newterc + '</pre>\n\n~~~~~\n----\n\n'
                         pg.save(u'/* raport */ ' + globname[0])
 
-    # If the number of rows is bigger than 1,
-    # the captured data isn't certain.
     hints_page = pwbot.Page(site, 'Dyskusja użytkownika:Stim/TooManyRows-hints')
     hints = hints_page.text
 
     if goal.shape[0] > 1 and globname[0] not in hints:
+        geolocbot.clean_tmr()
         geolocbot.tmr(dataframe=goal[['NAZWA', 'SYM']])
         raise TooManyRows(goal[['NAZWA', 'SYM']])
 

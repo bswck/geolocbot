@@ -32,11 +32,19 @@ class glb(object):
         self.o = '[b] '
         self.n = '(nonsa.pl) '
         self.history = []
+        self.items_list_beginning = '<!-- początek listy -->\n'
+        self.items_list_end = '<!-- koniec listy -->'
 
     @staticmethod
     def tmr(dataframe=''):
         """Saving TooManyRows to call it"""
         tmr_database.append(dataframe)
+
+    @staticmethod
+    def clean_tmr(dataframe=''):
+        """Deleting TooManyRows DataFrame"""
+        while tmr_database != []:
+            del tmr_database[0]
 
     @staticmethod
     def clear():
@@ -79,7 +87,7 @@ class glb(object):
                 geolocbot.output('Po kolei wpisywałeś: {0}.'.format(
                     str(list(self.history)[::1]).replace('[', '').replace(']', '')))
                 answer = geolocbot.input(input_message)
-                
+
             elif '*l' in answer and '*e' not in answer and '*c' not in answer and '*h' not in answer:
 
                 l_count = 0
@@ -112,7 +120,7 @@ class glb(object):
         """Geolocbot's specific output method"""
         print(self.o + str(output_message))
 
-    def err(self, nmb, output_error_message, pgn=False):
+    def err(self, nmb, output_error_message, hint='', pgn=False):
         """Function printing, recognising and differentiating errors"""
         error = ['ValueError', 'KeyError', 'TooManyRows', 'InvalidTitle', 'EmptyNameError', 'KeyboardInterrupt']
         bug_errors = ['AssertionError',
@@ -134,7 +142,7 @@ class glb(object):
                 geolocbot.unhook(pgn, '([[Dyskusja użytkownika:Stim/TooManyRows-log|TooManyRows]])')
 
             else:
-                geolocbot.unhook(pgn, '(' + output_error_message + ')')
+                geolocbot.unhook(pgn, (output_error_message if hint == '' else hint))
 
         if isinstance(nmb, int) and error[nmb] == error[2]:
             tmr = tmr_database[0]
@@ -153,7 +161,8 @@ class glb(object):
                 add = add + '\n|}\n~~~~~\n</center>'
                 report_page.text = text + add
                 report_page.save(u'/* raport */ TooManyRows: ' + str(raw_name))
-            del tmr_database[0]
+
+            geolocbot.clean_tmr()
 
         if not isinstance(nmb, int):
 
@@ -166,42 +175,69 @@ class glb(object):
                 report_page.text = text[:put_place] + add + text[put_place:]
                 report_page.save(u'/* raport */ bugerror: ' + str(nmb))
 
-    @staticmethod
-    def list():
+    def list(self):
         site = pwbot.Site('pl', 'nonsensopedia')
         page = pwbot.Page(site, 'Użytkownik:Stim/lista')
 
         items_list = []
-        items_list_beginning = '<!-- początek listy -->\n'
-        items_list_end = '<!-- koniec listy -->'
         items = page.text
-        items = items[items.find(items_list_beginning) + len(items_list_beginning):]
+        items = items[items.find(self.items_list_beginning) + len(self.items_list_beginning):]
 
         for char_index in range(len(items)):
             if items[char_index] == '*':
                 if char_index != len(items):
                     item_row = items[char_index:]
-                    item_row = item_row[2:item_row.find('\n')]
+
+                    if '{{/unhook' in item_row:
+                        item_row = item_row[2:item_row.find(' {{/unhook')]
+
+                    else:
+                        item_row = item_row[2:item_row.find('\n')]
+
+                    if item_row[-1] == ' ':
+                        item_row = item_row[:-1] + item_row[-1].replace(' ', '')
+
                     items_list.append(item_row)
 
                 else:
                     item_row = items[char_index:]
-                    item_row = item_row[2:items.find(items_list_end)]
+
+                    if '{{/unhook' in item_row:
+                        item_row = item_row[2:item_row.find(' {{/unhook')]
+
+                    else:
+                        item_row = item_row[2:items.find(self.items_list_end)]
+
+                        if item_row[-1] == ' ':
+                            item_row = item_row[:-1] + item_row[-1].replace(' ', '')
+
                     items_list.append(item_row)
 
         return items_list
 
-    @staticmethod
-    def unhook(pagename, message):
+    def unhook(self, pagename, message):
         site = pwbot.Site('pl', 'nonsensopedia')
         page = pwbot.Page(site, 'Użytkownik:Stim/lista')
+        message = message.replace('{', '').replace('}', '')
 
         to_unhook = page.text
-        if pagename in to_unhook:
-            unhook_place = to_unhook.find(pagename) + len(pagename)
-            page.text = to_unhook[:unhook_place] + ' ' + str(message) + to_unhook[unhook_place:]
-            page.save('/* +1 */ komunikat – ' + str(message))
 
+        if pagename in to_unhook:
+            unhook_row = to_unhook[to_unhook.find(pagename):]
+            unhook_row = unhook_row[:unhook_row.find('\n')]
+            unhook_place = to_unhook.find(pagename)
+
+            if '{{/unhook' in unhook_row:
+                unhook_place = unhook_row.find(' {{/unhook|')
+                unhook_put = unhook_row[unhook_place:unhook_row.find('}}')]
+                replaced_unhook = unhook_row.replace(unhook_put, ' {{/unhook|' + str(message))
+                page.text = to_unhook.replace(unhook_row, replaced_unhook)
+                page.save('/* -+' + str(pagename) + ' (nowy w miejsce starego) */ ' + str(message))
+
+            else:
+                add = str(pagename) + ' {{/unhook|' + str(message) + '}}'
+                page.text = to_unhook.replace(unhook_row, add)
+                page.save('/* +' + str(pagename) + ' */ ' + str(message))
 
     @staticmethod
     def intro():
@@ -232,7 +268,7 @@ _  / __ _  _ \  __ \_  /_  __ \  ___/_  __ \  __ \  __/
         def ValueErr(ve, pagename):
             print()
             geolocbot.err(0, "Nie znaleziono odpowiednich kategorii lub strona '" + str(pagename) + "' nie istnieje.",
-                          pgn=pagename)
+                          hint=str(ve), pgn=pagename)
             time.sleep(2)
 
             print(
@@ -241,16 +277,14 @@ _  / __ _  _ \  __ \_  /_  __ \  ___/_  __ \  __ \  __/
                                                                 " " * 7 + 'Nic nie znalazłem. [b]')
             time.sleep(2)
 
-
         @staticmethod
         def KeyErr(ke, pagename):
             print()
+            ke_show = str(ke).replace("'", '') if str(ke) != '0' else 'Nie odnaleziono odpowiednich kategorii.'
             geolocbot.err(1, "Nie znaleziono odpowiednich kategorii lub strona '" + str(pagename) + "' nie istnieje.",
-                          pgn=pagename)
-            print(
-                " " * 11 + "Hint:" + " " * 7 +
-                str(ke).replace("'", '') if str(ke) != '0' else " " * 11 + "Hint:" +
-                                                                " " * 7 + 'Nic nie znalazłem. [b]')
+                          hint=ke_show, pgn=pagename)
+            ke = str(ke).replace("'", '') if str(ke) != '0' else " " * 11 + "Hint:" + " " * 7 + 'Nic nie znalazłem. [b]'
+            print(ke)
             time.sleep(2)
 
         @staticmethod

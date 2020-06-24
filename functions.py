@@ -158,7 +158,8 @@ def main(pagename='unpreloaded'):
             data = coords(getqid(data))
 
         if pagename != 'unpreloaded':
-            geolocbot.unhook(pagename, data.replace('{{', '').replace('}}', ''))
+            geolocbot.unhook(pagename,
+                             str(data).replace('{', '').replace('}', '').replace(': ', ' – ').replace("'", ''))
 
     except ValueError as ve:
         geolocbot.exceptions.ValueErr(ve, pagename)
