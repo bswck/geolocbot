@@ -197,6 +197,15 @@ class glb(object):
                     if item_row[-1] == ' ':
                         item_row = item_row[:-1] + item_row[-1].replace(' ', '')
 
+                    occurences = 1
+
+                    for occurence in range(len(item_row)):
+                        if item_row[occurence] == '*':
+                            occurences += 1
+
+                    if occurences > 1:
+                        item_row = item_row[:item_row.find('\n*')]
+
                     items_list.append(item_row)
 
                 else:
@@ -280,7 +289,8 @@ _  / __ _  _ \  __ \_  /_  __ \  ___/_  __ \  __ \  __/
         @staticmethod
         def KeyErr(ke, pagename):
             print()
-            ke_show = str(ke).replace("'", '') if str(ke) != '0' else 'Nie odnaleziono odpowiednich kategorii.'
+            ke_show = str(ke).replace("'", '') if str(ke) != '0' else 'Nie odnaleziono informacji w którejkolwiek ' \
+                                                                      'z baz danych.'
             geolocbot.err(1, "Nie znaleziono odpowiednich kategorii lub strona '" + str(pagename) + "' nie istnieje.",
                           hint=ke_show, pgn=pagename)
             ke = str(ke).replace("'", '') if str(ke) != '0' else " " * 11 + "Hint:" + " " * 7 + 'Nic nie znalazłem. [b]'
