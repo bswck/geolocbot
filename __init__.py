@@ -163,6 +163,7 @@ class glb(object):
 
             else:
                 geolocbot.unhook(pgn, (output_error_message if hint == '' else hint))
+            geolocbot.delete_template(pgn, output_error_message)
 
         if isinstance(nmb, int) and error[nmb] == error[2]:
             tmr = tmr_database[0]
@@ -255,7 +256,6 @@ class glb(object):
             unhook_row = to_unhook[to_unhook.find('* ' + pagename + '\n'):]
             unhook_row = unhook_row[:unhook_row.find('\n')]
             unhook_place = to_unhook.find('* ' + pagename + '\n') + 2
-            geolocbot.delete_template(pagename, message)
 
             if '{{/unhook' in unhook_row:
                 unhook_place = unhook_row.find(' {{/unhook|')
