@@ -34,12 +34,12 @@ def apply(page, data):
     place = len(text)
 
     for alias in category_aliases:
-        if alias in text:
+        if alias in text_lower:
             occuring_aliases.append(alias)
             occuring_aliases = list(set(occuring_aliases))
 
     if occuring_aliases == 1:
-        place = text.find(alias)
+        place = text_lower.find(alias)
 
     elif occuring_aliases > 2:
         for occurence in range(len(occuring_aliases)):
