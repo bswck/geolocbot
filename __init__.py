@@ -35,19 +35,16 @@ class glb(object):
         self.items_list_end = '<!-- koniec listy -->'
         self.site = pwbot.Site('pl', 'nonsensopedia')  # we're on nonsa.pl
 
-
     @staticmethod
     def tmr(dataframe=''):
         """Saving TooManyRows to call it"""
         tmr_database.append(dataframe)
-
 
     @staticmethod
     def clean_tmr(dataframe=''):
         """Deleting TooManyRows DataFrame"""
         while tmr_database != []:
             del tmr_database[0]
-
 
     @staticmethod
     def clear():
@@ -57,14 +54,12 @@ class glb(object):
         else:
             _ = system('clear')
 
-
     @staticmethod
     def end():
         """Closes the program"""
         geolocbot.output('Zapraszam ponownie!')
         print('---')
         exit()
-
 
     def delete_template(self, pagename, reason):
         """Deleting template as an update procedure"""
@@ -76,8 +71,6 @@ class glb(object):
             template = template[:(template.find('}}') + 2)]
             delete_from.text = txt.replace(template, '')
             delete_from.save('/* aktualizacja */ usunięcie szablonu lokalizacja (' + str(reason) + ')')
-
-
 
     def input(self, input_message='Odpowiedź: ', cannot_be_empty=False):
         """Geolocbot's specific input method"""
@@ -134,11 +127,9 @@ class glb(object):
 
         return answer
 
-
     def output(self, output_message):
         """Geolocbot's specific output method"""
         print(self.o + str(output_message))
-
 
     def err(self, nmb, output_error_message, hint='', pgn=False):
         """Function printing, recognising and differentiating errors"""
@@ -196,7 +187,6 @@ class glb(object):
                 report_page.text = text[:put_place] + add + text[put_place:]
                 report_page.save(u'/* raport */ bugerror: ' + str(nmb))
 
-
     def list(self):
         page = pwbot.Page(self.site, 'Użytkownik:Stim/lista')
 
@@ -245,7 +235,6 @@ class glb(object):
 
         return items_list
 
-
     def unhook(self, pagename, message):
         page = pwbot.Page(self.site, 'Użytkownik:Stim/lista')
         message = message.replace('{', '').replace('}', '')
@@ -269,8 +258,6 @@ class glb(object):
                 page.text = to_unhook.replace(unhook_row, add)
                 page.save('/* +' + str(pagename) + ' */ ' + str(message))
 
-
-
     @staticmethod
     def intro():
         system('@echo off')
@@ -292,7 +279,6 @@ _  / __ _  _ \  __ \_  /_  __ \  ___/_  __ \  __ \  __/
         geolocbot.output('Wpisanie *e spowoduje zamknięcie programu.')
         geolocbot.output('Wpisanie *l spowoduje masowe przeoranie artykułów z listy na [[Użytkownik:Stim/lista]].')
         geolocbot.output('Ja na gitlabie: https://gitlab.com/nonsensopedia/bots/geolocbot.')
-
 
     class exceptions(object):
         """Geolocbot's specific exceptions"""
