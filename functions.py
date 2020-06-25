@@ -26,17 +26,26 @@ def apply(page, data):
     text = page.text
     place = len(text) - 1
 
-    if '[[Kategoria:' in text or '[[Category:' in text:
-        if 'Kategoria:' in text and '[[Category:' not in text:
-            place = text.find('[[Kategoria:')
+    text_lower = text.lower()
+    category_aliases = ['[[category:', '[[kategoria:']
+    occuring_aliases = []
+    places = []
 
-        elif '[[Category:' in text and '[[Kategoria:' not in text:
-            place = text.find('[[Category:')
+    place = len(text)
 
-        elif '[[Kategoria:' in text and '[[Category:' in text:
-            place1 = text.find('[[Kategoria:')
-            place2 = text.find('[[Category:')
-            place = place1 if (place1 < place2) else place2
+    for alias in category_aliases:
+        if alias in text:
+            occuring_aliases.append(alias)
+            occuring_aliases = list(set(occuring_aliases))
+
+    if occuring_aliases == 1:
+        place = text.find(alias)
+
+    elif occuring_aliases > 2:
+        for occurence in range(len(occuring_aliases)):
+            places.append(int(occurence))
+
+        place = min(places)
 
     template = str('{{lokalizacja|' + data['koordynaty'] + '|simc=' + data['simc'] +
                    ('|terc=' + data['terc'] if 'terc' in data.keys() else str()) + '|wikidata=' + data[
@@ -163,6 +172,7 @@ def main(pagename='unpreloaded'):
 
     except ValueError as ve:
         geolocbot.exceptions.ValueErr(ve, pagename)
+        geolocbot.delete_template()
         main() if pagename == 'unpreloaded' else None
 
     except KeyError as ke:

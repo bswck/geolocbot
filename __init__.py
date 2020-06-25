@@ -22,7 +22,6 @@ class EmptyNameError(Error):
     pass
 
 
-site = pwbot.Site('pl', 'nonsensopedia')  # we're on nonsa.pl
 tmr_database = []
 
 
@@ -34,17 +33,21 @@ class glb(object):
         self.history = []
         self.items_list_beginning = '<!-- początek listy -->\n'
         self.items_list_end = '<!-- koniec listy -->'
+        self.site = pwbot.Site('pl', 'nonsensopedia')  # we're on nonsa.pl
+
 
     @staticmethod
     def tmr(dataframe=''):
         """Saving TooManyRows to call it"""
         tmr_database.append(dataframe)
 
+
     @staticmethod
     def clean_tmr(dataframe=''):
         """Deleting TooManyRows DataFrame"""
         while tmr_database != []:
             del tmr_database[0]
+
 
     @staticmethod
     def clear():
@@ -54,12 +57,27 @@ class glb(object):
         else:
             _ = system('clear')
 
+
     @staticmethod
     def end():
         """Closes the program"""
         geolocbot.output('Zapraszam ponownie!')
         print('---')
         exit()
+
+
+    def delete_template(self, pagename, reason):
+        """Deleting template as an update procedure"""
+        delete_from = pwbot.Page(self.site, pagename)
+        txt = delete_from.text
+
+        if '{{lokalizacja' in txt:
+            template = txt[txt.find('{{lokalizacja'):]
+            template = template[:(template.find('}}') + 2)]
+            delete_from.text = txt.replace(template, '')
+            delete_from.save('/* aktualizacja */ usunięcie szablonu lokalizacja (' + str(reason) + ')')
+
+
 
     def input(self, input_message='Odpowiedź: ', cannot_be_empty=False):
         """Geolocbot's specific input method"""
@@ -116,9 +134,11 @@ class glb(object):
 
         return answer
 
+
     def output(self, output_message):
         """Geolocbot's specific output method"""
         print(self.o + str(output_message))
+
 
     def err(self, nmb, output_error_message, hint='', pgn=False):
         """Function printing, recognising and differentiating errors"""
@@ -148,7 +168,7 @@ class glb(object):
             tmr = tmr_database[0]
             raw_name = str(tmr.at[0, 'NAZWA'])
             pagename = "'''[[" + str(pgn) + "]]'''\n"
-            report_page = pwbot.Page(site, 'Dyskusja użytkownika:Stim/TooManyRows-log')
+            report_page = pwbot.Page(self.site, 'Dyskusja użytkownika:Stim/TooManyRows-log')
             text = report_page.text
 
             if raw_name not in text:
@@ -167,7 +187,7 @@ class glb(object):
         if not isinstance(nmb, int):
 
             if str(nmb) in bug_errors:
-                report_page = pwbot.Page(site, 'Dyskusja użytkownika:Stim/geolocbot-bugs')
+                report_page = pwbot.Page(self.site, 'Dyskusja użytkownika:Stim/geolocbot-bugs')
                 text = report_page.text
                 put_place = text.find('|}\n{{Stim}}')
                 add = '| {{#vardefine:bugid|{{#expr:{{#var:bugid}} + 1}}}} {{#var:bugid}} || ' + \
@@ -175,9 +195,9 @@ class glb(object):
                 report_page.text = text[:put_place] + add + text[put_place:]
                 report_page.save(u'/* raport */ bugerror: ' + str(nmb))
 
+
     def list(self):
-        site = pwbot.Site('pl', 'nonsensopedia')
-        page = pwbot.Page(site, 'Użytkownik:Stim/lista')
+        page = pwbot.Page(self.site, 'Użytkownik:Stim/lista')
 
         items_list = []
         items = page.text
@@ -224,17 +244,18 @@ class glb(object):
 
         return items_list
 
+
     def unhook(self, pagename, message):
-        site = pwbot.Site('pl', 'nonsensopedia')
-        page = pwbot.Page(site, 'Użytkownik:Stim/lista')
+        page = pwbot.Page(self.site, 'Użytkownik:Stim/lista')
         message = message.replace('{', '').replace('}', '')
 
         to_unhook = page.text
 
         if pagename in to_unhook:
-            unhook_row = to_unhook[to_unhook.find(pagename):]
+            unhook_row = to_unhook[to_unhook.find('* ' + pagename + '\n'):]
             unhook_row = unhook_row[:unhook_row.find('\n')]
             unhook_place = to_unhook.find('* ' + pagename + '\n') + 2
+            geolocbot.delete_template(pagename, message)
 
             if '{{/unhook' in unhook_row:
                 unhook_place = unhook_row.find(' {{/unhook|')
@@ -244,14 +265,16 @@ class glb(object):
                 page.save('/* -+' + str(pagename) + ' (nowy w miejsce starego) */ ' + str(message))
 
             else:
-                add = str(pagename) + ' {{/unhook|' + str(message) + '}}'
+                add = '* ' + str(pagename) + ' {{/unhook|' + str(message) + '}}'
                 page.text = to_unhook.replace(unhook_row, add)
                 page.save('/* +' + str(pagename) + ' */ ' + str(message))
+
+
 
     @staticmethod
     def intro():
         system('@echo off')
-        system('title Geolocbot 2020 // Bot for Nonsensopedia // https://nonsa.pl/wiki/Strona_główna')
+        system('title Google Chrome')
         geolocbot.clear()
         print("""
 _________          ______           ______       _____ 
@@ -269,6 +292,7 @@ _  / __ _  _ \  __ \_  /_  __ \  ___/_  __ \  __ \  __/
         geolocbot.output('Wpisanie *e spowoduje zamknięcie programu.')
         geolocbot.output('Wpisanie *l spowoduje masowe przeoranie artykułów z listy na [[Użytkownik:Stim/lista]].')
         geolocbot.output('Ja na gitlabie: https://gitlab.com/nonsensopedia/bots/geolocbot.')
+
 
     class exceptions(object):
         """Geolocbot's specific exceptions"""

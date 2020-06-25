@@ -287,17 +287,11 @@ def filtersimc(data):
                 if goal.empty:
                     goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw)]
 
-                    if goal.empty:
-                        goal = simc.loc[(simc['NAZWA'] == nazwa)]
-
     elif elements == ['województwo', 'powiat']:
         goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw) & (simc['POW'] == tp)]
 
         if goal.empty:
             goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw)]
-
-            if goal.empty:
-                goal = simc.loc[(simc['NAZWA'] == nazwa)]
 
     elif elements == ['województwo', 'gmina i rodzaj gminy']:
         goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw) & (simc['GMI'] == tg) &
@@ -309,14 +303,8 @@ def filtersimc(data):
             if goal.empty:
                 goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw)]
 
-                if goal.empty:
-                    goal = simc.loc[(simc['NAZWA'] == nazwa)]
-
     elif elements == ['województwo']:
         goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw)]
-
-        if goal.empty:
-            goal = simc.loc[(simc['NAZWA'] == nazwa)]
 
     elif elements == []:
         goal = simc.loc[(simc['NAZWA'] == nazwa)]
