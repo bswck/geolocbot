@@ -24,7 +24,6 @@ start = []
 
 def apply(page, data):
     text = page.text
-    place = len(text) - 1
 
     text_lower = text.lower()
     category_aliases = ['[[category:', '[[kategoria:']
@@ -38,12 +37,15 @@ def apply(page, data):
             occuring_aliases.append(alias)
             occuring_aliases = list(set(occuring_aliases))
 
-    if occuring_aliases == 1:
-        place = text_lower.find(alias)
+    if len(occuring_aliases) == 1:
+        place = text_lower.find(occuring_aliases[0])
+        del occuring_aliases[0]
 
-    elif occuring_aliases > 2:
+    elif len(occuring_aliases) > 2:
         for occurence in range(len(occuring_aliases)):
             places.append(int(occurence))
+        while occuring_aliases != []:
+            del occuring_aliases[0]
 
         place = min(places)
 
@@ -172,7 +174,6 @@ def main(pagename='unpreloaded'):
 
     except ValueError as ve:
         geolocbot.exceptions.ValueErr(ve, pagename)
-        geolocbot.delete_template()
         main() if pagename == 'unpreloaded' else None
 
     except KeyError as ke:

@@ -41,7 +41,7 @@ class glb(object):
         tmr_database.append(dataframe)
 
     @staticmethod
-    def clean_tmr(dataframe=''):
+    def clean_tmr():
         """Deleting TooManyRows DataFrame"""
         while tmr_database != []:
             del tmr_database[0]
@@ -109,7 +109,7 @@ class glb(object):
 
                     return 'key::c3!*DZ+Tx!h2ua!X'
 
-                if l < 1:
+                if l_count < 1:
                     answer = geolocbot.input(input_message)
 
                 else:
@@ -205,9 +205,6 @@ class glb(object):
                     else:
                         item_row = item_row[2:item_row.find('\n')]
 
-                    if item_row[-1] == ' ':
-                        item_row = item_row[:-1] + item_row[-1].replace(' ', '')
-
                     occurences = 1
 
                     for occurence in range(len(item_row)):
@@ -217,7 +214,10 @@ class glb(object):
                     if occurences > 1:
                         item_row = item_row[:item_row.find('\n*')]
 
-                    items_list.append(item_row)
+                    if item_row[-1] == ' ':
+                        item_row = item_row[:-1] + item_row[-1].replace(' ', '')
+
+                    items_list.append(item_row.replace('[', '').replace(']', ''))
 
                 else:
                     item_row = items[char_index:]
@@ -228,23 +228,25 @@ class glb(object):
                     else:
                         item_row = item_row[2:items.find(self.items_list_end)]
 
-                        if item_row[-1] == ' ':
-                            item_row = item_row[:-1] + item_row[-1].replace(' ', '')
+                    if item_row[-1] == ' ':
+                        item_row = item_row[:-1] + item_row[-1].replace(' ', '')
 
-                    items_list.append(item_row)
+                    items_list.append(item_row.replace('[', '').replace(']', ''))
 
         return items_list
 
     def unhook(self, pagename, message):
         page = pwbot.Page(self.site, 'Użytkownik:Stim/lista')
         message = message.replace('{', '').replace('}', '')
-
         to_unhook = page.text
 
         if pagename in to_unhook:
-            unhook_row = to_unhook[to_unhook.find('* ' + pagename + '\n'):]
+            unhook_row = to_unhook[to_unhook.find('* [[' + pagename + ']]\n'):]
             unhook_row = unhook_row[:unhook_row.find('\n')]
-            unhook_place = to_unhook.find('* ' + pagename + '\n') + 2
+
+            if unhook_row == '':
+                unhook_row = to_unhook[to_unhook.find('* [[' + pagename + ']] {{/unhook'):]
+                unhook_row = unhook_row[:unhook_row.find('\n')]
 
             if '{{/unhook' in unhook_row:
                 unhook_place = unhook_row.find(' {{/unhook|')
@@ -254,7 +256,7 @@ class glb(object):
                 page.save('/* -+' + str(pagename) + ' (nowy w miejsce starego) */ ' + str(message))
 
             else:
-                add = '* ' + str(pagename) + ' {{/unhook|' + str(message) + '}}'
+                add = '* [[' + str(pagename) + ']] {{/unhook|' + str(message) + '}}'
                 page.text = to_unhook.replace(unhook_row, add)
                 page.save('/* +' + str(pagename) + ' */ ' + str(message))
 
