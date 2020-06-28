@@ -305,7 +305,10 @@ _  / __ _  _ \  __ \_  /_  __ \  ___/_  __ \  __ \  __/
                                                                       'z baz danych.'
             geolocbot.err(1, "Nie znaleziono odpowiednich kategorii lub strona '" + str(pagename) + "' nie istnieje.",
                           hint=ke_show, pgn=pagename)
-            ke = str(ke).replace("'", '') if str(ke) != '0' else " " * 11 + "Hint:" + " " * 7 + 'Nic nie znalazłem. [b]'
+            ke = " " * 11 + "Hint:" + " " * 7 + str(ke).replace("'", '') if str(ke) != '0' else " " * 11 + "Hint:" + \
+                                                                                                " " * 7 + 'Nic nie ' \
+                                                                                                          'znalazłem.' \
+                                                                                                          ' [b]'
             print(ke)
             time.sleep(2)
 
