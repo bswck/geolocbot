@@ -6,8 +6,8 @@ import types
 from typing import cast
 import pywikibot as pwbot
 import pandas as pd
-from __init__ import geolocbot
-from databases import databasename, gapterc, globname, globterc, globtercc
+from __init__ import geolocbotMain
+from databases import geolocbotDatabases
 from pywikibot import pagegenerators as pg
 
 # Yet!
@@ -15,7 +15,7 @@ everythingiknow = {}
 
 
 def cleanup_querying():
-    geolocbot.debug.output(cast(types.FrameType, inspect.currentframe()).f_code.co_name)
+    geolocbotMain.debug.output(cast(types.FrameType, inspect.currentframe()).f_code.co_name)
     if everythingiknow != {}:
         for key_value in list(everythingiknow.keys()):
             del everythingiknow[key_value]
@@ -28,11 +28,14 @@ class geolocbotQuery(object):
                                          usecols=['WOJ', 'POW', 'GMI', 'RODZ', 'NAZWA', 'NAZWA_DOD'])
         self.uncertain = []
         self.item_get_attempts = []
+        self.wikidata = pwbot.Site("wikidata", "wikidata")
+        self.repo = self.wikidata.data_repository()
 
     def ntsplease(self, mode='certain'):
-        geolocbot.debug.output(cast(types.FrameType, inspect.currentframe()).f_code.co_name)
+        geolocbotMain.debug.output(cast(types.FrameType, inspect.currentframe()).f_code.co_name)
         if mode == 'certain':
-            filtered_nts = self.nts_database.loc[self.nts_database['NAZWA'] == databasename[0]].reset_index()
+            filtered_nts = self.nts_database.loc[self.nts_database['NAZWA'] ==
+                                                 geolocbotDatabases.main_name_for_databases[0]].reset_index()
             locnts = {}
             globnts = []
 
@@ -51,20 +54,22 @@ class geolocbotQuery(object):
 
             show = str(locnts).replace('{', '').replace('}', '').replace(': ', ' → ').replace("'", '')
 
-            geolocbot.output(show)
+            geolocbotMain.output(show)
 
             for i in range(len(locnts) - 1):
 
-                if globtercc[0] != list(locnts.keys())[i]:
-                    geolocbot.output('' + globtercc[0] + ' != ' + list(locnts.keys())[i] + ' – wartość usunięta.')
+                if geolocbotDatabases.main_terc_id_code[0] != list(locnts.keys())[i]:
+                    geolocbotMain.output('' + geolocbotDatabases.main_terc_id_code[0] + ' != ' + list(locnts.keys())[
+                        i] + ' – wartość usunięta.')
                     del locnts[list(locnts.keys())[i]]
 
-            geolocbot.output('(1.) NTS:  ' + locnts[globtercc[0]])
-            globnts.append(locnts[globtercc[0]])
+            geolocbotMain.output('(1.) NTS:  ' + locnts[geolocbotDatabases.main_terc_id_code[0]])
+            globnts.append(locnts[geolocbotDatabases.main_terc_id_code[0]])
             return globnts[0]
 
         elif mode == 'uncertain':
-            filtered_nts = self.nts_database.loc[self.nts_database['NAZWA'] == globname[0]].reset_index()
+            filtered_nts = self.nts_database.loc[
+                self.nts_database['NAZWA'] == geolocbotDatabases.main_name[0]].reset_index()
             locnts = []
 
             for nts_index in range(filtered_nts.shape[0]):
@@ -77,56 +82,58 @@ class geolocbotQuery(object):
 
                 locnts.append(nts_id)
 
-            geolocbot.output('Zwracam tablicę: ' + str(locnts).replace('[', '').replace(']', '') + '.')
+            geolocbotMain.output('Zwracam tablicę: ' + str(locnts).replace('[', '').replace(']', '') + '.')
 
             return locnts
 
     def terc_or_not(self, data):
-        geolocbot.debug.output(cast(types.FrameType, inspect.currentframe()).f_code.co_name)
+        geolocbotMain.debug.output(cast(types.FrameType, inspect.currentframe()).f_code.co_name)
         shouldbeterc = self.terc_database.copy()
-        shouldbeterc = shouldbeterc.loc[(shouldbeterc['NAZWA'] == databasename[0])]
+        shouldbeterc = shouldbeterc.loc[(shouldbeterc['NAZWA'] == geolocbotDatabases.main_name_for_databases[0])]
         sterc = shouldbeterc.copy()
 
         if sterc.empty:
-            geolocbot.output("" + globname[0] + " nie występuje w systemie TERC. Usuwam klucz…")
+            geolocbotMain.output("" + geolocbotDatabases.main_name[0] + " nie występuje w systemie TERC. Usuwam klucz…")
             del data['terc']
             return data
 
         shouldbeterc = sterc.loc[
-            (sterc['WOJ'] == float(globterc['województwo'])) & (sterc['POW'] == float(globterc['powiat'])) &
-            (sterc['GMI'] == float(globterc['gmina']))]
+            (sterc['WOJ'] == float(geolocbotDatabases.main_terc_id_info['województwo'])) & (
+                    sterc['POW'] == float(geolocbotDatabases.main_terc_id_info['powiat'])) &
+            (sterc['GMI'] == float(geolocbotDatabases.main_terc_id_info['gmina']))]
 
         if shouldbeterc.empty:
             shouldbeterc = shouldbeterc.loc[
-                (shouldbeterc['WOJ'] == float(globterc['województwo'])) &
-                (shouldbeterc['POW'] == float(int(globterc['powiat'])))]
+                (shouldbeterc['WOJ'] == float(geolocbotDatabases.main_terc_id_info['województwo'])) &
+                (shouldbeterc['POW'] == float(int(geolocbotDatabases.main_terc_id_info['powiat'])))]
 
             if shouldbeterc.empty:
                 tercb = self.terc_database.loc[
-                    (self.terc_database['WOJ'] == float(globterc['województwo']))]
+                    (self.terc_database['WOJ'] == float(geolocbotDatabases.main_terc_id_info['województwo']))]
 
                 if tercb.empty:
-                    geolocbot.output("Miejscowość " + globname[0] +
-                                     " nie spełnia kryteriów TERC, więc identyfikator nie zostanie"
-                                     " dołączony do szablonu."
-                                     " Usuwam klucz…")
+                    geolocbotMain.output("Miejscowość " + geolocbotDatabases.main_name[0] +
+                                         " nie spełnia kryteriów TERC, więc identyfikator nie zostanie"
+                                         " dołączony do szablonu."
+                                         " Usuwam klucz…")
                     del data['terc']
                     return data
 
-        geolocbot.output(
-            'Miejscowość ' + globname[0] + ' spełnia kryteria TERC, więc identyfikator zostanie dołączony' +
+        geolocbotMain.output(
+            'Miejscowość ' + geolocbotDatabases.main_name[
+                0] + ' spełnia kryteria TERC, więc identyfikator zostanie dołączony' +
             ' do szablonu.')
 
-        if gapterc:
+        if geolocbotDatabases.main_terc_id_shortened:
             del data['terc']
-            nterc = {'terc': gapterc[0]}
+            nterc = {'terc': geolocbotDatabases.main_terc_id_shortened[0]}
             data.update(nterc)
 
         return data
 
     @staticmethod
     def get_Q_id(data):
-        geolocbot.debug.output(cast(types.FrameType, inspect.currentframe()).f_code.co_name)
+        geolocbotMain.debug.output(cast(types.FrameType, inspect.currentframe()).f_code.co_name)
         sid = data['SIMC']
 
         # Please don't confuse with 'Lidl'. :D
@@ -164,7 +171,7 @@ class geolocbotQuery(object):
 
             if not x:
                 try:
-                    geolocbot.output('Ustawiono tryb domyślny NTS.')
+                    geolocbotMain.output('Ustawiono tryb domyślny NTS.')
 
                     query = """SELECT ?coord ?item ?itemLabel 
                         WHERE
@@ -178,8 +185,8 @@ class geolocbotQuery(object):
                     x = list(generator)
 
                 except KeyError:
-                    geolocbot.output('Domyślny tryb NTS nie zwrócił wyniku.')
-                    geolocbot.output('Ustawiono niepewny tryb NTS.')
+                    geolocbotMain.output('Domyślny tryb NTS nie zwrócił wyniku.')
+                    geolocbotMain.output('Ustawiono niepewny tryb NTS.')
 
                     ntr = geolocbotQuery.ntsplease(mode='uncertain')
                     for i in range(len(ntr)):
@@ -196,74 +203,74 @@ class geolocbotQuery(object):
                         x = list(generator)
 
                         if x:
-                            change_mode(1)
+                            geolocbotQuery.change_mode(1)
                             break
 
                 if not x:
-                    raise KeyError('Niczego nie znalazłem w Wikidata. [b]')
+                    raise KeyError('Nie odnaleziono spełniającego objęte kryteria elementu w Wikidata.')
 
         string = ''.join(map(str, x))
         qidentificator = string.replace("[[wikidata:", "").replace("]]", "")
         qidl = {'wikidata': qidentificator}
         everythingiknow.update(qidl)
-        geolocbot.output('(::) QID:  ' + str(qidentificator))
+        geolocbotMain.output('(::) QID:  ' + str(qidentificator))
         return qidentificator
 
     def get_item_info(self, item):
-        geolocbot.debug.output(cast(types.FrameType, inspect.currentframe()).f_code.co_name)
+        geolocbotMain.debug.output(cast(types.FrameType, inspect.currentframe()).f_code.co_name)
         try:
             item.get()
 
         except pwbot.exceptions.MaxlagTimeoutError:
             self.item_get_attempts.append(1)
             attempt = len(self.item_get_attempts)
-            geolocbot.output(f'Timeout. Próbuję jeszcze raz, próba: {attempt}.')
+            geolocbotMain.output(f'Timeout. Próbuję jeszcze raz, próba: {attempt}.')
             geolocbotQuery.get_item_info(item)
 
+    def coords(self, qid):
+        geolocbotMain.debug.output(cast(types.FrameType, inspect.currentframe()).f_code.co_name)
+        item = pwbot.ItemPage(self.repo, qid)
 
-site = pwbot.Site("wikidata", "wikidata")
-repo = site.data_repository()
+        geolocbotQuery.get_item_info(item)
+
+        if item.claims:
+            item = pwbot.ItemPage(self.repo, qid)  # This will be functionally the same as the other item we defined
+            wikidata_data = item.get()
+            attempts = []
+
+            for i in range(len(list(wikidata_data['labels']))):
+                if geolocbotDatabases.main_name_for_databases[0] == \
+                        wikidata_data['labels'][list(wikidata_data['labels'])[i]]:
+                    geolocbotMain.output('Nazwy są jednakowe (wynik próby ' + str(len(attempts) + 1) + ').')
+                    break
+
+                else:
+                    attempts.append(i)
+
+            if len(attempts) == len(list(wikidata_data['labels'])):
+                raise KeyError(
+                    'Na Wikidata są koordynaty miejscowości o tym samym identyfikatorze, '
+                    'jednak nie o tej samej nazwie. '
+                    'Liczba prób porównawczych: ' + str(len(attempts) + 1) + '.')
+
+            if 'P625' in item.claims:
+                coordinates = item.claims['P625'][0].getTarget()
+                latitude = coordinates.lat
+                longitude = coordinates.lon
+                coordins = {'koordynaty': str(latitude)[:10] + ', ' + str(longitude)[:10]}
+                everythingiknow.update(coordins)
+
+        return geolocbotQuery.terc_or_not(everythingiknow)  # ;)
+
+    @staticmethod
+    def change_mode(integer=None):
+        geolocbotMain.debug.output(cast(types.FrameType, inspect.currentframe()).f_code.co_name)
+        if geolocbotQuery.uncertain != [] or integer is None:
+            for i in range(len(geolocbotQuery.uncertain)):
+                del geolocbotQuery.uncertain[i]
+
+        else:
+            geolocbotQuery.uncertain.append(integer)
 
 
-def coords(qid):
-    geolocbot.debug.output(cast(types.FrameType, inspect.currentframe()).f_code.co_name)
-    item = pwbot.ItemPage(repo, qid)
-
-    geolocbotQuery.get_item_info(item)
-
-    if item.claims:
-        item = pwbot.ItemPage(repo, qid)  # This will be functionally the same as the other item we defined
-        wikidata_data = item.get()
-        attempts = []
-
-        for i in range(len(list(wikidata_data['labels']))):
-            if databasename[0] == wikidata_data['labels'][list(wikidata_data['labels'])[i]]:
-                geolocbot.output('Nazwy są jednakowe (wynik próby ' + str(len(attempts) + 1) + ').')
-                break
-
-            else:
-                attempts.append(i)
-
-        if len(attempts) == len(list(wikidata_data['labels'])):
-            raise KeyError(
-                'Na Wikidata są koordynaty miejscowości o tym samym identyfikatorze, jednak nie o tej samej nazwie. '
-                'Liczba prób porównawczych: ' + str(len(attempts) + 1) + '.')
-
-        if 'P625' in item.claims:
-            coordinates = item.claims['P625'][0].getTarget()
-            latitude = coordinates.lat
-            longitude = coordinates.lon
-            coordins = {'koordynaty': str(latitude)[:10] + ', ' + str(longitude)[:10]}
-            everythingiknow.update(coordins)
-
-    return geolocbotQuery.terc_or_not(everythingiknow)  # ;)
-
-
-def change_mode(integer=None):
-    geolocbot.debug.output(cast(types.FrameType, inspect.currentframe()).f_code.co_name)
-    if geolocbotQuery.uncertain != [] or integer is None:
-        for i in range(len(geolocbotQuery.uncertain)):
-            del geolocbotQuery.uncertain[i]
-
-    else:
-        geolocbotQuery.uncertain.append(integer)
+geolocbotQuery = geolocbotQuery()

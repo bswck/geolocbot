@@ -5,10 +5,10 @@ import inspect
 import types
 from typing import cast
 import pywikibot as pwbot
-from __init__ import geolocbot
-from databases import check_status
+from __init__ import geolocbotMain
+from databases import geolocbotDatabases
 
-site = geolocbot.site  # we're on nonsa.pl
+site = geolocbotMain.site  # we're on nonsa.pl
 
 captured = {}
 p = []
@@ -17,7 +17,7 @@ be_careful = []
 
 
 def cleanup_getcats():
-    geolocbot.debug.output(cast(types.FrameType, inspect.currentframe()).f_code.co_name)
+    geolocbotMain.debug.output(cast(types.FrameType, inspect.currentframe()).f_code.co_name)
     if captured != {}:
         for key_value in list(captured.keys()):
             del captured[key_value]
@@ -25,28 +25,22 @@ def cleanup_getcats():
     while p:
         del p[0]
 
-    while getcats_fors:
-        del getcats_fors[0]
-
     while be_careful:
         del be_careful[0]
 
 
-# This function reviews a category and decides,
-# whether it is needed or not.
 def collect_information_from_categories(article_categories, title):
-    geolocbot.debug.output(cast(types.FrameType, inspect.currentframe()).f_code.co_name)
+    geolocbotMain.debug.output(cast(types.FrameType, inspect.currentframe()).f_code.co_name)
     for i in range(len(article_categories)):
-        getcats_fors.append(str(len(getcats_fors) + 1))
         page = pwbot.Page(site, title)
         text = page.text
 
         if "osiedl" in text[:250] or "dzielnic" in text[:250]:
             if not p:
                 print()
-                geolocbot.output("-" * (73 // 2) + "UWAGA!" + "-" * ((73 // 2) + 1))
-                geolocbot.output('(nonsa.pl) [TooManyRows]: Artykuł prawdopodobnie dotyczy osiedla lub dzielnicy.')
-                geolocbot.output("-" * 79)
+                geolocbotMain.output("-" * (73 // 2) + "UWAGA!" + "-" * ((73 // 2) + 1))
+                geolocbotMain.output('(nonsa.pl) [TooManyRows]: Artykuł prawdopodobnie dotyczy osiedla lub dzielnicy.')
+                geolocbotMain.output("-" * 79)
                 print()
                 p.append(' ')
 
@@ -72,20 +66,20 @@ def collect_information_from_categories(article_categories, title):
 
         # Exceptions.
         elif "Kategoria:Ujednoznacznienia" in article_categories[i]:
-            raise ValueError('Podana strona to ujednoznacznienie. [b]')
+            raise ValueError('Podana strona to ujednoznacznienie.')
 
         # Reading the category of category if it's one of these below.
         elif ("Kategoria:Miasta w" in article_categories[i] or "Kategoria:Powiaty w" in article_categories[
             i] or "Kategoria:Gminy w" in article_categories[i] or
               "Kategoria:" + title in article_categories[i]) and ('powiat' not in captured or 'gmina' not in captured):
 
-            if check_status('powiat', title) is not False:
-                powiat = check_status('powiat', title)
+            if geolocbotDatabases.check_status('powiat', title) is not False:
+                powiat = geolocbotDatabases.check_status('powiat', title)
                 add = {"powiat": powiat}
                 captured.update(add)
 
-            if check_status('gmina', title) is not False:
-                gmina = check_status('gmina', title)
+            if geolocbotDatabases.check_status('gmina', title) is not False:
+                gmina = geolocbotDatabases.check_status('gmina', title)
                 add = {"gmina": gmina}
                 captured.update(add)
 
@@ -97,32 +91,32 @@ def collect_information_from_categories(article_categories, title):
                 raise_categories(article_categories[i])
 
 
-def raise_categories(title):
-    geolocbot.debug.output(cast(types.FrameType, inspect.currentframe()).f_code.co_name)
+def raise_categories(page_name):
+    geolocbotMain.debug.output(cast(types.FrameType, inspect.currentframe()).f_code.co_name)
     article_categories = [
         cat.title()
-        for cat in pwbot.Page(site, title).categories()
+        for cat in pwbot.Page(site, page_name).categories()
         if 'hidden' not in cat.categoryinfo
     ]
 
-    collect_information_from_categories(article_categories, title)
+    collect_information_from_categories(article_categories, page_name)
     return article_categories
 
 
-def run(title):
-    geolocbot.debug.output(cast(types.FrameType, inspect.currentframe()).f_code.co_name)
-    page = pwbot.Page(site, title)
+def run(page_name):
+    geolocbotMain.debug.output(cast(types.FrameType, inspect.currentframe()).f_code.co_name)
+    page = pwbot.Page(site, page_name)
     text = page.text
 
     if text == '':
-        raise KeyError('Nie ma takiej strony. [b]')
+        raise KeyError('Nie ma takiej strony.')
 
-    raise_categories(title)  # script starts
-    geolocbot.output('Z kategorii artykułu mam następujące dane:')
-    geolocbot.output('województwo: {0}.'.format(
+    raise_categories(page_name)  # script starts
+    geolocbotMain.output('Z kategorii artykułu mam następujące dane:')
+    geolocbotMain.output('województwo: {0}.'.format(
         (captured['województwo'].lower() if 'województwo' in list(captured.keys()) else '–')))
-    geolocbot.output('powiat: {0}.'.format((captured['powiat'] if 'powiat' in list(captured.keys()) else '–')))
-    geolocbot.output('gmina: {0}.'.format((captured['gmina'] if 'gmina' in list(captured.keys()) else '–')))
-    line = {"NAZWA": title}
+    geolocbotMain.output('powiat: {0}.'.format((captured['powiat'] if 'powiat' in list(captured.keys()) else '–')))
+    geolocbotMain.output('gmina: {0}.'.format((captured['gmina'] if 'gmina' in list(captured.keys()) else '–')))
+    line = {"NAZWA": page_name}
     captured.update(line)
     return captured

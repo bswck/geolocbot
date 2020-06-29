@@ -4,13 +4,13 @@
 
 # Import time to measure the time spent on completing the function.
 import time
-from __init__ import geolocbot
-from functions import main, start
+from __init__ import geolocbotMain
+from functions import geolocbotTask
 
-geolocbot.intro()
+geolocbotMain.intro()
 
 while True:
-    main()
+    geolocbotTask.main()
 
     # 'Stop' time-measure.
     end = time.time()
@@ -18,6 +18,6 @@ while True:
     print()
 
     # Prints the time spent on completing the function.
-    time_taken = (end - start[0])
+    time_taken = (end - geolocbotTask.start[0])
     time_to_print = "%.1f" % time_taken
-    geolocbot.output("Czas operacyjny: " + str(time_to_print).replace('.', ',') + "s.")
+    geolocbotMain.output("Czas operacyjny: " + str(time_to_print).replace('.', ',') + "s.")
