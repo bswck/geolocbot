@@ -14,13 +14,6 @@ from pywikibot import pagegenerators as pg
 everythingiknow = {}
 
 
-def cleanup_querying():
-    geolocbotMain.debug.output(cast(types.FrameType, inspect.currentframe()).f_code.co_name)
-    if everythingiknow != {}:
-        for key_value in list(everythingiknow.keys()):
-            del everythingiknow[key_value]
-
-
 class geolocbotQuery(object):
     def __init__(self):
         self.nts_database = pd.read_csv("NTS.csv", sep=';')
@@ -31,7 +24,14 @@ class geolocbotQuery(object):
         self.wikidata = pwbot.Site("wikidata", "wikidata")
         self.repo = self.wikidata.data_repository()
 
-    def ntsplease(self, mode='certain'):
+    @staticmethod
+    def cleanup_querying():
+        geolocbotMain.debug.output(cast(types.FrameType, inspect.currentframe()).f_code.co_name)
+        if everythingiknow != {}:
+            for key_value in list(everythingiknow.keys()):
+                del everythingiknow[key_value]
+
+    def generate_nts_identificator(self, mode='certain'):
         geolocbotMain.debug.output(cast(types.FrameType, inspect.currentframe()).f_code.co_name)
         if mode == 'certain':
             filtered_nts = self.nts_database.loc[self.nts_database['NAZWA'] ==
@@ -176,7 +176,7 @@ class geolocbotQuery(object):
                     query = """SELECT ?coord ?item ?itemLabel 
                         WHERE
                         {
-                          ?item wdt:P1653 '""" + geolocbotQuery.ntsplease() + """'.
+                          ?item wdt:P1653 '""" + geolocbotQuery.generate_nts_identificator() + """'.
                           OPTIONAL {?item wdt:P625 ?coord}.
                           SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],pl". }
                         }"""
@@ -188,7 +188,7 @@ class geolocbotQuery(object):
                     geolocbotMain.output('Domyślny tryb NTS nie zwrócił wyniku.')
                     geolocbotMain.output('Ustawiono niepewny tryb NTS.')
 
-                    ntr = geolocbotQuery.ntsplease(mode='uncertain')
+                    ntr = geolocbotQuery.generate_nts_identificator(mode='uncertain')
                     for i in range(len(ntr)):
 
                         query = """SELECT ?coord ?item ?itemLabel 

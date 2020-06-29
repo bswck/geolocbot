@@ -8,17 +8,17 @@ import sys
 import time
 import pywikibot as pwbot
 from __init__ import geolocbotMain
-from getcats import cleanup_getcats, run
+from getcats import geolocbotDirectlyFromArticle
 from databases import geolocbotDatabases
 from pywikibot import InvalidTitle
-from querying import geolocbotQuery, cleanup_querying
+from querying import geolocbotQuery
 
 
 def session_clean():
     geolocbotMain.debug.output(str(cast(types.FrameType, inspect.currentframe()).f_code.co_name))
     geolocbotDatabases.cleanup_databases()
-    cleanup_getcats()
-    cleanup_querying()
+    geolocbotDirectlyFromArticle.cleanup_getcats()
+    geolocbotQuery.cleanup_querying()
 
 
 site = geolocbotMain.site
@@ -153,7 +153,8 @@ class geolocbotTask(object):
                 geolocbotMain.output('Przetwarzam stronę z listy (' + str(pagename) + ').')
 
             geolocbotDatabases.updatename(pagename)
-            data = geolocbotDatabases.simc_database_search(geolocbotDatabases.encode_to_terc(run(pagename)))
+            data = geolocbotDatabases \
+                .simc_database_search(geolocbotDatabases.encode_to_terc(geolocbotQuery.run(pagename)))
 
             if data is None:
                 raise ValueError('Czy nie popełniłeś błędu w nazwie strony?')
