@@ -87,7 +87,7 @@ class geolocbotDatabases(object):
         else:
             target = terc_database.loc[(terc_database['NAZWA'] == name) & (
                     (terc_database['NAZWA_DOD'] == 'powiat') | (
-                     terc_database['NAZWA_DOD'] == 'miasto na prawach powiatu'))]
+                    terc_database['NAZWA_DOD'] == 'miasto na prawach powiatu'))]
 
             if not target.empty:
                 target = target.reset_index()
