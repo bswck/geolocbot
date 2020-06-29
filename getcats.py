@@ -1,15 +1,15 @@
 # Author: Stim, 2020.
 # Geolocalisation bot for Nonsensopedia.
 # License: GNU GPLv3.
-
+import inspect
+import types
+from typing import cast
 import pywikibot as pwbot
-import sys
 from __init__ import geolocbot
-from databases import cp
+from databases import check_status
 
-site = pwbot.Site('pl', 'nonsensopedia')  # we're on nonsa.pl
+site = geolocbot.site  # we're on nonsa.pl
 
-# Dictionary storing the captured information.
 captured = {}
 p = []
 getcats_fors = []
@@ -17,30 +17,32 @@ be_careful = []
 
 
 def cleanup_getcats():
+    geolocbot.debug.output(cast(types.FrameType, inspect.currentframe()).f_code.co_name)
     if captured != {}:
         for key_value in list(captured.keys()):
             del captured[key_value]
 
-    while p != []:
+    while p:
         del p[0]
 
-    while getcats_fors != []:
+    while getcats_fors:
         del getcats_fors[0]
 
-    while be_careful != []:
+    while be_careful:
         del be_careful[0]
 
 
 # This function reviews a category and decides,
 # whether it is needed or not.
-def findcats(c, title):
-    for i in range(len(c)):
+def collect_information_from_categories(article_categories, title):
+    geolocbot.debug.output(cast(types.FrameType, inspect.currentframe()).f_code.co_name)
+    for i in range(len(article_categories)):
         getcats_fors.append(str(len(getcats_fors) + 1))
         page = pwbot.Page(site, title)
         text = page.text
 
         if "osiedl" in text[:250] or "dzielnic" in text[:250]:
-            if p == []:
+            if not p:
                 print()
                 geolocbot.output("-" * (73 // 2) + "UWAGA!" + "-" * ((73 // 2) + 1))
                 geolocbot.output('(nonsa.pl) [TooManyRows]: Artykuł prawdopodobnie dotyczy osiedla lub dzielnicy.')
@@ -49,79 +51,78 @@ def findcats(c, title):
                 p.append(' ')
 
         # Checks if the category contains "Gmina".
-        if 'gmina' not in captured and "Kategoria:Gmina " in c[i]:
-            gmina = c[i].replace("Kategoria:Gmina ", "")  # (No need for namespace and type name).
-            readcategories(c[i])
+        if 'gmina' not in captured and "Kategoria:Gmina " in article_categories[i]:
+            gmina = article_categories[i].replace("Kategoria:Gmina ", "")  # (No need for namespace and type name).
+            raise_categories(article_categories[i])
             add = {"gmina": gmina}
             captured.update(add)
 
         # Checks if the category contains "Powiat "; disclaiming category "Powiaty".
-        elif 'powiat' not in captured and "Kategoria:Powiat " in c[i]:
-            powiat = c[i].replace("Kategoria:Powiat ", "")
-            readcategories(c[i])
+        elif 'powiat' not in captured and "Kategoria:Powiat " in article_categories[i]:
+            powiat = article_categories[i].replace("Kategoria:Powiat ", "")
+            raise_categories(article_categories[i])
             add = {"powiat": powiat.lower()}
             captured.update(add)
 
         # Checks if the category contains "Województwo ".
-        elif 'województwo' not in captured and "Kategoria:Województwo " in c[i]:
-            wojewodztwo = c[i].replace("Kategoria:Województwo ", "")
+        elif 'województwo' not in captured and "Kategoria:Województwo " in article_categories[i]:
+            wojewodztwo = article_categories[i].replace("Kategoria:Województwo ", "")
             add = {"województwo": wojewodztwo.upper()}
             captured.update(add)
 
         # Exceptions.
-        elif "Kategoria:Ujednoznacznienia" in c[i]:
+        elif "Kategoria:Ujednoznacznienia" in article_categories[i]:
             raise ValueError('Podana strona to ujednoznacznienie. [b]')
 
         # Reading the category of category if it's one of these below.
-        elif ("Kategoria:Miasta w" in c[i] or "Kategoria:Powiaty w" in c[i] or "Kategoria:Gminy w" in c[i] or
-              "Kategoria:" + title in c[i]) and ('powiat' not in captured or 'gmina' not in captured):
+        elif ("Kategoria:Miasta w" in article_categories[i] or "Kategoria:Powiaty w" in article_categories[
+            i] or "Kategoria:Gminy w" in article_categories[i] or
+              "Kategoria:" + title in article_categories[i]) and ('powiat' not in captured or 'gmina' not in captured):
 
-            if cp('powiat', title) is not False:
-                powiat = cp('powiat', title)
+            if check_status('powiat', title) is not False:
+                powiat = check_status('powiat', title)
                 add = {"powiat": powiat}
                 captured.update(add)
 
-            if cp('gmina', title) is not False:
-                gmina = cp('gmina', title)
+            if check_status('gmina', title) is not False:
+                gmina = check_status('gmina', title)
                 add = {"gmina": gmina}
                 captured.update(add)
 
-            readcategories(c[i])
+            raise_categories(article_categories[i])
 
         else:
-            if c[i] not in be_careful:
-                be_careful.append(c[i])
-                readcategories(c[i])
+            if article_categories[i] not in be_careful:
+                be_careful.append(article_categories[i])
+                raise_categories(article_categories[i])
 
 
-def readcategories(title):
-    c = [
+def raise_categories(title):
+    geolocbot.debug.output(cast(types.FrameType, inspect.currentframe()).f_code.co_name)
+    article_categories = [
         cat.title()
         for cat in pwbot.Page(site, title).categories()
         if 'hidden' not in cat.categoryinfo
     ]
 
-    findcats(c, title)
-    return c
+    collect_information_from_categories(article_categories, title)
+    return article_categories
 
 
 def run(title):
+    geolocbot.debug.output(cast(types.FrameType, inspect.currentframe()).f_code.co_name)
     page = pwbot.Page(site, title)
     text = page.text
 
     if text == '':
         raise KeyError('Nie ma takiej strony. [b]')
 
-    readcategories(title)  # script starts
+    raise_categories(title)  # script starts
     geolocbot.output('Z kategorii artykułu mam następujące dane:')
     geolocbot.output('województwo: {0}.'.format(
         (captured['województwo'].lower() if 'województwo' in list(captured.keys()) else '–')))
     geolocbot.output('powiat: {0}.'.format((captured['powiat'] if 'powiat' in list(captured.keys()) else '–')))
     geolocbot.output('gmina: {0}.'.format((captured['gmina'] if 'gmina' in list(captured.keys()) else '–')))
-    return withkeypagename(title)
-
-
-def withkeypagename(title):
     line = {"NAZWA": title}
     captured.update(line)
     return captured

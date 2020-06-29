@@ -1,31 +1,19 @@
 # Author: Stim, 2020.
 # Geolocalisation bot for Nonsensopedia.
 # License: GNU GPLv3.
-
+import inspect
+import types
+from typing import cast
 import pywikibot as pwbot
-import pandas as pd
 import traceback
 import sys
 import time
-from pandas import DataFrame
 from os import system, name
-
-
-# Errors definitions.
-class Error(Exception):
-    """Base class for other exceptions"""
-    pass
-
-
-class EmptyNameError(Error):
-    """Raised when no pagename has been provided"""
-    pass
-
 
 tmr_database = []
 
 
-class glb(object):
+class geolocbot(object):
     def __init__(self):
         self.i = '>b< '
         self.o = '[b] '
@@ -36,14 +24,14 @@ class glb(object):
         self.site = pwbot.Site('pl', 'nonsensopedia')  # we're on nonsa.pl
 
     @staticmethod
-    def tmr(dataframe=''):
+    def too_many_rows_in(dataframe=''):
         """Saving TooManyRows to call it"""
         tmr_database.append(dataframe)
 
     @staticmethod
-    def clean_tmr():
+    def too_many_rows_del():
         """Deleting TooManyRows DataFrame"""
-        while tmr_database != []:
+        while tmr_database:
             del tmr_database[0]
 
     @staticmethod
@@ -61,63 +49,43 @@ class glb(object):
         print('---')
         exit()
 
-    def delete_template(self, pagename, reason):
+    def delete_geoloc_template(self, pagename, reason):
         """Deleting template as an update procedure"""
-        delete_from = pwbot.Page(self.site, pagename)
-        txt = delete_from.text
+        geolocbot.debug.output(str(cast(types.FrameType, inspect.currentframe()).f_code.co_name))
+        page_to_delete_from = pwbot.Page(self.site, pagename)
+        text_to_delete_from = page_to_delete_from.text
 
-        if '{{lokalizacja' in txt:
-            template = txt[txt.find('{{lokalizacja'):]
+        if '{{lokalizacja' in text_to_delete_from:
+            template = text_to_delete_from[text_to_delete_from.find('{{lokalizacja'):]
             template = template[:(template.find('}}') + 2)]
-            delete_from.text = txt.replace(template, '')
-            delete_from.save('/* aktualizacja */ usunięcie szablonu lokalizacja (' + str(reason) + ')')
+            page_to_delete_from.text = text_to_delete_from.replace(template, '')
+            page_to_delete_from.save('/* aktualizacja */ usunięcie szablonu lokalizacja (' + str(reason) + ')')
 
-    def input(self, input_message='Odpowiedź: ', cannot_be_empty=False):
+    def input(self, input_message='Odpowiedź: '):
         """Geolocbot's specific input method"""
+        geolocbot.debug.output(str(cast(types.FrameType, inspect.currentframe()).f_code.co_name))
         print()
-        answer = input(str(self.i + input_message))
+        answer = input(self.i + input_message)
         self.history.append(answer)
 
-        if cannot_be_empty:
-            if answer == '' or answer == ' ' * len(answer):
-                raise EmptyNameError
-
-        else:
-            if answer == '' or answer == ' ' * len(answer):
-                answer = input(str(self.i + input_message))
+        while answer == '' or answer == ' ' * len(answer):
+            answer = input(self.i + input_message)
 
         if '*' in answer:
-            if '*e' in answer and '*c' not in answer and '*l' not in answer and '*h' not in answer:
+            if '*e' in answer and '*l' not in answer:
                 geolocbot.end()
 
-            elif '*c' in answer and '*e' not in answer and '*l' not in answer and '*h' not in answer:
-                geolocbot.clear()
-                answer = geolocbot.input(input_message)
-
-            elif '*h' in answer and '*e' not in answer and '*l' not in answer and '*c' not in answer:
-                geolocbot.output('Po kolei wpisywałeś: {0}.'.format(
-                    str(list(self.history)[::1]).replace('[', '').replace(']', '')))
-                answer = geolocbot.input(input_message)
-
-            elif '*l' in answer and '*e' not in answer and '*c' not in answer and '*h' not in answer:
-
+            elif '*l' in answer and '*e' not in answer:
                 l_count = 0
 
-                for l in range(len(self.history)):
-                    if self.history[l] == '*l':
+                for l_index in range(len(self.history)):
+                    if self.history[l_index] == '*l':
                         l_count += 1
 
-                    return 'key::c3!*DZ+Tx!h2ua!X'
-
-                if l_count < 1:
-                    answer = geolocbot.input(input_message)
-
-                else:
-                    geolocbot.output('Coś kombinujesz, nie radzę. Wpisałeś komendę *l już ' + str(l_count) + ' raz.')
-                    answer = geolocbot.input('Nieprzekombinowana odpowiedź: ')
+                return geolocbot.goThroughList()
 
             elif len(answer) >= 2:
-                if answer[answer.find('*') + 1] not in ['c', 'e', 'l'] and '*l' not in self.history:
+                if answer[answer.find('*') + 1] not in ['e', 'l'] and '*l' not in self.history:
                     geolocbot.output('Niepoprawna komenda.')
                     answer = geolocbot.input()
 
@@ -129,22 +97,12 @@ class glb(object):
 
     def output(self, output_message):
         """Geolocbot's specific output method"""
-        print(self.o + str(output_message))
+        print(f'{self.o}{output_message}')
 
-    def err(self, nmb, output_error_message, hint='', pgn=False):
+    def forward_error(self, nmb, output_error_message, hint='', pgn=False):
         """Function printing, recognising and differentiating errors"""
+        geolocbot.debug.output(str(cast(types.FrameType, inspect.currentframe()).f_code.co_name))
         error = ['ValueError', 'KeyError', 'TooManyRows', 'InvalidTitle', 'EmptyNameError', 'KeyboardInterrupt']
-        bug_errors = ['AssertionError',
-                      'AttributeError',
-                      'MemoryError',
-                      'NameError',
-                      'TypeError',
-                      'IndentationError',
-                      'IndexError',
-                      'OverflowError',
-                      'SyntaxError',
-                      'TabError',
-                      'UnboundLocalError']
         print(self.n + '[' + (error[nmb] if isinstance(nmb, int) else nmb) + ']: ' + output_error_message,
               file=sys.stderr)
 
@@ -154,7 +112,7 @@ class glb(object):
 
             else:
                 geolocbot.unhook(pgn, (output_error_message if hint == '' else hint))
-            geolocbot.delete_template(pgn, output_error_message)
+            geolocbot.delete_geoloc_template(pgn, output_error_message)
 
         if isinstance(nmb, int) and error[nmb] == error[2]:
             tmr = tmr_database[0]
@@ -174,11 +132,11 @@ class glb(object):
                 report_page.text = text + add
                 report_page.save(u'/* raport */ TooManyRows: ' + str(raw_name))
 
-            geolocbot.clean_tmr()
+            geolocbot.too_many_rows_del()
 
         if not isinstance(nmb, int):
 
-            if str(nmb) in bug_errors:
+            if str(nmb) not in error:
                 report_page = pwbot.Page(self.site, 'Dyskusja użytkownika:Stim/geolocbot-bugs')
                 text = report_page.text
                 put_place = text.find('|}\n{{Stim}}')
@@ -188,16 +146,17 @@ class glb(object):
                 report_page.save(u'/* raport */ bugerror: ' + str(nmb))
 
     def list(self):
+        geolocbot.debug.output(str(cast(types.FrameType, inspect.currentframe()).f_code.co_name))
         page = pwbot.Page(self.site, 'Użytkownik:Stim/lista')
 
         items_list = []
         items = page.text
         items = items[items.find(self.items_list_beginning) + len(self.items_list_beginning):]
 
-        for char_index in range(len(items)):
-            if items[char_index] == '*':
-                if char_index != len(items):
-                    item_row = items[char_index:]
+        for character_index in range(len(items)):
+            if items[character_index] == '*':
+                if character_index != len(items):
+                    item_row = items[character_index:]
 
                     if '{{/unhook' in item_row:
                         item_row = item_row[2:item_row.find(' {{/unhook')]
@@ -220,7 +179,7 @@ class glb(object):
                     items_list.append(item_row.replace('[', '').replace(']', ''))
 
                 else:
-                    item_row = items[char_index:]
+                    item_row = items[character_index:]
 
                     if '{{/unhook' in item_row:
                         item_row = item_row[2:item_row.find(' {{/unhook')]
@@ -235,109 +194,111 @@ class glb(object):
 
         return items_list
 
-    def unhook(self, pagename, message):
+    def unhook(self, pagename, information):
+        geolocbot.debug.output(str(cast(types.FrameType, inspect.currentframe()).f_code.co_name))
         page = pwbot.Page(self.site, 'Użytkownik:Stim/lista')
-        message = message.replace('{', '').replace('}', '')
+        information = information.replace('{', '').replace('}', '')
         to_unhook = page.text
 
         if pagename in to_unhook:
-            unhook_row = to_unhook[to_unhook.find('* [[' + pagename + ']]\n'):]
+            unhook_row = to_unhook[to_unhook.find(f'* [[{pagename}]]'):]
             unhook_row = unhook_row[:unhook_row.find('\n')]
+            geolocbot.debug.output(unhook_row)
 
             if unhook_row == '':
-                unhook_row = to_unhook[to_unhook.find('* [[' + pagename + ']] {{/unhook'):]
+                unhook_row = to_unhook[to_unhook.find(f'* [[{pagename}]] {{/unhook'):]
                 unhook_row = unhook_row[:unhook_row.find('\n')]
+                geolocbot.debug.output(unhook_row)
 
             if '{{/unhook' in unhook_row:
+                geolocbot.debug.output(unhook_row)
                 unhook_place = unhook_row.find(' {{/unhook|')
                 unhook_put = unhook_row[unhook_place:unhook_row.find('}}')]
-                replaced_unhook = unhook_row.replace(unhook_put, ' {{/unhook|' + str(message))
+                geolocbot.debug.output(unhook_put)
+                replaced_unhook = unhook_row.replace(unhook_put, ' {{/unhook|' + f'{information}')
                 page.text = to_unhook.replace(unhook_row, replaced_unhook)
-                page.save('/* -+' + str(pagename) + ' (nowy w miejsce starego) */ ' + str(message))
+
+                if unhook_row != '':
+                    page.save(f'/* -+{pagename} (nowy w miejsce starego) */ {information}')
+
+                else:
+                    raise geolocbot.exceptions.OutOfMemory('Coś w unhooku poważnie nie gra…')
 
             else:
-                add = '* [[' + str(pagename) + ']] {{/unhook|' + str(message) + '}}'
+                add = f'* [[{pagename}]] {{/unhook|{information}}}'
                 page.text = to_unhook.replace(unhook_row, add)
-                page.save('/* +' + str(pagename) + ' */ ' + str(message))
+                geolocbot.debug.output(unhook_row)
+                geolocbot.debug.output(add)
+
+                if unhook_row != '':
+                    page.save(f'/* +{pagename} */ {information}')
+
+                else:
+                    raise geolocbot.exceptions.OutOfMemory('Coś w unhooku poważnie nie gra…')
 
     @staticmethod
     def intro():
         system('@echo off')
-        system('title Google Chrome')
         geolocbot.clear()
-        print("""
-_________          ______           ______       _____ 
-__  ____/_____________  /______________  /_________  /_
-_  / __ _  _ \  __ \_  /_  __ \  ___/_  __ \  __ \  __/
-/ /_/ / /  __/ /_/ /  / / /_/ / /__ _  /_/ / /_/ / /_  
-\____/  \___/\____//_/  \____/\___/ /_.___/\____/\__/  
-
-                                        Geolocbot 2020
-        """)
+        geolocbot.output('Witaj w programie Geolocbot 2020!')
         print()
         geolocbot.output('Ctrl + C przerywa wykonywanie operacji.')
-        geolocbot.output('Wpisanie *c spowoduje wyczyszczenie ekranu.')
-        geolocbot.output('Wpisanie *h spowoduje pokazanie historii wpisanych wartości, komend.')
         geolocbot.output('Wpisanie *e spowoduje zamknięcie programu.')
         geolocbot.output('Wpisanie *l spowoduje masowe przeoranie artykułów z listy na [[Użytkownik:Stim/lista]].')
         geolocbot.output('Ja na gitlabie: https://gitlab.com/nonsensopedia/bots/geolocbot.')
 
-    class exceptions(object):
+    class outputAndForward(object):
         """Geolocbot's specific exceptions"""
 
         @staticmethod
-        def ValueErr(ve, pagename):
+        def value_error(value_error_hint, pagename):
             print()
-            geolocbot.err(0, "Nie znaleziono odpowiednich kategorii lub strona '" + str(pagename) + "' nie istnieje.",
-                          hint=str(ve), pgn=pagename)
+            geolocbot.forward_error(0, f"Nie znaleziono odpowiednich kategorii lub strona '{pagename}' nie istnieje.",
+                                    hint=str(value_error_hint), pgn=pagename)
             time.sleep(2)
 
             print(
                 " " * 11 + "Hint:" + " " * 9 +
-                str(ve).replace("'", '') if str(ve) != '0' else " " * 11 + "Hint:" +
-                                                                " " * 7 + 'Nic nie znalazłem. [b]')
+                str(value_error_hint).replace("'", '')
+                if str(value_error_hint) != '0'
+                else " " * 11 + "Hint:" + " " * 7 + 'Niczego nie znalazłem. [b]'
+            )
             time.sleep(2)
 
         @staticmethod
-        def KeyErr(ke, pagename):
+        def key_error(key_error_hint, pagename):
             print()
-            ke_show = str(ke).replace("'", '') if str(ke) != '0' else 'Nie odnaleziono informacji w którejkolwiek ' \
-                                                                      'z baz danych.'
-            geolocbot.err(1, "Nie znaleziono odpowiednich kategorii lub strona '" + str(pagename) + "' nie istnieje.",
-                          hint=ke_show, pgn=pagename)
-            ke = " " * 11 + "Hint:" + " " * 7 + str(ke).replace("'", '') if str(ke) != '0' else " " * 11 + "Hint:" + \
-                                                                                                " " * 7 + 'Nic nie ' \
-                                                                                                          'znalazłem.' \
-                                                                                                          ' [b]'
-            print(ke)
+            key_error_hint_to_display = str(key_error_hint).replace("'", '') \
+                if str(key_error_hint) != '0' \
+                else 'Nie odnaleziono informacji w którejkolwiek z baz danych.'
+            geolocbot.forward_error(1, f"Nie znaleziono odpowiednich kategorii lub strona '{pagename}' nie istnieje.",
+                                    hint=key_error_hint_to_display, pgn=pagename)
+            key_error_hint = " " * 11 + "Hint:" + " " * 7 + str(key_error_hint).replace("'", '') \
+                if str(key_error_hint) != '0' \
+                else " " * 11 + "Hint:" + " " * 7 + 'Nic nie znalazłem. [b]'
+            print(key_error_hint)
             time.sleep(2)
 
         @staticmethod
-        def TooManyRowsErr(tmr, pagename):
+        def too_many_rows_error(too_many_rows_database_hint, pagename):
             print()
-            geolocbot.err(2, 'Więcej niż 1 rząd w odebranych danych!', pgn=pagename)
+            geolocbot.forward_error(2, 'Więcej niż 1 rząd w odebranych danych!', pgn=pagename)
             print(" " * 11 + "Wyjściowa baza:", file=sys.stderr)
             print()
-            print(tmr, file=sys.stderr)
-            tmr_database.append(tmr)
+            print(too_many_rows_database_hint, file=sys.stderr)
+            tmr_database.append(too_many_rows_database_hint)
             time.sleep(2)
 
         @staticmethod
-        def InvalidTitleErr():
+        def invalid_title_error():
             print()
-            geolocbot.err(3, "Podany tytuł jest nieprawidłowy.")
+            geolocbot.forward_error(3, "Podany tytuł jest nieprawidłowy.")
             time.sleep(2)
 
         @staticmethod
-        def EmptyNameErr():
+        def keyboard_interrupt_error():
             print()
-            geolocbot.err(4, "Nie podano tytułu strony.")
-            time.sleep(2)
-
-        @staticmethod
-        def KeyboardInterruptErr():
-            print()
-            geolocbot.err(5, "Pomyślnie przerwano operację.")
+            geolocbot.forward_error(5, "Pomyślnie przerwano operację.")
             geolocbot.output('Kontynuować? <T/N>')
 
     class debug(object):
@@ -347,10 +308,27 @@ _  / __ _  _ \  __ \_  /_  __ \  ___/_  __ \  __ \  __/
             self.d = 'debug_info >> '
 
         def output(self, output_message):
-            geolocbot.output(self.d + str(output_message))
+            if '*debug_mode' in geolocbot.history:
+                geolocbot.output(f'{self.d} {output_message}')
+
+    class goThroughList(object):
+        pass
+
+    class exceptions(object):
+        class geolocbotError(Exception):
+            """Base class for Geolocbot exceptions"""
+            pass
+
+        class OutOfMemory(geolocbotError):
+            """Raised when bot attempted to add too many bytes to a page"""
+            pass
+
+        class TooManyRows(geolocbotError):
+            """Raised when too many rows appear in the table as an answer"""
+            pass
 
 
-geolocbot = glb()
+geolocbot = geolocbot()
 """Base class for specific Geolocbot operations"""
 geolocbot.debug = geolocbot.debug()
-geolocbot.exceptions = geolocbot.exceptions()
+geolocbot.outputAndForward = geolocbot.outputAndForward()

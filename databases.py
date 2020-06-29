@@ -3,20 +3,16 @@
 # License: GNU GPLv3.
 # This is a cool tool for returning TERYT codes of provinces etc.
 # Read more: http://eteryt.stat.gov.pl/eTeryt/english.aspx?contrast=default.
-
+import inspect
+import types
+from typing import cast
 import pywikibot as pwbot
 import pandas as pd
-import sys
 from __init__ import geolocbot
 
-
-class TooManyRows(Exception):
-    """Raised when too many rows appear in the table as an answer"""
-
-
-simc = pd.read_csv("SIMC.csv", sep=';',
-                   usecols=['WOJ', 'POW', 'GMI', 'RODZ_GMI', 'RM', 'MZ', 'NAZWA', 'SYM'])
-tercbase = pd.read_csv("TERC.csv", sep=';', usecols=['WOJ', 'POW', 'GMI', 'RODZ', 'NAZWA', 'NAZWA_DOD'])
+simc_database = pd.read_csv("SIMC.csv", sep=';',
+                            usecols=['WOJ', 'POW', 'GMI', 'RODZ_GMI', 'RM', 'MZ', 'NAZWA', 'SYM'])
+terc_database = pd.read_csv("TERC.csv", sep=';', usecols=['WOJ', 'POW', 'GMI', 'RODZ', 'NAZWA', 'NAZWA_DOD'])
 
 globname = []
 globterc = {}
@@ -26,11 +22,12 @@ databasename = []
 
 
 def cleanup_databases(exclude=None):
+    geolocbot.debug.output(cast(types.FrameType, inspect.currentframe()).f_code.co_name)
     if exclude is None:
         exclude = ['']
 
     if 'globname' not in exclude:
-        while globname != []:
+        while globname:
             del globname[0]
 
     if 'globterc' not in exclude:
@@ -39,19 +36,20 @@ def cleanup_databases(exclude=None):
                 del globterc[key_value]
 
     if 'globtercc' not in exclude:
-        while globtercc != []:
+        while globtercc:
             del globtercc[0]
 
     if 'gapterc' not in exclude:
-        while gapterc != []:
+        while gapterc:
             del gapterc[0]
 
     if 'databasename' not in exclude:
-        while databasename != []:
+        while databasename:
             del databasename[0]
 
 
 def updatename(name):
+    geolocbot.debug.output(cast(types.FrameType, inspect.currentframe()).f_code.co_name)
     if len(globname) >= 1:
         del globname[0]
 
@@ -59,20 +57,14 @@ def updatename(name):
     geolocbot.output('Adres docelowy to [[' + name + ']].')
 
 
-# This function is checking exactly if a category
-# without info at the beginning in its name
-# as "powiat (…)", "gmina (…)" etc. isn't
-# in fact a powiat or gmina.
-# For example: "Warszawa". Warsaw is a city,
-# but it's rights are as big as powiat's rights.
-# That means that Warsaw's localities' powiat is just Warsaw.
-def cp(typ, name):
+def check_status(typ, name):
+    geolocbot.debug.output(cast(types.FrameType, inspect.currentframe()).f_code.co_name)
     if typ == 'gmina':
-        gmina = tercbase.loc[(tercbase['NAZWA'] == name) &
-                             ((tercbase['NAZWA_DOD'] == 'gmina miejska') |
-                              (tercbase['NAZWA_DOD'] == 'obszar wiejski') |
-                              (tercbase['NAZWA_DOD'] == 'gmina wiejska') |
-                              (tercbase['NAZWA_DOD'] == 'gmina miejsko-wiejska'))]
+        gmina = terc_database.loc[(terc_database['NAZWA'] == name) &
+                                  ((terc_database['NAZWA_DOD'] == 'gmina miejska') |
+                                   (terc_database['NAZWA_DOD'] == 'obszar wiejski') |
+                                   (terc_database['NAZWA_DOD'] == 'gmina wiejska') |
+                                   (terc_database['NAZWA_DOD'] == 'gmina miejsko-wiejska'))]
 
         if gmina.empty:
             return False
@@ -82,8 +74,8 @@ def cp(typ, name):
             return gmina.at[0, 'NAZWA']
 
     elif typ == 'powiat':
-        powiat = tercbase.loc[(tercbase['NAZWA'] == name) & (
-                (tercbase['NAZWA_DOD'] == typ) | (tercbase['NAZWA_DOD'] == 'miasto na prawach powiatu'))]
+        powiat = terc_database.loc[(terc_database['NAZWA'] == name) & (
+                (terc_database['NAZWA_DOD'] == typ) | (terc_database['NAZWA_DOD'] == 'miasto na prawach powiatu'))]
 
         if powiat.empty:
             return False
@@ -93,20 +85,21 @@ def cp(typ, name):
             return powiat.at[0, 'NAZWA']
 
     else:
-        x = tercbase.loc[(tercbase['NAZWA'] == name) & (
-                (tercbase['NAZWA_DOD'] == 'powiat') | (tercbase['NAZWA_DOD'] == 'miasto na prawach powiatu'))]
+        target = terc_database.loc[(terc_database['NAZWA'] == name) & (
+                (terc_database['NAZWA_DOD'] == 'powiat') | (terc_database['NAZWA_DOD'] == 'miasto na prawach powiatu'))]
 
-        if not x.empty:
-            x = x.reset_index()
-            skrocony_terc = str(x.at[0, 'WOJ']).zfill(2) + str(int(float(str(x.at[0, 'POW'])))).zfill(2)
-            return skrocony_terc
+        if not target.empty:
+            target = target.reset_index()
+            terc_id_shortened = str(target.at[0, 'WOJ']).zfill(2) + str(int(float(str(target.at[0, 'POW'])))).zfill(2)
+            return terc_id_shortened
 
         else:
-            x = tercbase.loc[(tercbase['NAZWA'] == name.upper()) & (tercbase['NAZWA_DOD'] == 'województwo')]
+            target = terc_database.loc[(terc_database['NAZWA'] == name.upper()) &
+                                       (terc_database['NAZWA_DOD'] == 'województwo')]
 
-            if not x.empty:
-                skrocony_terc = str(x.at[0, 'WOJ']).zfill(2)
-                return skrocony_terc
+            if not target.empty:
+                terc_id_shortened = str(target.at[0, 'WOJ']).zfill(2)
+                return terc_id_shortened
 
             else:
                 return False
@@ -116,7 +109,8 @@ def cp(typ, name):
 # searches captured gmina, powiat and voivoidship
 # and returns its TERC codes.
 # For example: "MAŁOPOLSKIE" returns 12.
-def terencode(data):
+def encode_to_terc(data):
+    geolocbot.debug.output(cast(types.FrameType, inspect.currentframe()).f_code.co_name)
     data = pd.DataFrame(data, index=[0])
     name = data.at[0, 'NAZWA']
 
@@ -145,9 +139,9 @@ def terencode(data):
     # Capturing voivoidship's TERC ID.
     teryt = {'NAZWA': dname}  # {name: pagename}
     woj = data.at[0, 'województwo']
-    wojewodztwa = tercbase.loc[(tercbase['NAZWA_DOD'] == 'województwo') & (tercbase['NAZWA'] == woj)]
+    wojewodztwa = terc_database.loc[(terc_database['NAZWA_DOD'] == 'województwo') & (terc_database['NAZWA'] == woj)]
     windex = wojewodztwa.index.tolist()
-    teryt1 = {'WOJ': tercbase.at[windex[0], 'WOJ']}
+    teryt1 = {'WOJ': terc_database.at[windex[0], 'WOJ']}
     teryt.update(teryt1)
     cols = data.columns.tolist()
 
@@ -166,17 +160,19 @@ def terencode(data):
             pot = pot.replace(pot[fromindex::], '')
 
         # Adding powiat name.
-        powiaty = tercbase.loc[((tercbase['NAZWA_DOD'] == 'powiat') | (tercbase['NAZWA_DOD'] == 'miasto na prawach '
-                                                                                                'powiatu')) &
-                               (tercbase['NAZWA'] == pot) & (tercbase['WOJ'] == tercbase.at[windex[0], 'WOJ'])]
+        powiaty = terc_database.loc[((terc_database['NAZWA_DOD'] == 'powiat') |
+                                     (terc_database['NAZWA_DOD'] == 'miasto na prawach powiatu')) &
+                                    (terc_database['NAZWA'] == pot) &
+                                    (terc_database['WOJ'] == terc_database.at[windex[0], 'WOJ'])]
 
         if powiaty.empty:
-            powiaty = tercbase.loc[
-                (((tercbase['NAZWA_DOD'] == 'powiat') | (tercbase['NAZWA_DOD'] == 'miasto na prawach powiatu')) &
-                 (tercbase['NAZWA'] == pot))]
+            powiaty = terc_database.loc[
+                (((terc_database['NAZWA_DOD'] == 'powiat') |
+                  (terc_database['NAZWA_DOD'] == 'miasto na prawach powiatu')) &
+                 (terc_database['NAZWA'] == pot))]
 
         pindex = powiaty.index.tolist()
-        teryt2 = {'POW': int(tercbase.at[pindex[0], 'POW'])}
+        teryt2 = {'POW': int(terc_database.at[pindex[0], 'POW'])}
         teryt.update(teryt2)
 
         if 'gmina' in cols:
@@ -190,38 +186,39 @@ def terencode(data):
 
                 # Deleting annotation, eg. '(województwo śląskie)'.
                 gmi = gmi.replace(gmi[fromindex::], '')
-            gminy = tercbase.loc[
-                ((tercbase['NAZWA_DOD'] == 'miasto') |
-                 (tercbase['NAZWA_DOD'] == 'gmina miejska') |
-                 (tercbase['NAZWA_DOD'] == 'obszar wiejski') |
-                 (tercbase['NAZWA_DOD'] == 'gmina wiejska') |
-                 (tercbase['NAZWA_DOD'] == 'gmina miejsko-wiejska')) &
-                (tercbase['NAZWA'] == gmi) &
-                (tercbase['POW'] == tercbase.at[pindex[0], 'POW'])]
+            gminy = terc_database.loc[
+                ((terc_database['NAZWA_DOD'] == 'miasto') |
+                 (terc_database['NAZWA_DOD'] == 'gmina miejska') |
+                 (terc_database['NAZWA_DOD'] == 'obszar wiejski') |
+                 (terc_database['NAZWA_DOD'] == 'gmina wiejska') |
+                 (terc_database['NAZWA_DOD'] == 'gmina miejsko-wiejska')) &
+                (terc_database['NAZWA'] == gmi) &
+                (terc_database['POW'] == terc_database.at[pindex[0], 'POW'])]
 
             if gminy.empty:
 
-                gminy = tercbase.loc[
-                    ((tercbase['NAZWA_DOD'] == 'miasto') |
-                     (tercbase['NAZWA_DOD'] == 'gmina miejska') |
-                     (tercbase['NAZWA_DOD'] == 'obszar wiejski') |
-                     (tercbase['NAZWA_DOD'] == 'gmina wiejska') |
-                     (tercbase['NAZWA_DOD'] == 'gmina miejsko-wiejska')) & (
-                            tercbase['NAZWA'] == gmi) & (
-                            tercbase['POW'] == tercbase.at[pindex[0], 'WOJ'])]
+                gminy = terc_database.loc[
+                    ((terc_database['NAZWA_DOD'] == 'miasto') |
+                     (terc_database['NAZWA_DOD'] == 'gmina miejska') |
+                     (terc_database['NAZWA_DOD'] == 'obszar wiejski') |
+                     (terc_database['NAZWA_DOD'] == 'gmina wiejska') |
+                     (terc_database['NAZWA_DOD'] == 'gmina miejsko-wiejska')) & (
+                            terc_database['NAZWA'] == gmi) & (
+                            terc_database['POW'] == terc_database.at[pindex[0], 'WOJ'])]
 
                 if gminy.empty:
-                    gminy = tercbase.loc[
-                        ((tercbase['NAZWA_DOD'] == 'miasto') |
-                         (tercbase['NAZWA_DOD'] == 'gmina miejska') |
-                         (tercbase['NAZWA_DOD'] == 'obszar wiejski') |
-                         (tercbase['NAZWA_DOD'] == 'gmina wiejska') |
-                         (tercbase['NAZWA_DOD'] == 'gmina miejsko-wiejska')) &
-                        (tercbase['NAZWA'] == gmi)]
+                    gminy = terc_database.loc[
+                        ((terc_database['NAZWA_DOD'] == 'miasto') |
+                         (terc_database['NAZWA_DOD'] == 'gmina miejska') |
+                         (terc_database['NAZWA_DOD'] == 'obszar wiejski') |
+                         (terc_database['NAZWA_DOD'] == 'gmina wiejska') |
+                         (terc_database['NAZWA_DOD'] == 'gmina miejsko-wiejska')) &
+                        (terc_database['NAZWA'] == gmi)]
 
             gindex = gminy.index.tolist()
 
-            teryt3 = {'GMI': str(int(tercbase.at[gindex[0], 'GMI'])) + str(int(tercbase.at[gindex[0], 'RODZ']))}
+            teryt3 = {'GMI': str(int(terc_database.at[gindex[0], 'GMI'])) + str(
+                int(terc_database.at[gindex[0], 'RODZ']))}
 
             teryt.update(teryt3)
 
@@ -231,12 +228,8 @@ def terencode(data):
     return teryt
 
 
-# Function predestinated to capture SIMC IDs
-# from the government's official database.
-# For example, 'Strzebiń' returns 0135540.
-# Data captured from terencode() are obviously
-# required.
-def filtersimc(data):
+def simc_database_search(data):
+    geolocbot.debug.output(cast(types.FrameType, inspect.currentframe()).f_code.co_name)
     tw = ''
     tp = ''
     tg = ''
@@ -265,49 +258,53 @@ def filtersimc(data):
 
     nazwa = databasename[0]
 
-    goal = simc.copy()
+    goal = simc_database.copy()
 
-    # Advanced filtering the SIMC database.
-    # Capturing the data is maximally optimized
-    # and based on reduction.
     if 'simc' in elements:
-        goal = simc.loc[(simc['SYM'] == ts)]
+        goal = simc_database.loc[(simc_database['SYM'] == ts)]
 
-    if elements == ['województwo', 'powiat', 'gmina i rodzaj gminy']:
-        goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw) & (simc['POW'] == tp) & (simc['GMI'] == tg) &
-                        (simc['GMI'] == trg)]
+    elif elements == ['województwo', 'powiat', 'gmina i rodzaj gminy']:
+        goal = simc_database.loc[(simc_database['NAZWA'] == nazwa) & (simc_database['WOJ'] == tw) &
+                                 (simc_database['POW'] == tp) & (simc_database['GMI'] == tg) &
+                                 (simc_database['GMI'] == trg)]
 
         if goal.empty:
-            goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw) & (simc['POW'] == tp) & (simc['GMI'] == tg)]
+            goal = simc_database.loc[(simc_database['NAZWA'] == nazwa) & (simc_database['WOJ'] == tw) &
+                                     (simc_database['POW'] == tp) & (simc_database['GMI'] == tg)]
 
             if goal.empty:
-                goal = simc.loc[
-                    (simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw) & (simc['POW'] == tp)]
+                goal = simc_database.loc[
+                    (simc_database['NAZWA'] == nazwa) & (simc_database['WOJ'] == tw) &
+                    (simc_database['POW'] == tp)]
 
                 if goal.empty:
-                    goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw)]
+                    goal = simc_database.loc[(simc_database['NAZWA'] == nazwa) &
+                                             (simc_database['WOJ'] == tw)]
 
     elif elements == ['województwo', 'powiat']:
-        goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw) & (simc['POW'] == tp)]
+        goal = simc_database.loc[(simc_database['NAZWA'] == nazwa) & (simc_database['WOJ'] == tw) &
+                                 (simc_database['POW'] == tp)]
 
         if goal.empty:
-            goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw)]
+            goal = simc_database.loc[(simc_database['NAZWA'] == nazwa) & (simc_database['WOJ'] == tw)]
 
     elif elements == ['województwo', 'gmina i rodzaj gminy']:
-        goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw) & (simc['GMI'] == tg) &
-                        (simc['GMI'] == trg)]
+        goal = simc_database.loc[(simc_database['NAZWA'] == nazwa) & (simc_database['WOJ'] == tw) &
+                                 (simc_database['GMI'] == tg) &
+                                 (simc_database['GMI'] == trg)]
 
         if goal.empty:
-            goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw) & (simc['GMI'] == tg)]
+            goal = simc_database.loc[(simc_database['NAZWA'] == nazwa) & (simc_database['WOJ'] == tw) &
+                                     (simc_database['GMI'] == tg)]
 
             if goal.empty:
-                goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw)]
+                goal = simc_database.loc[(simc_database['NAZWA'] == nazwa) & (simc_database['WOJ'] == tw)]
 
     elif elements == ['województwo']:
-        goal = simc.loc[(simc['NAZWA'] == nazwa) & (simc['WOJ'] == tw)]
+        goal = simc_database.loc[(simc_database['NAZWA'] == nazwa) & (simc_database['WOJ'] == tw)]
 
-    elif elements == []:
-        goal = simc.loc[(simc['NAZWA'] == nazwa)]
+    elif not elements:
+        goal = simc_database.loc[(simc_database['NAZWA'] == nazwa)]
 
     # Despite that TERYT is already captured,
     # it doesn't need to be correct. To be sure of it,
@@ -331,8 +328,8 @@ def filtersimc(data):
 
     apterc = ''
 
-    if cp('nonsa wymiata', nazwa):  # this is an easter-egg
-        apterc = cp('rzer', nazwa)
+    if check_status('nonsa wymiata', nazwa):  # this is an easter-egg
+        apterc = check_status('rzer', nazwa)
         gapterc.append(apterc)
 
     globtercc.append(newterc)
@@ -340,7 +337,7 @@ def filtersimc(data):
 
     geolocbot.output('(1.) TERC: ' + (apterc if apterc != '' else newterc))
 
-    site = pwbot.Site('pl', 'nonsensopedia')
+    site = geolocbot.site
 
     if oldterc[:5] != newterc[:5] and len(newterc) == 7:
         for i in range(0, len(elements), 1):
@@ -373,9 +370,9 @@ def filtersimc(data):
     hints = hints_page.text
 
     if goal.shape[0] > 1 and globname[0] not in hints:
-        geolocbot.clean_tmr()
-        geolocbot.tmr(dataframe=goal[['NAZWA', 'SYM']])
-        raise TooManyRows(goal[['NAZWA', 'SYM']])
+        geolocbot.too_many_rows_del()
+        geolocbot.too_many_rows_in(dataframe=goal[['NAZWA', 'SYM']])
+        raise geolocbot.exceptions.TooManyRows(goal[['NAZWA', 'SYM']])
 
     elif goal.shape[0] > 1 and globname[0] in hints:
         line_start = hints[(hints.find('| [[' + globname[0] + ']] || '))::]
@@ -392,7 +389,8 @@ def filtersimc(data):
 
 
 def tmr_supported(data):
-    dataframe = simc.loc[simc['SYM'] == int(data)].reset_index()
+    geolocbot.debug.output(cast(types.FrameType, inspect.currentframe()).f_code.co_name)
+    dataframe = simc_database.loc[simc_database['SYM'] == int(data)].reset_index()
     cleanup_databases(exclude=['globname', 'databasename'])
     line = {'WOJ': dataframe.at[0, 'WOJ'],
             'POW': dataframe.at[0, 'POW']}
@@ -415,4 +413,4 @@ def tmr_supported(data):
 
     newdata = pd.DataFrame.from_dict(for_df)
     print(newdata)
-    return filtersimc(newdata)
+    return simc_database_search(newdata)

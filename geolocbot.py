@@ -5,7 +5,7 @@
 # Import time to measure the time spent on completing the function.
 import time
 from __init__ import geolocbot
-from functions import checktitle, main, start
+from functions import main, start
 
 geolocbot.intro()
 

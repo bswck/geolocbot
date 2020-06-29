@@ -1,28 +1,32 @@
 # Author: Stim, 2020.
 # Geolocalisation bot for Nonsensopedia.
 # License: GNU GPLv3.
-
+import inspect
+import types
+from typing import cast
 import sys
 import time
 import pywikibot as pwbot
-from __init__ import geolocbot, EmptyNameError
+from __init__ import geolocbot
 from getcats import cleanup_getcats, run
-from databases import cleanup_databases, gapterc, filtersimc, terencode, TooManyRows, updatename
+from databases import cleanup_databases, simc_database_search, encode_to_terc, updatename
 from pywikibot import InvalidTitle
-from querying import cleanup_querying, coords, getqid, uncertain, changemode
+from querying import geolocbotQuery, cleanup_querying, coords, change_mode
 
 
 def session_clean():
+    geolocbot.debug.output(str(cast(types.FrameType, inspect.currentframe()).f_code.co_name))
     cleanup_databases()
     cleanup_getcats()
     cleanup_querying()
 
 
-site = pwbot.Site('pl', 'nonsensopedia')  # we're on nonsa.pl
+site = geolocbot.site
 start = []
 
 
-def apply(page, data):
+def save_info(page, data):
+    geolocbot.debug.output(str(cast(types.FrameType, inspect.currentframe()).f_code.co_name))
     text = page.text
 
     text_lower = text.lower()
@@ -44,7 +48,8 @@ def apply(page, data):
     elif len(occuring_aliases) > 2:
         for occurence in range(len(occuring_aliases)):
             places.append(int(occurence))
-        while occuring_aliases != []:
+
+        while occuring_aliases:
             del occuring_aliases[0]
 
         place = min(places)
@@ -52,7 +57,7 @@ def apply(page, data):
     template = str('{{lokalizacja|' + data['koordynaty'] + '|simc=' + data['simc'] +
                    ('|terc=' + data['terc'] if 'terc' in data.keys() else str()) + '|wikidata=' + data[
                        'wikidata'] +
-                   ('' if uncertain == [] else '|niepewne=1') + '}}\n')
+                   ('' if not geolocbotQuery.uncertain else '|niepewne=1') + '}}\n')
 
     if '{{lokalizacja|' in text:
         templace = text.find('{{lokalizacja|')
@@ -63,24 +68,13 @@ def apply(page, data):
         page.text = text[:place] + template + text[place:]
         page.save('/* dodano */ ' + template)
 
-    changemode()
+    change_mode()
 
 
-# Function checktitle checks if the providen title is valid.
-def checktitle(pagename):
-    # Check if the title isn't an empty string.
-    # (I don't think that any other whitespaces can appear).
-    if len(pagename) == 0 or pagename == ' ' * len(pagename):
-        raise EmptyNameError
-
-    # I'm putting the title into two strings:
-    # * st is the corrected title,
-    # * pagename is the title input at the beginning.
+def check_title(pagename):
+    geolocbot.debug.output(str(cast(types.FrameType, inspect.currentframe()).f_code.co_name))
     pagename_corrected = pagename
 
-    # This condition erases namespaces from the pagename.
-    # For example, if "Kategoria:Województwo śląskie" has been input,
-    # this will take it as "Województwo śląskie" instead.
     if pagename.find(':') != -1:
         from2index = ''
         for i in pagename:
@@ -92,13 +86,8 @@ def checktitle(pagename):
         geolocbot.output("Usunięto '" + pagename[:from2index] + "'.")
 
         pagename_corrected = str(pagename[from2index::])
-        checktitle(pagename_corrected)
+        check_title(pagename_corrected)
 
-    # .capitalize() changes further characters to lower,
-    # that is why I use this method.
-    # For example, if I used .capitalize(),
-    # "ruciane-Nida" would be converted into "Ruciane-nida",
-    # which is uncorrect.
     pagename_corrected = pagename_corrected[0].upper() + pagename_corrected[1::]
 
     page = pwbot.Page(site, pagename_corrected)
@@ -117,7 +106,7 @@ def checktitle(pagename):
                     sharpindex = pagename_corrected.find(char)
                     pagename_corrected = pagename_corrected[:sharpindex]
 
-        geolocbot.output('Cel przekierowania to [[' + str(pagename_corrected) + ']].')
+        geolocbot.output(f'Cel przekierowania to [[{pagename_corrected}]].')
 
     # Return the corrected pagename string.
     return pagename_corrected
@@ -125,13 +114,14 @@ def checktitle(pagename):
 
 # This runs the whole code.
 def main(pagename='unpreloaded'):
+    geolocbot.debug.output(str(cast(types.FrameType, inspect.currentframe()).f_code.co_name))
     session_clean()
 
     try:
         if pagename == 'unpreloaded':
-            pagename = geolocbot.input('Podaj nazwę artykułu: ', cannot_be_empty=True)
+            pagename = geolocbot.input('Podaj nazwę artykułu: ')
 
-            if pagename == 'key::c3!*DZ+Tx!h2ua!X':
+            if isinstance(pagename, geolocbot.goThroughList):
                 articles = geolocbot.list()
 
                 for article in articles:
@@ -139,18 +129,18 @@ def main(pagename='unpreloaded'):
 
             r = time.time()
 
-            if start != []:
+            if start:
                 for i in range(len(start)):
                     del start[i]
 
             start.append(r)
 
-            pagename = checktitle(pagename)
+            pagename = check_title(pagename)
 
         else:
             r = time.time()
 
-            if start != []:
+            if start:
                 for i in range(len(start)):
                     del start[i]
 
@@ -159,44 +149,44 @@ def main(pagename='unpreloaded'):
             geolocbot.output('Przetwarzam stronę z listy (' + str(pagename) + ').')
 
         updatename(pagename)
-        data = filtersimc(terencode(run(pagename)))
+        data = simc_database_search(encode_to_terc(run(pagename)))
 
         # The question is: "haven't you made a mistake whilst inputing?".
         if data is None:
             raise ValueError('Czy nie popełniłeś błędu w nazwie strony?')
 
         else:
-            data = coords(getqid(data))
+            data = coords(geolocbotQuery.get_Q_id(data))
 
         if pagename != 'unpreloaded':
             geolocbot.unhook(pagename,
                              str(data).replace('{', '').replace('}', '').replace(': ', ' – ').replace("'", ''))
 
-    except ValueError as ve:
-        geolocbot.exceptions.ValueErr(ve, pagename)
+    except ValueError as value_error_hint:
+        geolocbot.outputAndForward.value_error(value_error_hint, pagename)
         main() if pagename == 'unpreloaded' else None
 
-    except KeyError as ke:
-        geolocbot.exceptions.KeyErr(ke, pagename)
+    except KeyError as key_error_hint:
+        geolocbot.outputAndForward.key_error(key_error_hint, pagename)
         main() if pagename == 'unpreloaded' else None
 
-    except TooManyRows as tmr:
-        geolocbot.exceptions.TooManyRowsErr(tmr, pagename)
+    except geolocbot.exceptions.TooManyRows as too_many_rows_hint:
+        geolocbot.outputAndForward.too_many_rows_error(too_many_rows_hint, pagename)
         main() if pagename == 'unpreloaded' else None
 
     except InvalidTitle:
-        geolocbot.exceptions.InvalidTitleErr()
+        geolocbot.outputAndForward.invalid_title_error()
         main() if pagename == 'unpreloaded' else None
 
     except KeyboardInterrupt:
-        geolocbot.exceptions.KeyboardInterruptErr()
-        ct = geolocbot.input().upper()
-        ans = ['T', 'N']
+        geolocbot.outputAndForward.keyboard_interrupt_error()
+        answer = geolocbot.input().upper()
+        possible_answers = ['T', 'N']
 
-        while ct not in ans:
-            ct = geolocbot.input('Odpowiedź <T/N>: ').upper()
+        while answer not in possible_answers:
+            answer = geolocbot.input('Odpowiedź <T/N>: ').upper()
 
-        if ct == 'T':
+        if answer == 'T':
             print()
             main(pagename=pagename)
 
@@ -206,15 +196,11 @@ def main(pagename='unpreloaded'):
     except pwbot.exceptions.MaxlagTimeoutError:
         main(pagename=pagename)
 
-    except EmptyNameError:
-        geolocbot.exceptions.EmptyNameErr()
-        main() if pagename == 'unpreloaded' else None
-
     except SystemExit:
         sys.exit()
 
     except:
-        geolocbot.err(sys.exc_info()[0].__name__, 'Oops, wystąpił nieznany błąd.')
+        geolocbot.forward_error(sys.exc_info()[0].__name__, 'Oops, wystąpił nieznany błąd.')
         main() if pagename == 'unpreloaded' else None
 
     else:
@@ -223,10 +209,10 @@ def main(pagename='unpreloaded'):
         geolocbot.output('Pobrano: ' + show)
 
         try:
-            apply(pwbot.Page(site, pagename), data)
+            save_info(pwbot.Page(site, pagename), data)
 
         except pwbot.exceptions.MaxlagTimeoutError:
-            apply(pwbot.Page(site, pagename), data)
+            save_info(pwbot.Page(site, pagename), data)
 
         finally:
             return data
