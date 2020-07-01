@@ -87,7 +87,7 @@ class geolocbotDatabases(object):
         else:
             target = terc_database.loc[(terc_database['NAZWA'] == name) & (
                     (terc_database['NAZWA_DOD'] == 'powiat') | (
-                    terc_database['NAZWA_DOD'] == 'miasto na prawach powiatu'))]
+                     terc_database['NAZWA_DOD'] == 'miasto na prawach powiatu'))]
 
             if not target.empty:
                 target = target.reset_index()
@@ -374,7 +374,7 @@ class geolocbotDatabases(object):
 
         if goal.shape[0] > 1 and geolocbotDatabases.main_name[0] not in hints:
             geolocbotMain.too_many_rows_del()
-            geolocbotMain.too_many_rows_in(dataframe=goal[['NAZWA', 'SYM']])
+            geolocbotMain.too_many_rows_add(dataframe=goal[['NAZWA', 'SYM']])
             raise geolocbotMain.exceptions.TooManyRows(goal[['NAZWA', 'SYM']])
 
         elif goal.shape[0] > 1 and geolocbotDatabases.main_name[0] in hints:

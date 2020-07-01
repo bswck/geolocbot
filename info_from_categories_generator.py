@@ -24,11 +24,11 @@ class geolocbotDirectlyFromArticle(object):
             for key_value in list(self.captured.keys()):
                 del self.captured[key_value]
 
-        while p:
-            del p[0]
+        while self.p:
+            del self.p[0]
 
-        while be_careful:
-            del be_careful[0]
+        while self.be_careful:
+            del self.be_careful[0]
 
     def collect_information_from_categories(self, article_categories, title):
         geolocbotMain.debug.output(cast(types.FrameType, inspect.currentframe()).f_code.co_name)
@@ -89,8 +89,8 @@ class geolocbotDirectlyFromArticle(object):
                 self.raise_categories(article_categories[i])
 
             else:
-                if article_categories[i] not in be_careful:
-                    be_careful.append(article_categories[i])
+                if article_categories[i] not in self.be_careful:
+                    self.be_careful.append(article_categories[i])
                     self.raise_categories(article_categories[i])
 
     @staticmethod

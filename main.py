@@ -10,7 +10,7 @@ from tasks_forwarder import geolocbotTask
 geolocbotMain.intro()
 
 while True:
-    geolocbotTask.main()
+    geolocbotTask.run()
 
     # 'Stop' time-measure.
     end = time.time()

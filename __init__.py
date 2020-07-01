@@ -11,35 +11,34 @@ import sys
 import time
 from os import system, name
 
-too_many_rows_inlist_database = []
-
 
 class geolocbotMain(object):
     def __init__(self):
         self.simc_database = pandas.read_csv("SIMC.csv",
                                              sep=';',
                                              usecols=['WOJ', 'POW', 'GMI', 'RODZ_GMI', 'RM', 'MZ', 'NAZWA', 'SYM'])
+
         self.terc_database = pandas.read_csv("TERC.csv",
                                              sep=';',
                                              usecols=['WOJ', 'POW', 'GMI', 'RODZ', 'NAZWA', 'NAZWA_DOD'])
+
         self.input_prefix = '>b< '
         self.output_prefix = '[b] '
         self.exceptions_output_prefix = '(nonsa.pl) '
         self.history = []
         self.items_list_beginning = '<!-- początek listy -->\n'
         self.items_list_end = '<!-- koniec listy -->'
-        self.site = pwbot.Site('pl', 'nonsensopedia')  # we're on nonsa.pl
+        self.site = pwbot.Site('pl', 'nonsensopedia')
+        self.too_many_rows_inlist_database = []
 
-    @staticmethod
-    def too_many_rows_in(dataframe=''):
+    def too_many_rows_add(self, dataframe=''):
         """Saving TooManyRows to call it"""
-        too_many_rows_inlist_database.append(dataframe)
+        self.too_many_rows_inlist_database.append(dataframe)
 
-    @staticmethod
-    def too_many_rows_del():
+    def too_many_rows_del(self):
         """Deleting TooManyRows DataFrame"""
-        while too_many_rows_inlist_database:
-            del too_many_rows_inlist_database[0]
+        while self.too_many_rows_inlist_database:
+            del self.too_many_rows_inlist_database[0]
 
     @staticmethod
     def clear():
@@ -79,10 +78,10 @@ class geolocbotMain(object):
             answer = input(self.input_prefix + input_message)
 
         if '*' in answer:
-            if '*e' in answer and '*l' not in answer:
+            if '*e' in answer and '*l' not in answer and '*debug_mode' not in answer:
                 geolocbotMain.end()
 
-            elif '*l' in answer and '*e' not in answer:
+            elif '*l' in answer and '*e' not in answer and '*debug_mode' not in answer:
                 l_count = 0
 
                 for l_index in range(len(self.history)):
@@ -90,6 +89,9 @@ class geolocbotMain(object):
                         l_count += 1
 
                 return geolocbotMain.goThroughList()
+
+            elif '*debug_mode' in answer and '*e' not in answer:
+                geolocbot.debug.output('Włączono tryb debugowania. Aby wyłączyć, uruchom go ponownie.')
 
             elif len(answer) >= 2:
                 if answer[answer.find('*') + 1] not in ['e', 'l'] and '*l' not in self.history:
@@ -106,25 +108,26 @@ class geolocbotMain(object):
         """Geolocbot's specific output method"""
         print(f'{self.output_prefix}{output_message}')
 
-    def forward_error(self, nmb, output_error_message, hint='', pgn=False):
+    def forward_error(self, error_type, output_error_message, hint='', page_title=False):
         """Function printing, recognising and differentiating errors"""
         geolocbotMain.debug.output(str(cast(types.FrameType, inspect.currentframe()).f_code.co_name))
         error = ['ValueError', 'KeyError', 'TooManyRows', 'InvalidTitle', 'EmptyNameError', 'KeyboardInterrupt']
-        print(self.exceptions_output_prefix + '[' + (error[nmb] if isinstance(nmb, int) else nmb) + ']: ' +
-              output_error_message, file=sys.stderr)
+        error_to_output = error[error_type] if isinstance(error_type, int) else error_type
+        print(f'{self.exceptions_output_prefix} [{error_to_output}]: {output_error_message}', file=sys.stderr)
 
-        if pgn is not False:
-            if isinstance(nmb, int) and error[nmb] == error[2]:
-                geolocbotMain.unhook(pgn, '([[Dyskusja użytkownika:Stim/TooManyRows-log|TooManyRows]])')
+        if page_title is not False:
+            # Error[2] is TooManyRows error
+            if isinstance(error_type, int) and error[error_type] == error[2]:
+                geolocbotMain.unhook(page_title, '([[Dyskusja użytkownika:Stim/TooManyRows-log|TooManyRows]])')
 
             else:
-                geolocbotMain.unhook(pgn, (output_error_message if hint == '' else hint))
-            geolocbotMain.delete_geoloc_template(pgn, output_error_message)
+                geolocbotMain.unhook(page_title, (output_error_message if hint == '' else hint))
+            geolocbotMain.delete_geoloc_template(page_title, output_error_message)
 
-        if isinstance(nmb, int) and error[nmb] == error[2]:
+        if isinstance(error_type, int) and error[error_type] == error[2]:
             toomanyrows_database = too_many_rows_inlist_database[0]
             raw_name = str(toomanyrows_database.at[0, 'NAZWA'])
-            page_name = "'''[[" + str(pgn) + "]]'''\n"
+            page_name = f"'''[[{page_title}]]'''\n"
             report_page = pwbot.Page(self.site, 'Dyskusja użytkownika:Stim/TooManyRows-log')
             text = report_page.text
 
@@ -142,20 +145,20 @@ class geolocbotMain(object):
 
             geolocbotMain.too_many_rows_del()
 
-        if not isinstance(nmb, int):
+        if not isinstance(error_type, int):
 
-            if str(nmb) not in error:
+            if str(error_type) not in error:
                 report_page = pwbot.Page(self.site, 'Dyskusja użytkownika:Stim/geolocbot-bugs')
                 text = report_page.text
                 put_place = text.find('|}\n{{Stim}}')
                 add = '| {{#vardefine:bugid|{{#expr:{{#var:bugid}} + 1}}}} {{#var:bugid}} || ' + \
-                      str(nmb) + ' || <pre>' + str(traceback.format_exc()) + '</pre> || ~~~~~ || {{/p}}\n|-\n'
+                      str(error_type) + ' || <pre>' + str(traceback.format_exc()) + '</pre> || ~~~~~ || {{/p}}\n|-\n'
                 report_page.text = text[:put_place] + add + text[put_place:]
-                report_page.save(u'/* raport */ bugerror: ' + str(nmb))
+                report_page.save(u'/* raport */ bugerror: ' + str(error_type))
 
     def list(self):
         geolocbotMain.debug.output(str(cast(types.FrameType, inspect.currentframe()).f_code.co_name))
-        page = pwbot.Page(self.site, 'Użytkownik:Stim/lista')
+        page = pwbot.Page(self.site, 'Użytkownik:Stim/lista-wskazane')
 
         items_list = []
         items = page.text
@@ -263,7 +266,7 @@ class geolocbotMain(object):
             print()
             geolocbotMain.forward_error(0,
                                         f"Nie znaleziono odpowiednich kategorii lub strona '{pagename}' nie istnieje.",
-                                        hint=str(value_error_hint), pgn=pagename)
+                                        hint=str(value_error_hint), page_title=pagename)
             time.sleep(2)
 
             print(
@@ -282,17 +285,17 @@ class geolocbotMain(object):
                 else 'Nie odnaleziono informacji w którejkolwiek z baz danych.'
             geolocbotMain.forward_error(1,
                                         f"Nie znaleziono odpowiednich kategorii lub strona '{pagename}' nie istnieje.",
-                                        hint=key_error_hint_to_display, pgn=pagename)
+                                        hint=key_error_hint_to_display, page_title=pagename)
             key_error_hint = " " * 11 + "Hint:" + " " * 7 + str(key_error_hint).replace("'", '') \
                 if str(key_error_hint) != '0' \
-                else " " * 11 + "Hint:" + " " * 7 + 'Niczego nie odnaleziono na podst. kategorii.'
+                else " " * 11 + "Hint:" + " " * 7 + 'Niczego nie odnaleziono na podstawie kategorii.'
             print(key_error_hint)
             time.sleep(2)
 
         @staticmethod
         def too_many_rows_error(too_many_rows_database_hint, pagename):
             print()
-            geolocbotMain.forward_error(2, 'Więcej niż 1 rząd w odebranych danych!', pgn=pagename)
+            geolocbotMain.forward_error(2, 'Więcej niż 1 rząd w odebranych danych!', page_title=pagename)
             print(" " * 11 + "Wyjściowa baza:", file=sys.stderr)
             print()
             print(too_many_rows_database_hint, file=sys.stderr)
@@ -341,4 +344,5 @@ class geolocbotMain(object):
 geolocbotMain = geolocbotMain()
 """Base class for specific Geolocbot operations"""
 geolocbotMain.debug = geolocbotMain.debug()
+geolocbotMain.exceptions = geolocbotMain.exceptions()
 geolocbotMain.outputAndForward = geolocbotMain.outputAndForward()
