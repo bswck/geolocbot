@@ -229,11 +229,11 @@ class geolocbotDatabases(object):
     @staticmethod
     def simc_database_search(data):
         geolocbotMain.debug.output(cast(types.FrameType, inspect.currentframe()).f_code.co_name)
-        tw = ''
-        tp = ''
-        tg = ''
-        ts = ''
-        trg = ''
+        tw = int()
+        tp = int()
+        tg = int()
+        ts = int()
+        trg = int()
 
         elements = []
 
@@ -415,7 +415,6 @@ class geolocbotDatabases(object):
             for_df.update(gmiadd)
 
         newdata = pd.DataFrame.from_dict(for_df)
-        print(newdata)
         return geolocbotDatabases.simc_database_search(newdata)
 
 

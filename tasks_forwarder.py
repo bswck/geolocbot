@@ -19,8 +19,15 @@ site = geolocbotMain.site
 
 class geolocbotTask(object):
     def __init__(self):
+        self.data = {}
+        self.running_from_list = False
+        self.end = int()
         self.data_to_display = ''
-        self.start = []
+        self.start = int()
+        self.occuring_aliases = []
+        self.pagename = ''
+        self.already_done = []
+        self.articles = []
 
     @staticmethod
     def session_clean():
@@ -35,26 +42,23 @@ class geolocbotTask(object):
 
         text_lower = text.lower()
         category_aliases = ['[[category:', '[[kategoria:']
-        occuring_aliases = []
         places = []
 
         place = len(text)
 
+        self.occuring_aliases = []
+
         for alias in category_aliases:
             if alias in text_lower:
-                occuring_aliases.append(alias)
-                occuring_aliases = list(set(occuring_aliases))
+                self.occuring_aliases.append(alias)
+                self.occuring_aliases = list(set(self.occuring_aliases))
 
-        if len(occuring_aliases) == 1:
-            place = text_lower.find(occuring_aliases[0])
-            del occuring_aliases[0]
+        if len(self.occuring_aliases) == 1:
+            place = text_lower.find(self.occuring_aliases[0])
 
-        elif len(occuring_aliases) > 2:
-            for occurence in range(len(occuring_aliases)):
+        elif len(self.occuring_aliases) > 2:
+            for occurence in range(len(self.occuring_aliases)):
                 places.append(int(occurence))
-
-            while occuring_aliases:
-                del occuring_aliases[0]
 
             place = min(places)
 
@@ -80,16 +84,16 @@ class geolocbotTask(object):
         pagename_corrected = pagename
 
         if pagename.find(':') != -1:
-            from2index = ''
+            index_to_delete_from = ''
             for i in pagename:
 
                 if i == ':':
-                    from2index = pagename.find(i) + 1
+                    index_to_delete_from = pagename.find(i) + 1
 
             # Prints out that namespace name has been excluded from the pagename.
-            geolocbotMain.output("Usunięto '" + pagename[:from2index] + "'.")
+            geolocbotMain.output("Usunięto '" + pagename[:index_to_delete_from] + "'.")
 
-            pagename_corrected = str(pagename[from2index::])
+            pagename_corrected = str(pagename[index_to_delete_from::])
             geolocbotTask.check_title(pagename_corrected)
 
         pagename_corrected = pagename_corrected[0].upper() + pagename_corrected[1::]
@@ -107,118 +111,147 @@ class geolocbotTask(object):
                 for char in pagename_corrected:
 
                     if char == '#':
-                        sharpindex = pagename_corrected.find(char)
-                        pagename_corrected = pagename_corrected[:sharpindex]
+                        sharp_index = pagename_corrected.find(char)
+                        pagename_corrected = pagename_corrected[:sharp_index]
 
             geolocbotMain.output(f'Cel przekierowania to [[{pagename_corrected}]].')
 
         # Return the corrected pagename string.
         return pagename_corrected
 
-    # This runs the whole code.
-    def run(self, pagename='unpreloaded'):
+    def run_tasks(self, pagename):
+        if isinstance(pagename, geolocbotMain.goThroughList):
+            geolocbotTask.run_from_list()
+
+        self.pagename = geolocbotTask.check_title(self.pagename)
+        geolocbotMain.output(f'Przetwarzam stronę z listy ({self.pagename}).')
+
+        geolocbotDatabases.updatename(self.pagename)
+        data = geolocbotDatabases \
+            .simc_database_search(geolocbotDatabases.encode_to_terc(geolocbotDirectlyFromArticle.run(pagename)))
+
+        data = geolocbotQuery.collect_geocoordinates(geolocbotQuery.SPARQL(data))
+
+        geolocbotMain.unhook(pagename, str(data)
+                             .replace('{', '')
+                             .replace('}', '')
+                             .replace(': ', ' – ')
+                             .replace("'", ''))
+
+        geolocbotTask.time_info()
+        self.data = data
+
+    def page_name_request(self):
+        self.pagename = geolocbotMain.input('Podaj nazwę artykułu: ')
+        self.start = time.time()
+
+    def run(self, pagename=geolocbotMain.notProvided()):
         geolocbotMain.debug.output(str(cast(types.FrameType, inspect.currentframe()).f_code.co_name))
-        # geolocbotTask.session_clean()
+        geolocbotTask.session_clean()
+        self.already_done.append(self.pagename)
 
         try:
-            if pagename == 'unpreloaded':
-                pagename = geolocbotMain.input('Podaj nazwę artykułu: ')
+            if self.running_from_list:
+                pagename_occurences = filter(lambda name: name == self.pagename, self.already_done)
+                occurences = 0
 
-                if self.start:
-                    for i in range(len(self.start)):
-                        del self.start[i]
+                for occurence in pagename_occurences:
+                    occurence += 1
+                    occurences += 1
 
-                self.start.append(time.time())
+                geolocbotMain.debug.output(self.already_done)
 
-                if isinstance(pagename, geolocbotMain.goThroughList):
-                    geolocbotTask.run_from_list()
+                if occurences < 2:
+                    geolocbotTask.run_tasks(self.pagename)
 
-                pagename = geolocbotTask.check_title(pagename)
+                else:
+                    self.pagename = self.articles[self.articles.index(self.pagename) + 1]
+                    geolocbotTask.run_tasks(self.pagename)
 
-            else:
-                if self.start:
-                    for i in range(len(self.start)):
-                        del self.start[i]
-
-                self.start.append(time.time())
-
-                geolocbotMain.output('Przetwarzam stronę z listy (' + str(pagename) + ').')
-
-            geolocbotDatabases.updatename(pagename)
-            data = geolocbotDatabases \
-                .simc_database_search(geolocbotDatabases.encode_to_terc(geolocbotDirectlyFromArticle.run(pagename)))
-
-            if data is None:
-                raise ValueError('Czy nie popełniłeś błędu w nazwie strony?')
-
-            else:
-                data = geolocbotQuery.collect_geocoordinates(geolocbotQuery.SPARQL(data))
-
-            if pagename != 'unpreloaded':
-                geolocbotMain.unhook(pagename,
-                                     str(data).replace('{', '').replace('}', '').replace(': ', ' – ').replace("'", ''))
+            elif isinstance(pagename, geolocbotMain.notProvided):
+                geolocbotTask.page_name_request()
+                geolocbotTask.run_tasks(self.pagename)
 
         except ValueError as value_error_hint:
-            geolocbotMain.outputAndForward.value_error(value_error_hint, pagename)
-            geolocbotTask.run(pagename=pagename)
+            self.already_done.append(self.pagename)
+            geolocbotMain.outputAndForward.value_error(value_error_hint, self.pagename)
+            geolocbotTask.run()
 
         except KeyError as key_error_hint:
-            geolocbotMain.outputAndForward.key_error(key_error_hint, pagename)
-            geolocbotTask.run(pagename=pagename)
+            self.already_done.append(self.pagename)
+            geolocbotMain.outputAndForward.key_error(key_error_hint, self.pagename)
+            geolocbotTask.run()
 
         except geolocbotMain.exceptions.TooManyRows as too_many_rows_hint:
-            geolocbotMain.outputAndForward.too_many_rows_error(too_many_rows_hint, pagename)
-            geolocbotTask.run(pagename=pagename)
+            self.already_done.append(self.pagename)
+            geolocbotMain.outputAndForward.too_many_rows_error(too_many_rows_hint, self.pagename)
+            geolocbotTask.run()
 
         except InvalidTitle:
             geolocbotMain.outputAndForward.invalid_title_error()
-            geolocbotTask.run(pagename=pagename)
+            geolocbotTask.run()
 
         except KeyboardInterrupt:
             geolocbotMain.outputAndForward.keyboard_interrupt_error()
             answer = geolocbotMain.input().upper()
-            possible_answers = ['T', 'N']
+            possible_answers = ['T', 'TA', 'TAK', 'N', 'NI', 'NIE']
 
             while answer not in possible_answers:
-                answer = geolocbotMain.input('Odpowiedź <T/N>: ').upper()
+                answer = geolocbotMain.input('Odpowiedź <T(ak)/N(ie)>: ').upper()
 
-            if answer == 'T':
-                print()
-                geolocbotTask.run(pagename=pagename)
+            if answer in possible_answers[:3]:
+                geolocbotTask.run()
 
             else:
                 geolocbotMain.end()
 
         except pwbot.exceptions.MaxlagTimeoutError:
-            geolocbotTask.run(pagename=pagename)
+            geolocbotTask.run()
 
         except SystemExit:
             sys.exit()
 
         except:
-            geolocbotMain.forward_error(sys.exc_info()[0].__name__, 'Oops, wystąpił nieznany błąd.')
-            geolocbotTask.run(pagename=pagename)
+            geolocbotMain.forward_error(sys.exc_info()[0].__name__, 'Oops, wystąpił nieprzewidziany błąd.')
+            geolocbotTask.run()
 
         else:
             print()
-            self.data_to_display = str(data).replace('{', '').replace('}', '').replace(': ', ' → ').replace("'", '')
+            self.data_to_display = str(self.data)\
+                .replace('{', '')\
+                .replace('}', '')\
+                .replace(': ', ' → ')\
+                .replace("'", '')
             geolocbotMain.output('Pobrano: ' + self.data_to_display)
 
             try:
-                geolocbotTask.save_info(pwbot.Page(site, pagename), data)
+                geolocbotTask.save_info(pwbot.Page(site, self.pagename), self.data)
 
             except pwbot.exceptions.MaxlagTimeoutError:
-                geolocbotTask.save_info(pwbot.Page(site, pagename), data)
+                geolocbotTask.save_info(pwbot.Page(site, self.pagename), self.data)
 
             finally:
-                return data
+                geolocbotTask.time_info()
+                self.data = {}
 
-    @staticmethod
-    def run_from_list():
-        articles = geolocbotMain.list()
+    def run_from_list(self):
+        self.running_from_list = True
+        self.articles = geolocbotMain.list()
+        self.pagename = self.articles[0]
+        geolocbotTask.run()
 
-        for article in articles:
-            geolocbotTask.run(pagename=article)
+        if len(self.already_done) == len(self.articles):
+            self.articles = []
+            self.already_done = []
+            self.running_from_list = False
+
+        geolocbotTask.run()
+
+    def time_info(self):
+        self.end = time.time()
+        time_taken = (self.end - self.start)
+        time_to_print = "%.1f" % time_taken
+        geolocbotMain.output(f"Czas operacyjny: {time_to_print.replace('.', ',')}s.")
 
 
 geolocbotTask = geolocbotTask()

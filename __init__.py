@@ -91,7 +91,8 @@ class geolocbotMain(object):
                 return geolocbotMain.goThroughList()
 
             elif '*debug_mode' in answer and '*e' not in answer:
-                geolocbot.debug.output('Włączono tryb debugowania. Aby wyłączyć, uruchom go ponownie.')
+                geolocbotMain.debug.output('Włączono tryb debugowania. Aby wyłączyć, uruchom program ponownie.')
+                answer = geolocbotMain.input(input_message=input_message)
 
             elif len(answer) >= 2:
                 if answer[answer.find('*') + 1] not in ['e', 'l'] and '*l' not in self.history:
@@ -113,7 +114,7 @@ class geolocbotMain(object):
         geolocbotMain.debug.output(str(cast(types.FrameType, inspect.currentframe()).f_code.co_name))
         error = ['ValueError', 'KeyError', 'TooManyRows', 'InvalidTitle', 'EmptyNameError', 'KeyboardInterrupt']
         error_to_output = error[error_type] if isinstance(error_type, int) else error_type
-        print(f'{self.exceptions_output_prefix} [{error_to_output}]: {output_error_message}', file=sys.stderr)
+        print(f'{self.exceptions_output_prefix}[{error_to_output}]: {output_error_message}', file=sys.stderr)
 
         if page_title is not False:
             # Error[2] is TooManyRows error
@@ -203,6 +204,7 @@ class geolocbotMain(object):
 
                     items_list.append(item_row.replace('[', '').replace(']', ''))
 
+        geolocbotMain.debug.output(items_list) if len(items_list) <= 35 else None
         return items_list
 
     def unhook(self, pagename, information):
@@ -259,8 +261,7 @@ class geolocbotMain(object):
         geolocbotMain.output('Ja na gitlabie: https://gitlab.com/nonsensopedia/bots/geolocbot.')
 
     class outputAndForward(object):
-        """Geolocbot's specific exceptions"""
-
+        """Class for processing errors"""
         @staticmethod
         def value_error(value_error_hint, pagename):
             print()
@@ -273,7 +274,7 @@ class geolocbotMain(object):
                 " " * 11 + "Hint:" + " " * 9 +
                 str(value_error_hint).replace("'", '')
                 if str(value_error_hint) != '0'
-                else " " * 11 + "Hint:" + " " * 7 + 'Niczego nie znalazłem. [b]'
+                else " " * 11 + "Hint:" + " " * 7 + 'Nie odnaleziono informacji zgodnymi z kryteriami.'
             )
             time.sleep(2)
 
@@ -286,9 +287,9 @@ class geolocbotMain(object):
             geolocbotMain.forward_error(1,
                                         f"Nie znaleziono odpowiednich kategorii lub strona '{pagename}' nie istnieje.",
                                         hint=key_error_hint_to_display, page_title=pagename)
-            key_error_hint = " " * 11 + "Hint:" + " " * 7 + str(key_error_hint).replace("'", '') \
+            key_error_hint = " " * 12 + "Hint:" + " " * 7 + str(key_error_hint).replace("'", '') \
                 if str(key_error_hint) != '0' \
-                else " " * 11 + "Hint:" + " " * 7 + 'Niczego nie odnaleziono na podstawie kategorii.'
+                else " " * 12 + "Hint:" + " " * 7 + 'Niczego nie odnaleziono na podstawie kategorii.'
             print(key_error_hint)
             time.sleep(2)
 
@@ -312,22 +313,26 @@ class geolocbotMain(object):
         def keyboard_interrupt_error():
             print()
             geolocbotMain.forward_error(5, "Pomyślnie przerwano operację.")
-            geolocbotMain.output('Kontynuować? <T/N>')
+            geolocbotMain.output('Kontynuować pracę programu? <T(ak)/N(ie)>')
 
     class debug(object):
         """Printing style for debugging purposes"""
-
         def __init__(self):
-            self.d = 'debug_info >> '
+            self.debug_info = ''
 
         def output(self, output_message):
+            self.debug_info = f"[{time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())}] funkcja/zmienna >> "
             if '*debug_mode' in geolocbotMain.history:
-                geolocbotMain.output(f'{self.d} {output_message}')
+                geolocbotMain.output(f'{self.debug_info} {output_message}')
 
     class goThroughList(object):
         pass
 
+    class notProvided(object):
+        pass
+
     class exceptions(object):
+        """Geolocbot's specific exceptions"""
         class geolocbotError(Exception):
             """Base class for Geolocbot exceptions"""
             pass
