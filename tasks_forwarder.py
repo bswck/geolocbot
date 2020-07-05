@@ -152,12 +152,11 @@ class geolocbotTask(object):
 
         try:
             if self.running_from_list:
-                pagename_occurences = filter(lambda name: name == self.pagename, self.already_done)
+                pagename_occurences = list(filter(lambda name: name == self.pagename, self.already_done))
                 occurences = 0
 
-                for occurence in pagename_occurences:
-                    occurence += 1
-                    occurences += 1
+                for occurence in range(len(pagename_occurences)):
+                    occurences += occurence ** 0
 
                 geolocbotMain.debug.output(self.already_done)
 

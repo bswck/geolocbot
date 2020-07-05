@@ -126,7 +126,7 @@ class geolocbotMain(object):
             geolocbotMain.delete_geoloc_template(page_title, output_error_message)
 
         if isinstance(error_type, int) and error[error_type] == error[2]:
-            toomanyrows_database = too_many_rows_inlist_database[0]
+            toomanyrows_database = self.too_many_rows_inlist_database[0]
             raw_name = str(toomanyrows_database.at[0, 'NAZWA'])
             page_name = f"'''[[{page_title}]]'''\n"
             report_page = pwbot.Page(self.site, 'Dyskusja użytkownika:Stim/TooManyRows-log')
@@ -293,14 +293,13 @@ class geolocbotMain(object):
             print(key_error_hint)
             time.sleep(2)
 
-        @staticmethod
-        def too_many_rows_error(too_many_rows_database_hint, pagename):
+        def too_many_rows_error(self, too_many_rows_database_hint, pagename):
             print()
             geolocbotMain.forward_error(2, 'Więcej niż 1 rząd w odebranych danych!', page_title=pagename)
             print(" " * 11 + "Wyjściowa baza:", file=sys.stderr)
             print()
             print(too_many_rows_database_hint, file=sys.stderr)
-            too_many_rows_inlist_database.append(too_many_rows_database_hint)
+            self.too_many_rows_inlist_database.append(too_many_rows_database_hint)
             time.sleep(2)
 
         @staticmethod
