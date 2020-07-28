@@ -8,10 +8,10 @@ import sys
 import time
 import pywikibot as pwbot
 from __init__ import geolocbotMain
-from info_from_categories_generator import geolocbotDirectlyFromArticle
-from databases_search_engine import geolocbotDatabases
+from needs_repair.info_from_categories_generator import geolocbotDirectlyFromArticle
+from needs_repair.databases_search_engine import geolocbotDatabases
 from pywikibot import InvalidTitle
-from wikidata_queries_generator import geolocbotQuery
+from needs_repair.wikidata_queries_generator import geolocbotQuery
 
 
 site = geolocbotMain.site

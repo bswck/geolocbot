@@ -6,7 +6,7 @@ import types
 from typing import cast
 import pywikibot as pwbot
 from __init__ import geolocbotMain
-from databases_search_engine import geolocbotDatabases
+from needs_repair.databases_search_engine import geolocbotDatabases
 
 site = geolocbotMain.site  # we're on nonsa.pl
 
@@ -46,31 +46,26 @@ class geolocbotDirectlyFromArticle(object):
                     print()
                     self.p.append(' ')
 
-            # Checks if the category contains "Gmina".
             if 'gmina' not in self.captured and "Kategoria:Gmina " in article_categories[i]:
                 gmina = article_categories[i].replace("Kategoria:Gmina ", "")  # (No need for namespace and type name).
-                self.raise_categories(article_categories[i])
+                self._is_in_categories(article_categories[i])
                 add = {"gmina": gmina}
                 self.captured.update(add)
 
-            # Checks if the category contains "Powiat "; disclaiming category "Powiaty".
             elif 'powiat' not in self.captured and "Kategoria:Powiat " in article_categories[i]:
                 powiat = article_categories[i].replace("Kategoria:Powiat ", "")
-                self.raise_categories(article_categories[i])
+                self._is_in_categories(article_categories[i])
                 add = {"powiat": powiat.lower()}
                 self.captured.update(add)
 
-            # Checks if the category contains "Województwo ".
             elif 'województwo' not in self.captured and "Kategoria:Województwo " in article_categories[i]:
                 wojewodztwo = article_categories[i].replace("Kategoria:Województwo ", "")
                 add = {"województwo": wojewodztwo.upper()}
                 self.captured.update(add)
 
-            # Exceptions.
             elif "Kategoria:Ujednoznacznienia" in article_categories[i]:
                 raise ValueError('Podana strona to ujednoznacznienie.')
 
-            # Reading the category of category if it's one of these below.
             elif ("Kategoria:Miasta w" in article_categories[i] or "Kategoria:Powiaty w" in article_categories[
                 i] or "Kategoria:Gminy w" in article_categories[i] or
                   "Kategoria:" + title in article_categories[i]) and (
@@ -86,15 +81,15 @@ class geolocbotDirectlyFromArticle(object):
                     add = {"gmina": gmina}
                     self.captured.update(add)
 
-                self.raise_categories(article_categories[i])
+                self._is_in_categories(article_categories[i])
 
             else:
                 if article_categories[i] not in self.be_careful:
                     self.be_careful.append(article_categories[i])
-                    self.raise_categories(article_categories[i])
+                    self._is_in_categories(article_categories[i])
 
     @staticmethod
-    def raise_categories(page_name):
+    def _is_in_categories(page_name):
         geolocbotMain.debug.output(cast(types.FrameType, inspect.currentframe()).f_code.co_name)
         article_categories = [
             cat.title()
@@ -113,7 +108,7 @@ class geolocbotDirectlyFromArticle(object):
         if text == '':
             raise KeyError('Nie ma takiej strony.')
 
-        self.raise_categories(page_name)  # script starts
+        self._is_in_categories(page_name)  # script starts
         geolocbotMain.output('Z kategorii artykułu mam następujące dane:')
         geolocbotMain.output('województwo: {0}.'.format(
             (self.captured['województwo'].lower() if 'województwo' in list(self.captured.keys()) else '–')))
