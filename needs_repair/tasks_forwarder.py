@@ -250,7 +250,7 @@ class geolocbotTask(object):
         self.end = time.time()
         time_taken = (self.end - self.start)
         time_to_print = "%.1f" % time_taken
-        geolocbotMain.output(f"Czas operacyjny: {time_to_print.replace('.', ',')}s.")
+        geolocbotMain.output(f"Czas operacyjny: {time_to_print.replace('.', ',')}self.")
 
 
 geolocbotTask = geolocbotTask()
