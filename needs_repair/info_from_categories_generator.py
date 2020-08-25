@@ -6,7 +6,7 @@ import types
 from typing import cast
 import pywikibot as pwbot
 from __init__ import geolocbotMain
-from needs_repair.databases_search_engine import geolocbotDatabases
+from databases_search_engine import geolocbotDatabases
 
 site = geolocbotMain.site  # we're on nonsa.pl
 

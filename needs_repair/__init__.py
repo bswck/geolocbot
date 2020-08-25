@@ -57,7 +57,7 @@ class geolocbotMain(object):
 
     def delete_geoloc_template(self, pagename, reason):
         """Deleting template as an update procedure"""
-        geolocbotMain.debug.output(str(cast(types.FrameType, inspect.currentframe()).f_code.co_name))
+        
         page_to_delete_from = pwbot.Page(self.site, pagename)
         text_to_delete_from = page_to_delete_from.text
 
@@ -69,7 +69,7 @@ class geolocbotMain(object):
 
     def input(self, input_message='Odpowiedź: '):
         """Geolocbot's specific input method"""
-        geolocbotMain.debug.output(str(cast(types.FrameType, inspect.currentframe()).f_code.co_name))
+        
         print()
         answer = input(self.input_prefix + input_message)
         self.history.append(answer)
@@ -91,7 +91,6 @@ class geolocbotMain(object):
                 return geolocbotMain.goThroughList()
 
             elif '*debug_mode' in answer and '*e' not in answer:
-                geolocbotMain.debug.output('Włączono tryb debugowania. Aby wyłączyć, uruchom program ponownie.')
                 answer = geolocbotMain.input(input_message=input_message)
 
             elif len(answer) >= 2:
@@ -111,7 +110,7 @@ class geolocbotMain(object):
 
     def forward_error(self, error_type, output_error_message, hint='', page_title=False):
         """Function printing, recognising and differentiating errors"""
-        geolocbotMain.debug.output(str(cast(types.FrameType, inspect.currentframe()).f_code.co_name))
+        
         error = ['ValueError', 'KeyError', 'TooManyRows', 'InvalidTitle', 'EmptyNameError', 'KeyboardInterrupt']
         error_to_output = error[error_type] if isinstance(error_type, int) else error_type
         print(f'{self.exceptions_output_prefix}[{error_to_output}]: {output_error_message}', file=sys.stderr)
@@ -152,14 +151,15 @@ class geolocbotMain(object):
                 report_page = pwbot.Page(self.site, 'Dyskusja użytkownika:Stim/geolocbot-bugs')
                 text = report_page.text
                 put_place = text.find('|}\n{{Stim}}')
-                add = '| {{#vardefine:bugid|{{#expr:{{#var:bugid}} + 1}}}} {{#var:bugid}} || ' + \
-                      str(error_type) + ' || <pre>' + str(traceback.format_exc()) + '</pre> || ~~~~~ || {{/p}}\n|-\n'
+                add = '| %s || ' % text.count('|-') + \
+                      str(error_type) + ' || <pre>' + str(traceback.format_exc()) + \
+                      '</pre> || %s || {{/p}}\n|-\n' % time.strftime('%d-%m-%Y %H:%M:%S')
                 report_page.text = text[:put_place] + add + text[put_place:]
                 report_page.save(u'/* raport */ bugerror: ' + str(error_type))
 
     def list(self):
-        geolocbotMain.debug.output(str(cast(types.FrameType, inspect.currentframe()).f_code.co_name))
-        page = pwbot.Page(self.site, 'Użytkownik:Stim/lista-wskazane')
+        
+        page = pwbot.Page(self.site, 'Użytkownik:Stim/lokwikipedia')
 
         items_list = []
         items = page.text
@@ -204,11 +204,10 @@ class geolocbotMain(object):
 
                     items_list.append(item_row.replace('[', '').replace(']', ''))
 
-        geolocbotMain.debug.output(items_list) if len(items_list) <= 35 else None
         return items_list
 
     def unhook(self, pagename, information):
-        geolocbotMain.debug.output(str(cast(types.FrameType, inspect.currentframe()).f_code.co_name))
+        
         page = pwbot.Page(self.site, 'Użytkownik:Stim/lista')
         information = information.replace('{', '').replace('}', '')
         to_unhook = page.text
@@ -216,18 +215,14 @@ class geolocbotMain(object):
         if pagename in to_unhook:
             unhook_row = to_unhook[to_unhook.find(f'* [[{pagename}]]'):]
             unhook_row = unhook_row[:unhook_row.find('\n')]
-            geolocbotMain.debug.output(unhook_row)
 
             if unhook_row == '':
                 unhook_row = to_unhook[to_unhook.find(f'* [[{pagename}]] {{/unhook'):]
                 unhook_row = unhook_row[:unhook_row.find('\n')]
-                geolocbotMain.debug.output(unhook_row)
 
             if '{{/unhook' in unhook_row:
-                geolocbotMain.debug.output(unhook_row)
                 unhook_place = unhook_row.find(' {{/unhook|')
                 unhook_put = unhook_row[unhook_place:unhook_row.find('}}')]
-                geolocbotMain.debug.output(unhook_put)
                 replaced_unhook = unhook_row.replace(unhook_put, ' {{/unhook|' + f'{information}')
                 page.text = to_unhook.replace(unhook_row, replaced_unhook)
 
@@ -240,8 +235,6 @@ class geolocbotMain(object):
             else:
                 add = f'* [[{pagename}]] {{/unhook|{information}}}'
                 page.text = to_unhook.replace(unhook_row, add)
-                geolocbotMain.debug.output(unhook_row)
-                geolocbotMain.debug.output(add)
 
                 if unhook_row != '':
                     page.save(f'/* +{pagename} */ {information}')

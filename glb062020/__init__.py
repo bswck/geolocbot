@@ -181,11 +181,11 @@ class glb(object):
             if str(nmb) in bug_errors:
                 report_page = pwbot.Page(self.site, 'Dyskusja użytkownika:Stim/geolocbot-bugs')
                 text = report_page.text
-                put_place = text.find('|}\n{{Stim}}')
-                add = '| {{#vardefine:bugid|{{#expr:{{#var:bugid}} + 1}}}} {{#var:bugid}} || ' + \
+                put_place = text.find('|}\n')
+                add = '| ' + str(text.count('|-')) + ' || ' + \
                       str(nmb) + ' || <pre>' + str(traceback.format_exc()) + '</pre> || ~~~~~ || {{/p}}\n|-\n'
                 report_page.text = text[:put_place] + add + text[put_place:]
-                report_page.save(u'/* raport */ bugerror: ' + str(nmb))
+                report_page.save(u'/* Zgłaszam */ wyjątek krytyczny: ' + str(nmb))
 
     def list(self):
         page = pwbot.Page(self.site, 'Użytkownik:Stim/lokwikipedia')

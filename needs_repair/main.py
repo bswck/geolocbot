@@ -3,7 +3,7 @@
 # License: GNU GPLv3.
 
 from __init__ import geolocbotMain
-from needs_repair.tasks_forwarder import geolocbotTask
+from tasks_forwarder import geolocbotTask
 
 geolocbotMain.intro()
 

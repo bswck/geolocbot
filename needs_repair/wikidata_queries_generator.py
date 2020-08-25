@@ -7,7 +7,7 @@ from typing import cast
 import pywikibot as pwbot
 import pandas as pd
 from __init__ import geolocbotMain
-from needs_repair.databases_search_engine import geolocbotDatabases
+from databases_search_engine import geolocbotDatabases
 from pywikibot import pagegenerators
 
 
