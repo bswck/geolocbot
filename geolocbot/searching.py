@@ -25,8 +25,8 @@ except NameError:
 
 class _TerytEntry(Teryt, metaclass=abc.ABCMeta):
     """
-    Base class holding information about the field of filter and additional geo-info fetched by self.locate(...).
-    If possible, properties before calling locating via self.locate(...) return values suitable for the entire field.
+    Base class holding information about the field of filter and additional geo-info fetched by self.search(...).
+    If possible, properties before calling locating via self.search(...) return values suitable for the entire field.
     Otherwise they return ``NotImplemented``.
     """
 
