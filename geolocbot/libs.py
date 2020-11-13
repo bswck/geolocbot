@@ -4,23 +4,19 @@
 
 """ Libraries and modules for Geoloc-Bot in one place. """
 
-# noinspection PyUnresolvedReferences
 import abc
-# noinspection PyUnresolvedReferences
 import pywikibot
-# noinspection PyUnresolvedReferences
 import logging
-# noinspection PyUnresolvedReferences
 import warnings
-# noinspection PyUnresolvedReferences
 import sys
-# noinspection PyUnresolvedReferences
 import configparser
-# noinspection PyUnresolvedReferences
 import os
-# noinspection PyUnresolvedReferences
 import re
-# noinspection PyUnresolvedReferences
 import pandas
-# noinspection PyUnresolvedReferences
+import numpy
 import time
+import better_abc
+
+# for code completion
+abc, pywikibot, logging, warnings, sys, configparser, os = abc, pywikibot, logging, warnings, sys, configparser, os
+re, pandas, numpy, time, better_abc = re, pandas, numpy, time, better_abc

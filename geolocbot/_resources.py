@@ -2,5 +2,5 @@
 # Stim, 2020
 # GNU GPLv3 license
 
-# noinspection PyUnresolvedReferences
-from scripts.userscripts.geolocbot.resources import cached_teryt
+import resources.cached_teryt as cached_teryt
+cached_teryt = cached_teryt

@@ -2,4 +2,5 @@
 # Stim, 2020
 # GNU GPLv3 license
 
-from scripts.userscripts.geolocbot.resources import cached_teryt
+from . import cached_teryt
+cached_teryt = cached_teryt

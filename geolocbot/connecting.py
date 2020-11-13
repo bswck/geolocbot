@@ -4,9 +4,9 @@
 
 """ Connect + log in to Nonsensopedia wiki. """
 
-from scripts.userscripts.geolocbot import geolocbot
+import geolocbot
 import requests.exceptions
-import pywikibot
+pywikibot = geolocbot.libs.pywikibot
 
 
 def log_in(*__a, _call=0):
