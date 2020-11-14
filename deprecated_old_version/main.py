@@ -321,7 +321,7 @@ class PageContentReader(Geolocbot):
         locality_name = Rectifier().FormatDbLabel(locality_name)
         if status is not None:
             df = terc_db.loc[(terc_db['NAZWA'] == locality_name) &
-                             (terc_db['NAZWA_DOD'].str.contains(status))]
+                             (terc_db['NAZWA_DOD'].str._contains(status))]
             if df.empty:
                 return False
             else:

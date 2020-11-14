@@ -15,7 +15,7 @@ def _validate_configuration_file(fname='geolocbot.conf'):
     """ Checks whether the configuration file is valid to be evaluated. """
     dirpath, fname, require = abscd, fname, tools.ensure
     fpath = libs.os.path.join(dirpath, fname)
-    handle_msg = {
+    _msgs = {
         'missing-file': 'missing configuration file: {0} in {1}'.format(fname, dirpath),
         'missing-section': 'no section %r in configuration file: ' + fpath,
         'missing-option': 'no option %r in configuration file: ' + fpath,
@@ -26,17 +26,17 @@ def _validate_configuration_file(fname='geolocbot.conf'):
         'pandas': ('sep', 'dtype', 'encoding')
     }
 
-    require(libs.os.path.isfile(fpath), exceptions.ConfigurationSetupError(handle_msg['missing-file']))
+    require(libs.os.path.isfile(fpath), exceptions.ConfigurationSetupError(_msgs['missing-file']))
     cfparser.read(fpath)
     for section in required_sections:
         require(
-            section in cfparser.sections(), exceptions.ConfigurationSetupError(handle_msg['missing-section'] % section)
+            section in cfparser.sections(), exceptions.ConfigurationSetupError(_msgs['missing-section'] % section)
         )
     for section, options in required_options.items():
         for option in options:
             require(
                 option in cfparser.options(section=section),
-                exceptions.ConfigurationSetupError(handle_msg['missing-option'] % option)
+                exceptions.ConfigurationSetupError(_msgs['missing-option'] % option)
             )
     return True
 

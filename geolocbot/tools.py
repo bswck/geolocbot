@@ -47,3 +47,27 @@ def ensure(condition, m):
 
 
 getLogger = GetLogger
+
+
+def getter(meth):
+    """ Decorator for getter methods. """
+    objn, ni = '_' + meth.__name__, NotImplemented
+    def wrapper(*args, **__kwargs): return getattr(args[0], objn) if getattr(args[0], objn) is not None else ni
+    return wrapper
+
+
+def deleter(meth):
+    """ Decorator for deleter methods. """
+    def wrapper(*args, **__kwargs): setattr(args[0], '_' + meth.__name__, None)
+    return wrapper
+
+
+def colsetter(meth):
+    def _stwrapper(*args, **kwargs):
+        col, df = kwargs['col'], kwargs['df']
+        if isinstance(col, str):
+            ensure(hasattr(df, col), 'no column named %r' % col)
+            kwargs['col'] = df[col]
+        return meth(*args, **kwargs)
+    return _stwrapper
+

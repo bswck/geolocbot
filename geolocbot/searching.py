@@ -10,8 +10,7 @@ Searches:
 WARNING: Do not import this before importing loaders, otherwise searching classes will work on empty DataFrames.
 """
 
-import geolocbot
-from geolocbot.tools import ensure, output
+from geolocbot.tools import *
 abc, better_abc, pandas = geolocbot.libs.abc, geolocbot.libs.better_abc, geolocbot.libs.pandas
 
 
@@ -27,6 +26,10 @@ class _TerytMetaEntry(metaclass=abc.ABCMeta):
     """ _TerytEntry metaclass """
 
 
+class TerytSearchingTools(Teryt):
+    """ Searching tools for _TerytEntry """
+
+
 class _TerytEntry(_TerytMetaEntry, metaclass=better_abc.ABCMeta):
     pandas.DataFrame.search = pandas.DataFrame.loc
     """
@@ -39,15 +42,17 @@ class _TerytEntry(_TerytMetaEntry, metaclass=better_abc.ABCMeta):
             self,
             *,
             field_name: str,
-            simc=resources.cached_teryt.simc,
-            terc=resources.cached_teryt.terc,
-            nts=resources.cached_teryt.nts
+            sub,
+            simc_resource=resources.cached_teryt.simc,
+            terc_resource=resources.cached_teryt.terc,
+            nts_resource=resources.cached_teryt.nts
     ):
         """ Constructor. """
-        self._messages: dict = {
+        self._msgs: dict = {
             'args-assigned': 'cannot perform searching: please specify the arguments with their keys in the form '
                              '`key=value`, e.g. search(startswith=\'a\')',
             'unknown-attr': 'couldn\'t fetch TERYT.%s',
+            'subclass-is-none': 'field-representative subclass is None',
             'no-kwargs': 'cannot perform searching: no keyword arguments',
             'no-search-kwargs': 'no keyword arguments for searching (expected minimally 1 from: %s)',
             'empty-field': 'cannot instantiate _TerytEntry search with empty field. Happens mostly due to partially '
@@ -76,16 +81,21 @@ class _TerytEntry(_TerytMetaEntry, metaclass=better_abc.ABCMeta):
             'parser-failed': 'parser failed: cannot parse more than one TERYT entry (got %s entries)'
         }
 
-        self.simc, self.terc, self.nts = simc, terc, nts
+        self.simc, self.terc, self.nts = simc_resource, terc_resource, nts_resource
         self._field_name = field_name.replace(' ', '_').upper()
         self.field: pandas.DataFrame = getattr(self, self._field_name.lower(), None)
-        ensure(self.field is not None, self._messages['unknown-attr'] % self._field_name.lower())
-        ensure(not self.field.empty, self._messages['empty-field'])
-        self.cols, self.len = [col for col in self.field.columns], len(self.field)
+        ensure(self.field is not None, self._msgs['unknown-attr'] % self._field_name.lower())
+        ensure(not self.field.empty, self._msgs['empty-field'])
+        self._sub = sub
         self._name_col_search_kwargs = ('equal', 'startswith', 'endswith', 'contains')
         self.optional_bool_search_kwargs = ('veinf', 'force_parse', 'match_case', 'quiet')
+        self.containing_cols = ('date', 'function')
+        self.cols, self.len = [col for col in self.field.columns], len(self.field)
+        self.conflicts = iter(self._name_col_search_kwargs)
+        self.search_kwargs = None
+        self.kwargs = None
         self._loc_kw = {'na': False}
-        self._ParserError = geolocbot.exceptions.ParserError
+        self._perr = geolocbot.exceptions.ParserError
         self.search_mode = None
         self.veinf = None
         self.candidate = None
@@ -94,20 +104,25 @@ class _TerytEntry(_TerytMetaEntry, metaclass=better_abc.ABCMeta):
         self.namecol_value = None
         self.unparsed_cols = None
 
-        self._id = None  # (!) real value is assigned by parsers
-        self._function = None  # (!) real value is assigned by parsers
-        self._index = None  # (!) real value is assigned by parsers
-        self._voivodship = None  # (!) real value is assigned by parsers
-        self._powiat = None  # (!) real value is assigned by parsers
-        self._gmina = None  # (!) real value is assigned by parsers
-        self._gmina_type = None  # (!) real value is assigned by parsers
-        self._name = None  # (!) real value is assigned by parsers
-        self._date = None  # (!) real value is assigned by parsers
-        self._entry_frame = None  # (!) real value is assigned by parsers
-        self._result = None  # (!) real value is assigned by parsers
+        self._id = None  # (!) real value is assigned by parser(s)
+        self._integral_id = None  # (!) real value is assigned by parser(s)
+        self._region = None  # (!) real value is assigned by parser(s)
+        self._subregion = None  # (!) real value is assigned by parser(s)
+        self._level = None  # (!) real value is assigned by parser(s)
+        self._function = None  # (!) real value is assigned by parser(s)
+        self._index = None  # (!) real value is assigned by parser(s)
+        self._voivodship = None  # (!) real value is assigned by parser(s)
+        self._powiat = None  # (!) real value is assigned by parser(s)
+        self._gmina = None  # (!) real value is assigned by parser(s)
+        self._gmina_type = None  # (!) real value is assigned by parser(s)
+        self._locality_type = None  # (!) real value is assigned by parser(s)
+        self._name = None  # (!) real value is assigned by parser(s)
+        self._date = None  # (!) real value is assigned by parser(s)
+        self._entry_frame = None  # (!) real value is assigned by parser(s)
+        self._result = None  # (!) real value is assigned by parser(s)
 
     @better_abc.abstract_attribute
-    def parse_col(self):
+    def parse_cols(self):
         """
         A dictionary containing:
          *  unparsed names of columns of *field* as keys,
@@ -115,17 +130,30 @@ class _TerytEntry(_TerytMetaEntry, metaclass=better_abc.ABCMeta):
         """
         return {}
 
-    @better_abc.abstract_attribute
-    def kwargs(self):
-        """
-        Tuple with all possible keyword arguments to *search()* method.
-        """
-        return {}
-
     @property
     def id(self) -> "str":
         """ Identificator depending on the field type. """
         return self._id
+
+    @property
+    def level(self) -> "str":
+        """ Level of a locality. """
+        return self._level
+
+    @property
+    def integral_id(self) -> "str":
+        """ Integral ID of a locality. """
+        return self._integral_id
+
+    @property
+    def region(self) -> "str":
+        """ Region. """
+        return self._region
+
+    @property
+    def subregion(self) -> "str":
+        """ Subregion. """
+        return self._subregion
 
     @property
     def function(self) -> "str":
@@ -153,277 +181,275 @@ class _TerytEntry(_TerytMetaEntry, metaclass=better_abc.ABCMeta):
         return self._gmina_type
 
     @property
+    def locality_type(self) -> "str":
+        """ Gmina, for example 'Pszczyna'. """
+        return self._locality_type
+
+    @property
     def name(self) -> "str":
-        """ Identificator depending on the field type. """
+        """ Value in *name* column. """
         return self._name
 
     @property
     def date(self) -> "str":
-        """ Identificator depending on the field type. """
+        """ Date of the entry. """
         return self._date
 
     @property
     def entry_frame(self) -> "pandas.DataFrame":
-        """ DataFrame of the entry found by the filter. """
+        """ DataFrame of the entry found by *search()*. """
         return self._entry_frame
 
     @property
     def result(self) -> "pandas.DataFrame":
-        """ DataFrame of the entry found by the filter. """
+        """ DataFrame of the entry found by *search()*. """
         return self._result
 
-    # Getters
-    def getter(self):
-        """ Decorator for getter methods. In fact, this is a staticmethod. """
-        objn, ni = '_' + self.__name__, NotImplemented
-        def wrapper(*args, **__kwargs): return getattr(args[0], objn) if getattr(args[0], objn) is not None else ni
-        return wrapper
-
-    # noinspection PyArgumentList
     @id.getter
     @getter
     def id(self): return
-    # noinspection PyArgumentList
+    @level.getter
+    @getter
+    def level(self): return
+    @integral_id.getter
+    @getter
+    def integral_id(self): return
+    @region.getter
+    @getter
+    def region(self): return
+    @subregion.getter
+    @getter
+    def subregion(self): return
     @function.getter
     @getter
     def function(self): return
-    # noinspection PyArgumentList
     @voivodship.getter
     @getter
     def voivodship(self): return
-    # noinspection PyArgumentList
     @powiat.getter
     @getter
     def powiat(self): return
-    # noinspection PyArgumentList
     @gmina.getter
     @getter
     def gmina(self): return
-    # noinspection PyArgumentList
     @gmina_type.getter
     @getter
     def gmina_type(self): return
-    # noinspection PyArgumentList
+    @locality_type.getter
+    @getter
+    def locality_type(self): return
     @name.getter
     @getter
     def name(self): return
-    # noinspection PyArgumentList
     @date.getter
     @getter
     def date(self): return
-    # noinspection PyArgumentList
     @entry_frame.getter
     @getter
     def entry_frame(self): return
-    # noinspection PyArgumentList
     @result.getter
     @getter
     def result(self): return
-
     # End of getters
 
     # Deleters
-    def deleter(self):
-        """ Decorator for deleter methods. In fact, this is a staticmethod. """
-        obj = self
-        def wrapper(*args, **__kwargs): setattr(args[0], '_' + obj.__name__, None)
-        return wrapper
-
-    # noinspection PyArgumentList
     @id.deleter
     @deleter
     def id(self): return
-    # noinspection PyArgumentList
+    @level.deleter
+    @deleter
+    def level(self): return
+    @integral_id.deleter
+    @deleter
+    def integral_id(self): return
     @function.deleter
     @deleter
     def function(self): return
-    # noinspection PyArgumentList
+    @region.deleter
+    @deleter
+    def region(self): return
+    @subregion.deleter
+    @deleter
+    def subregion(self): return
     @voivodship.deleter
     @deleter
-    @deleter
     def voivodship(self): return
-    # noinspection PyArgumentList
     @powiat.deleter
     @deleter
     def powiat(self): return
-    # noinspection PyArgumentList
     @gmina.deleter
     @deleter
     def gmina(self): return
-    # noinspection PyArgumentList
     @gmina_type.deleter
     @deleter
     def gmina_type(self): return
-    # noinspection PyArgumentList
+    @locality_type.deleter
+    @deleter
+    def locality_type(self): return
     @name.deleter
     @deleter
     def name(self): return
-    # noinspection PyArgumentList
     @date.deleter
     @deleter
     def date(self): return
-    # noinspection PyArgumentList
     @entry_frame.deleter
     @deleter
     def entry_frame(self): return
-    # noinspection PyArgumentList
     @result.deleter
     @deleter
     def result(self): return
 
     # End of deleters
 
-    def _validate_search_kwargs(self, field_obj, kwargs) -> "tuple":
+    def _validate_search_kwargs(self, kwargs):
         """ Validate kwargs passed to locating function. Check for conflicts, etc. """
-        ensure(kwargs, ValueError(self._messages['no-kwargs']))
+        ensure(kwargs, ValueError(self._msgs['no-kwargs']))
 
         # Check if arguments and their types are expected
         for kwarg, value in kwargs.items():
-            unexpected_kwarg = self._messages['unexpected-kwarg'] % ('search', kwarg, ', '.join(
-                field_obj.kwargs))
-            ensure(kwarg in field_obj.kwargs, TypeError(unexpected_kwarg))
-            expected_instance = bool if kwarg in field_obj.optional_bool_search_kwargs else str
-            is_expected_instance = isinstance(value, expected_instance)
-            unexpected_instance = self._messages['unexpected-kwarg-instance'] % (
+            unexp_explnt = self._msgs['unexpected-kwarg'] % ('search', kwarg, ', '.join(
+                self._sub.kwargs))
+            ensure(kwarg in self._sub.kwargs, TypeError(unexp_explnt))
+            expected_instance = bool if kwarg in self.optional_bool_search_kwargs else str
+            unexpected_instance = self._msgs['unexpected-kwarg-instance'] % (
                 type(value).__name__, kwarg, expected_instance.__name__
             )
-            ensure(is_expected_instance, unexpected_instance)
+            ensure(isinstance(value, expected_instance), TypeError(unexpected_instance))
 
         ensure(
-            any([kwarg in kwargs for kwarg in field_obj.search_kwargs]),
-            self._messages['no-search-kwargs'] % ', '.join(field_obj.search_kwargs)
+            any([kwarg in kwargs for kwarg in self._sub.search_kwargs]),
+            self._msgs['no-search-kwargs'] % ', '.join(self._sub.search_kwargs)
         )
 
-        for conflict in field_obj.conflicts:
+        for conflict in self.conflicts:
             more_conflicted_kwargs_assigned = []
             for arg in conflict:
                 if arg in kwargs:
-                    conflict_explanation = self._messages['conflicting-kwargs'] % ' and '.join([
+                    conflict_explanation = self._msgs['conflicting-kwargs'] % ' and '.join([
                         '`%s=…`' % x for x in conflict
                     ])
                     ensure(not more_conflicted_kwargs_assigned, conflict_explanation)
                     more_conflicted_kwargs_assigned.append(arg)
 
-        nmc_str, fparse = None, True
+        self.namecol_value, self.fparse = None, True
         modes = self._name_col_search_kwargs + ('no_name_col',)
-        m = modes[-1]
-        for kw in kwargs.copy():
-            for md in self._name_col_search_kwargs:
-                if kw == md:
-                    m = md
-                    nmc_str = kwargs[m]
-                    del kwargs[md]
+        self.search_mode = modes[-1]
+        for kwarg in kwargs.copy():
+            for mode in self._name_col_search_kwargs:
+                if kwarg == mode:
+                    self.search_mode, self.namecol_value = mode, kwargs[mode]
+                    del kwargs[mode]
 
-        veinf = kwargs.pop('veinf', False)
+        self.veinf = kwargs.pop('veinf', False)
         geolocbot.tools.be_quiet = kwargs.pop('quiet', False)
-        fparse, matchcase = kwargs.pop('force_parse', False), kwargs.pop('match_case', False)
-
-        return m, veinf, fparse, matchcase, nmc_str, kwargs
+        self.fparse, self.case = kwargs.pop('force_parse', False), kwargs.pop('match_case', False)
+        self.unparsed_cols = kwargs
+        return True
 
     @abc.abstractmethod
-    def search(self, field_obj, *args, **kwargs) -> "_TerytEntry":
+    def search(self, *args, **kwargs) -> "_TerytEntry":
         """ Search the field DataFrame and return self for chaining, e.g. `self.locate(...).voivodship`. """
-        ensure(not args, self._messages['args-assigned'])
-        trapped_instance = {'field_obj': field_obj}
+        ensure(not args, self._msgs['args-assigned'])
+        ensure(self._sub is not None, self._msgs['subclass-is-none'])
+        parse_cols = self.parse_cols
+        self.search_kwargs = self._name_col_search_kwargs + tuple(parse_cols.keys())
+        self.kwargs = self.search_kwargs + self.optional_bool_search_kwargs
+        self._validate_search_kwargs(kwargs)
 
-        field_obj.search_mode, \
-            field_obj.veinf, \
-            field_obj.fparse, \
-            field_obj.case, \
-            field_obj.namecol_value, \
-            field_obj.unparsed_cols = \
-            getattr(field_obj, '_validate_search_kwargs')(field_obj, kwargs)
-
-        field_obj.candidate, frames = field_obj.field, [field_obj.field]
-        for unparsed_col_name in field_obj.unparsed_cols:
-            _col = field_obj.parse_col[unparsed_col_name]
+        self.candidate, frames = self.field, [self.field]
+        for unparsed_col_name in self.unparsed_cols:
+            _col = parse_cols[unparsed_col_name]
             # mapping all to strings
-            field_obj.candidate[_col] = field_obj.candidate[field_obj.parse_col[unparsed_col_name]].map(str)
+            self.candidate[_col] = self.candidate[parse_cols[unparsed_col_name]].map(str)
 
-        namecol = field_obj.candidate[field_obj.parse_col['name']]
+        namecol = self.candidate[parse_cols['name']]
 
-        if field_obj.search_mode != 'no_name_col':
-            field_obj.candidate = getattr(field_obj, field_obj.search_mode)(
-                df=field_obj.candidate,
+        if self.search_mode != 'no_name_col':
+            self.candidate = getattr(self, '_' + self.search_mode)(
+                df=self.candidate,
                 col=namecol,
-                v=field_obj.namecol_value,
-                case=field_obj.case
+                value=self.namecol_value,
+                case=self.case
             )
-            if field_obj.failure(**trapped_instance):
-                return field_obj.results_handler(**trapped_instance)
+            if self._failure():
+                return self.results_handler()
 
-        for unparsed_col_name, query in field_obj.unparsed_cols.items():
-            containing_col = unparsed_col_name in field_obj.containing_cols
-            col = field_obj.candidate[field_obj.parse_col[unparsed_col_name]]
-            stuff = {'df': field_obj.candidate, 'col': col, 'v': query, 'case': field_obj.case}
-            field_obj.candidate = field_obj.contains(**stuff) if containing_col else field_obj.equal(**stuff)
-            if field_obj.failure(field_obj):
-                fn = getattr(field_obj, '_field_name')
-                _contains = (fn, field_obj.parse_col[unparsed_col_name], unparsed_col_name, query,
-                             len(frames) - 1)
-                _startswith = _endswith = _contains
-                _no_name_col = (fn, field_obj.parse_col[unparsed_col_name], unparsed_col_name, query,
+        for unparsed_col_name, query in self.unparsed_cols.items():
+            containing_col = unparsed_col_name in self.containing_cols
+            col = parse_cols[unparsed_col_name]
+            stuff = {'df': self.candidate, 'col': col, 'value': query, 'case': self.case}
+            self.candidate = self._contains(**stuff) if containing_col else self._equal(**stuff)
+            if self._failure():
+                fn = getattr(self._field_name)
+                _startswith = _endswith = _contains = (fn, parse_cols[unparsed_col_name], unparsed_col_name, query,
+                                                       len(frames) - 1)
+                _no_name_col = (fn, parse_cols[unparsed_col_name], unparsed_col_name, query,
                                 len(frames) - 1)
-                _equal = (query, fn, field_obj.parse_col[unparsed_col_name], unparsed_col_name,
+                _equal = (query, fn, parse_cols[unparsed_col_name], unparsed_col_name,
                           len(frames) - 1)
-                msg = self._messages['returning-last-frame'][field_obj.search_mode] % eval('_' + field_obj.search_mode)
+                msg = self._msgs['returning-last-frame'][self.search_mode] % eval('_' + self.search_mode)
                 output(msg, file='stderr')
-                field_obj.candidate = frames[-1]
+                self.candidate = frames[-1]
                 break
 
-        return field_obj.results_handler(**trapped_instance)
+        return self.results_handler()
 
     @staticmethod
-    def equal(*, df, col, v, case):
-        return df.search[
-            (col == v)
-            if case else
-            (col.str.lower() == v.lower())
-        ]
+    @colsetter
+    def _equal(*, df, col, value, case):
+        query = \
+            (col == value) \
+            if case else \
+            (col.str.lower() == value.lower())
+        return df.search[query]
 
-    def contains(self, *, df, col, v, case):
-        return df.search[
-            (col.str.contains(v, case=case, **self._loc_kw))
-        ]
+    @colsetter
+    def _contains(self, *, df, col, value, case):
+        query = \
+            (col.str.contains(value, case=case, **self._loc_kw))
+        return df.search[query]
 
-    def startswith(self, *, df, col, v, case):
-        return df.search[
-            (col.str.startswith(v, **self._loc_kw))
-            if case else
-            (col.str.lower().str.startswith(v.lower(), **self._loc_kw))
-        ]
+    @colsetter
+    def _startswith(self, *, df, col, value, case):
+        query = \
+            (col.str.startswith(value, **self._loc_kw)) \
+            if case else \
+            (col.str.lower().str.startswith(value.lower(), **self._loc_kw))
+        return df.search[query]
 
-    def endswith(self, *, df, col, v, case):
-        return df.search[
-            (col.str.endswith(v, **self._loc_kw))
-            if case else
-            (col.str.lower().str.endswith(v.lower(), **self._loc_kw))
-        ]
+    @colsetter
+    def _endswith(self, *, df, col, value, case):
+        query = \
+            (col.str.endswith(value, **self._loc_kw)) \
+            if case else \
+            (col.str.lower().str.endswith(value.lower(), **self._loc_kw))
+        return df.search[query]
 
-    def failure(self, field_obj): return field_obj.candidate.empty or field_obj.candidate.equals(self.field)
+    def _failure(self): return self.candidate.empty or self.candidate.equals(self.field)
 
-    def results_handler(self, *, field_obj):
-        inst = {'field_obj': field_obj}  # class instance dict
-        if field_obj.failure(**inst):
-            def handle_failure():
+    def results_handler(self):
+        if self._failure():
+            def failure_handler():
                 self.__del__()
-                ensure(not field_obj.veinf, ValueError(m))
-                return field_obj
-            m = self._messages['results']['not-found'] % self._field_name
-            output(m, file='stderr') if not field_obj.veinf else geolocbot.tools.do_nothing()
-            return handle_failure()
+                ensure(not self.veinf, ValueError(m))
+                return self
+            m = self._msgs['results']['not-found'] % self._field_name
+            output(m, file='stderr') if not self.veinf else geolocbot.tools.do_nothing()
+            return failure_handler()
         else:
-            m = self._messages['results']['found'] % self._field_name
-            output(m, field_obj.candidate, sep='\n')
-            self._result = field_obj.candidate
-            if len(field_obj.candidate) == 1 or field_obj.fparse:
-                self.parse(**inst)
-            return field_obj
+            m = self._msgs['results']['found'] % self._field_name
+            output(m, self.candidate, sep='\n')
+            self._result = self.candidate
+            if len(self.candidate) == 1 or self.fparse:
+                self.parse()
+            return self
 
-    @staticmethod
-    def concat_to_id(v, *args): return ''.join([v, *[arg for arg in args if arg]])
+    def _fetch_id(self, dataframe=None):
+        voivc = self._voivodship
+        codes = self._powiat, self._gmina, self._gmina_type
+        self._id = ''.join([voivc, *[code for code in codes if code]])
 
-    def parse(self, field_obj, id_concatter=concat_to_id, df=None) -> "type(None)":
+    def parse(self, dataframe=None) -> "type(None)":
         """
         Parser.
 
@@ -433,9 +459,9 @@ class _TerytEntry(_TerytMetaEntry, metaclass=better_abc.ABCMeta):
         self.date, self.entry_frame.
         Return: None.
         """
-        dataframe, parse_col = field_obj.result if not df else df, field_obj.parse_col
+        dataframe, parse_col = dataframe if dataframe is not None else self._sub.result, self.parse_cols
 
-        ensure(len(dataframe) == 1, self._ParserError(self._messages['parser-failed'] % len(dataframe)))
+        ensure(len(dataframe) == 1, self._perr(self._msgs['parser-failed'] % len(dataframe)))
         self._entry_frame = dataframe
         nan = geolocbot.libs.numpy.nan
 
@@ -446,33 +472,33 @@ class _TerytEntry(_TerytMetaEntry, metaclass=better_abc.ABCMeta):
             is not nan else None
         ) for ucn, pcn in parse_col.items()]
 
-        self._id = id_concatter(self._voivodship, self._powiat, self._gmina, self._gmina_type)
+        # Default ID fetching happens in self._fetch_id. However, it is possible to be overriden (as in *Simc* subclass)
+        self._fetch_id(dataframe)
+        return self._sub
 
-    def __repr__(self): return geolocbot.tools.nice_repr(self._field_name, **dict(self))
+    def __repr__(self): return geolocbot.tools.nice_repr(self._field_name + '_entry', **dict(self))
 
     def __iter__(self):
-        for k in self.parse_col:
+        for k in self.parse_cols:
             yield k, eval('self.%s' % k)
 
-    def __del__(self): del self.id, self.voivodship, self.powiat, self.gmina, self.name
+    def __del__(self):
+        for k in self.parse_cols:
+            delattr(self, k)
 
 
 class Terc(_TerytEntry):
-    def __init__(self, terc=resources.cached_teryt.terc):
-        super(Terc, self).__init__(field_name='terc', terc=terc)
-        self.parse_col = {
-            'name': 'NAZWA',
+    def __init__(self, terc_resource=resources.cached_teryt.terc):
+        super(Terc, self).__init__(field_name='terc', sub=self, terc_resource=terc_resource)
+        self.parse_cols = {
             'voivodship': 'WOJ',
             'powiat': 'POW',
             'gmina': 'GMI',
             'gmina_type': 'RODZ',
+            'name': 'NAZWA',
             'function': 'NAZWA_DOD',
             'date': 'STAN_NA',
         }
-        self.containing_cols = ('date', 'function')  # filtering with pandas.Series.str.contains(...)
-        self.search_kwargs = self._name_col_search_kwargs + tuple(self.parse_col.keys())
-        self.kwargs = self.search_kwargs + self.optional_bool_search_kwargs
-        self.conflicts = iter(self._name_col_search_kwargs)
 
     def search(self, *args, **kwargs):
         """
@@ -497,10 +523,10 @@ class Terc(_TerytEntry):
             voivodship (str): Search for the entry with *voivodship* strings EQUAL to this twice 0-filled string.
 
         Examples:
-            >>> terc_search.search(equal='Warszawa', gmina='01', matchcase=True, quiet=True).id
+            >>> terc.search(equal='Warszawa', gmina='01', match_case=True, quiet=True).id
             '1465011'
 
-            >>> terc_search.search(startswith='e')
+            >>> terc.search(startswith='e')
             [TERC] Result(s):
                  WOJ POW  GMI RODZ     NAZWA                  NAZWA_DOD     STAN_NA
             3321  28  04  nan  NaN  elbląski                     powiat  2020-01-01
@@ -511,47 +537,50 @@ class Terc(_TerytEntry):
             3490  28  61  nan  NaN    Elbląg  miasto na prawach powiatu  2020-01-01
             3491  28  61   01    1    Elbląg              gmina miejska  2020-01-01
         """
-        return super(Terc, self).search(field_obj=self, *args, **kwargs)
+        return super(Terc, self).search(*args, **kwargs)
 
 
 class Simc(_TerytEntry):
-    def __init__(self, simc=resources.cached_teryt.simc):
-        super(Simc, self).__init__(field_name='simc', simc=simc)
-        self.parse_col = {
-            'id': 'SYM',
-            'integral_id': 'SYMPOD',
-            'name': 'NAZWA',
+    def __init__(self, simc_resource=resources.cached_teryt.simc):
+        super(Simc, self).__init__(field_name='simc', sub=self, simc_resource=simc_resource)
+        self.parse_cols = {
             'voivodship': 'WOJ',
             'powiat': 'POW',
             'gmina': 'GMI',
             'gmina_type': 'RODZ_GMI',
             'locality_type': 'RM',
-            'function': 'NAZWA_DOD',
+            'name': 'NAZWA',
+            'id': 'SYM',
+            'integral_id': 'SYMPOD',
             'date': 'STAN_NA',
-        }  # (!) MZ column is static (has always value 1), no need to implement it
-        self.containing_cols = ('date', 'function')  # filtering with pandas.Series.str.contains(...)
-        self.search_kwargs = self._name_col_search_kwargs + tuple(self.parse_col.keys())
-        self.kwargs = self.search_kwargs + self.optional_bool_search_kwargs
-        self.conflicts = iter(self._name_col_search_kwargs)
+        }  # (!) MZ column is static (only values == 1), no need to implement it
 
-    def _validate_search_kwargs(self, name, **kwargs) -> "tuple":
-        pass
+    def _fetch_id(self, dataframe=None):
+        dataframe = dataframe if dataframe is not None else self._sub.result
+        self._id = dataframe.iat[0, dataframe.columns.get_loc(self.parse_cols['id'])]
+        self._integral_id = dataframe.iat[0, dataframe.columns.get_loc(self.parse_cols['integral_id'])]
+        return self
 
-    def search(self, *args, **kwargs):
-        return super(Simc, self).search(field_obj=self, *args, **kwargs)
+    def search(self, *args, **kwargs): return super(Simc, self).search(*args, **kwargs)
 
 
 class Nts(_TerytEntry):
-    def __init__(self, nts=resources.cached_teryt.nts):
-        super(Nts, self).__init__(field_name='nts', nts=nts)
-        self.parse_col = None
-        self.kwargs = None
+    def __init__(self, nts_resource=resources.cached_teryt.nts):
+        super(Nts, self).__init__(field_name='nts', sub=self, nts_resource=nts_resource)
+        self.parse_cols = {
+            'level': 'POZIOM',
+            'region': 'REGION',
+            'voivodship': 'WOJ',
+            'subregion': 'PODREG',
+            'powiat': 'POW',
+            'gmina': 'GMI',
+            'gmina_type': 'RODZ',
+            'name': 'NAZWA',
+            'function': 'NAZWA_DOD',
+            'date': 'STAN_NA',
+        }
 
-    def _validate_search_kwargs(self, name, **kwargs) -> "tuple":
-        pass
-
-    def search(self, **kwargs):
-        pass
+    def search(self, *args, **kwargs): return super(Nts, self).search(*args, **kwargs)
 
 
 # Modify params for future instanced classes (in variables `simc_filter', `terc_filter', `nts_filter') assigning
@@ -561,6 +590,6 @@ params = {
     'terc': resources.cached_teryt.terc,
     'nts': resources.cached_teryt.nts
 }
-simc_search = Simc(simc=params['simc'])
-terc_search = Terc(terc=params['terc'])
-nts_search = Nts(nts=params['nts'])
+simc = Simc(simc_resource=params['simc'])
+terc = Terc(terc_resource=params['terc'])
+nts = Nts(nts_resource=params['nts'])
