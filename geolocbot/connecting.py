@@ -5,28 +5,25 @@
 """ Connect + log in to Nonsensopedia wiki. """
 
 import geolocbot
-import requests.exceptions
-pywikibot = geolocbot.libs.pywikibot
+from geolocbot.libs import *
 
 
 def log_in(*__a, _call=0):
     """ Log in, etc. """
+    ucf = geolocbot.loaders.fetch_bot_config()
+    nonsa = pywikibot.Site('pl', 'nonsensopedia', user=ucf['user'])
+    wd = pywikibot.Site('wikidata', 'wikidata', user=ucf['wikidata_user'])
     if _call < 6:
-        from pywikibot.login import LoginStatus
         try:
-            if LoginStatus.NOT_LOGGED_IN:
-                pywikibot.Site('pl', 'nonsensopedia').login()
-                geolocbot.output('Logged in, continuing')
-            else:
-                geolocbot.output('Already logged in, continuing')
-        except (geolocbot.libs.pywikibot.exceptions.FatalServerError, requests.exceptions.SSLError):
+            if not nonsa.logged_in:
+                nonsa.login()
+            if not wd.logged_in:
+                wd.login()
+            geolocbot.output('Successfully logged in.')
+        except (pywikibot.exceptions.FatalServerError, requests.exceptions.SSLError):
             _call += 1
             geolocbot.libs.time.sleep(2)
             log_in(*__a, _call=_call)
     else:
         geolocbot.output('Attempted to log in 5 times, failed. Raising SystemExit with code -1.')
         exit(-1)
-
-
-if __name__ == '__main__':
-    log_in()

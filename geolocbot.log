@@ -1,0 +1,82 @@
+[2020-11-14]  12:40:48    geolocbot INFO      Successfully logged in.
+[2020-11-14]  12:46:39    geolocbot INFO      Successfully logged in.
+[2020-11-14]  12:46:44    geolocbot INFO      [SIMC] Result(s):
+       WOJ POW GMI RODZ_GMI  RM MZ   NAZWA      SYM   SYMPOD     STAN_NA
+47153   14  19  01        2  01  1  Żukowo  0560160  0560160  2020-01-01
+48859   14  20  07        2  01  1  Żukowo  0119764  0119764  2020-01-01
+70607   22  02  04        5  01  1  Żukowo  0083026  0083026  2020-01-01
+71761   22  05  08        5  01  1  Żukowo  0177514  0177514  2020-01-01
+71878   22  05  08        4  96  1  Żukowo  0935127  0935127  2020-01-01
+74142   22  03  05        2  05  1  Żukowo  0745668  0745668  2020-01-01
+92979   30  16  01        5  01  1  Żukowo  0591892  0591892  2020-01-01
+100132  32  05  01        2  04  1  Żukowo  0773127  0773127  2020-01-01
+102140  32  13  06        2  01  1  Żukowo  0750557  0750557  2020-01-01
+102612  32  14  11        5  01  1  Żukowo  0784125  0784125  2020-01-01
+[2020-11-14]  12:47:02    geolocbot INFO      [SIMC] Result(s):
+      WOJ POW GMI RODZ_GMI  RM MZ   NAZWA      SYM   SYMPOD     STAN_NA
+10815  06  11  06        2  01  1  Poznań  0686397  0686397  2020-01-01
+75791  24  10  03        2  00  1  Poznań  0217047  0216993  2020-01-01
+95742  30  64  01        1  96  1  Poznań  0969400  0969400  2020-01-01
+[2020-11-14]  12:47:07    geolocbot INFO      [SIMC] Result(s):
+      WOJ POW GMI RODZ_GMI  RM MZ    NAZWA      SYM   SYMPOD     STAN_NA
+25744  10  18  05        2  00  1  Aniołki  0203447  0203430  2020-01-01
+98767  30  18  07        5  04  1  Aniołki  0206233  0206233  2020-01-01
+[2020-11-14]  12:47:13    geolocbot INFO      [SIMC] Entry frame not found.
+[2020-11-14]  12:47:20    geolocbot INFO      [SIMC] Entry frame not found.
+[2020-11-14]  12:47:23    geolocbot INFO      [SIMC] Entry frame not found.
+[2020-11-14]  12:47:24    geolocbot INFO      [SIMC] Entry frame not found.
+[2020-11-14]  12:47:26    geolocbot INFO      [SIMC] Entry frame not found.
+[2020-11-14]  12:48:25    geolocbot INFO      Successfully logged in.
+[2020-11-14]  12:48:58    geolocbot INFO      Successfully logged in.
+[2020-11-14]  12:49:02    geolocbot INFO      [SIMC] Result(s):
+      WOJ POW GMI RODZ_GMI  RM MZ   NAZWA      SYM   SYMPOD     STAN_NA
+10815  06  11  06        2  01  1  Poznań  0686397  0686397  2020-01-01
+75791  24  10  03        2  00  1  Poznań  0217047  0216993  2020-01-01
+95742  30  64  01        1  96  1  Poznań  0969400  0969400  2020-01-01
+[2020-11-14]  12:49:02    pywiki    CRITICAL  Exiting due to uncaught exception <class 'TypeError'>
+[2020-11-14]  12:49:42    geolocbot INFO      Successfully logged in.
+[2020-11-14]  12:49:49    geolocbot INFO      [SIMC] Entry frame not found.
+[2020-11-14]  12:49:51    geolocbot INFO      [SIMC] Entry frame not found.
+[2020-11-14]  12:49:54    geolocbot INFO      [SIMC] Entry frame not found.
+[2020-11-14]  12:49:56    geolocbot INFO      [SIMC] Entry frame not found.
+[2020-11-14]  12:49:57    geolocbot INFO      [SIMC] Entry frame not found.
+[2020-11-14]  12:50:16    geolocbot INFO      Successfully logged in.
+[2020-11-14]  12:50:18    geolocbot INFO      [SIMC] Entry frame not found.
+[2020-11-14]  12:50:20    geolocbot INFO      [SIMC] Entry frame not found.
+[2020-11-14]  12:50:54    geolocbot INFO      Successfully logged in.
+[2020-11-14]  12:50:58    geolocbot INFO      [SIMC] Entry frame not found.
+[2020-11-14]  12:51:00    geolocbot INFO      [SIMC] Entry frame not found.
+[2020-11-14]  12:51:02    geolocbot INFO      [SIMC] Entry frame not found.
+[2020-11-14]  12:51:16    geolocbot INFO      Successfully logged in.
+[2020-11-14]  12:51:18    geolocbot INFO      [SIMC] Entry frame not found.
+[2020-11-14]  12:51:21    geolocbot INFO      [SIMC] Result(s):
+       WOJ POW GMI RODZ_GMI  RM MZ   NAZWA      SYM   SYMPOD     STAN_NA
+47153   14  19  01        2  01  1  Żukowo  0560160  0560160  2020-01-01
+48859   14  20  07        2  01  1  Żukowo  0119764  0119764  2020-01-01
+70607   22  02  04        5  01  1  Żukowo  0083026  0083026  2020-01-01
+71761   22  05  08        5  01  1  Żukowo  0177514  0177514  2020-01-01
+71878   22  05  08        4  96  1  Żukowo  0935127  0935127  2020-01-01
+74142   22  03  05        2  05  1  Żukowo  0745668  0745668  2020-01-01
+92979   30  16  01        5  01  1  Żukowo  0591892  0591892  2020-01-01
+100132  32  05  01        2  04  1  Żukowo  0773127  0773127  2020-01-01
+102140  32  13  06        2  01  1  Żukowo  0750557  0750557  2020-01-01
+102612  32  14  11        5  01  1  Żukowo  0784125  0784125  2020-01-01
+[2020-11-14]  12:51:58    geolocbot INFO      Successfully logged in.
+[2020-11-14]  12:52:00    geolocbot INFO      [SIMC] Entry frame not found.
+[2020-11-14]  12:52:05    geolocbot INFO      [SIMC] Result(s):
+       WOJ POW GMI RODZ_GMI  RM MZ   NAZWA      SYM   SYMPOD     STAN_NA
+47153   14  19  01        2  01  1  Żukowo  0560160  0560160  2020-01-01
+48859   14  20  07        2  01  1  Żukowo  0119764  0119764  2020-01-01
+70607   22  02  04        5  01  1  Żukowo  0083026  0083026  2020-01-01
+71761   22  05  08        5  01  1  Żukowo  0177514  0177514  2020-01-01
+71878   22  05  08        4  96  1  Żukowo  0935127  0935127  2020-01-01
+74142   22  03  05        2  05  1  Żukowo  0745668  0745668  2020-01-01
+92979   30  16  01        5  01  1  Żukowo  0591892  0591892  2020-01-01
+100132  32  05  01        2  04  1  Żukowo  0773127  0773127  2020-01-01
+102140  32  13  06        2  01  1  Żukowo  0750557  0750557  2020-01-01
+102612  32  14  11        5  01  1  Żukowo  0784125  0784125  2020-01-01
+[2020-11-14]  12:52:13    geolocbot INFO      [SIMC] Result(s):
+      WOJ POW GMI RODZ_GMI  RM MZ   NAZWA      SYM   SYMPOD     STAN_NA
+10815  06  11  06        2  01  1  Poznań  0686397  0686397  2020-01-01
+75791  24  10  03        2  00  1  Poznań  0217047  0216993  2020-01-01
+95742  30  64  01        1  96  1  Poznań  0969400  0969400  2020-01-01

@@ -4,4 +4,18 @@
 
 """ Geoloc-Bot. """
 
-from scripts.userscripts.geolocbot import resources, geolocbot
+from geolocbot import *
+
+
+def run():
+    connecting.log_in()
+    # test
+    while True:
+        x = input('Find in SIMC: ')
+        re = searching.simc.search(equal=x, quiet=True)
+        if re:
+            print('\n', re.result, '\n', sep='')
+
+
+if __name__ == '__main__':
+    run()

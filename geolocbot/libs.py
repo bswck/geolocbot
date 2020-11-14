@@ -16,7 +16,8 @@ import pandas
 import numpy
 import time
 import better_abc
+import requests
 
 # for code completion
 abc, pywikibot, logging, warnings, sys, configparser, os = abc, pywikibot, logging, warnings, sys, configparser, os
-re, pandas, numpy, time, better_abc = re, pandas, numpy, time, better_abc
+re, pandas, numpy, time, better_abc, requests = re, pandas, numpy, time, better_abc, requests

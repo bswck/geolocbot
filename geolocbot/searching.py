@@ -477,6 +477,7 @@ class _TerytEntry(_TerytMetaEntry, metaclass=better_abc.ABCMeta):
         return self._sub
 
     def __repr__(self): return geolocbot.tools.nice_repr(self._field_name + '_entry', **dict(self))
+    def __bool__(self): return not self._failure()
 
     def __iter__(self):
         for k in self.parse_cols:
@@ -509,8 +510,8 @@ class Terc(_TerytEntry):
             date (str): Date string in format YYYY-[HH-[SS]].
             endswith (str): Search for the entry with *name* strings ENDING with this string.
             function (str): Search for the entry with *function* strings CONTAINING this string.
-            gmina (str): Search for the entry with *gmina_type* strings EQUAL this twice 0-filled string.
-            gmina_type (str): Search for the entry with *gmina_type* strings EQUAL this once 0-filled string.
+            gmina (str): Search for the entry with *gmina_type* strings EQUAL to this twice 0-filled string.
+            gmina_type (str): Search for the entry with *gmina_type* strings EQUAL to this once 0-filled string.
             match_case (bool): Match case of *name* parameter (one defined from `absolute', `partial', `startswith',
             `endswith') with the searched string. Defaults to False.
             powiat (str): Search for the entry with *powiat* strings CONTAINING this string.

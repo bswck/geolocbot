@@ -8,5 +8,3 @@ from geolocbot import exceptions, libs, _resources as resources, loaders, connec
 
 output, logging = tools.output, loaders.fetch_logger()
 
-if __name__ == '__main__':
-    """ Do the stuff """

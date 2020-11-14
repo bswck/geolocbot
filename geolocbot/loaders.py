@@ -20,10 +20,11 @@ def _validate_configuration_file(fname='geolocbot.conf'):
         'missing-section': 'no section %r in configuration file: ' + fpath,
         'missing-option': 'no option %r in configuration file: ' + fpath,
     }
-    required_sections = ('logging', 'pandas')
+    required_sections = ('logging', 'pandas', 'wiki')
     required_options = {
         'logging': ('filename', 'encoding', 'format', 'datefmt', 'level'),
-        'pandas': ('sep', 'dtype', 'encoding')
+        'pandas': ('sep', 'dtype', 'encoding'),
+        'wiki': ('target_wiki_login', 'wikidata_login')
     }
 
     require(libs.os.path.isfile(fpath), exceptions.ConfigurationSetupError(_msgs['missing-file']))
@@ -79,6 +80,14 @@ def fetch_resources(buffers: dict):
         resources.cached_teryt.nts = libs.pandas.read_csv(filepath_or_buffer=buffers['nts'], **pdconfkwds)
 
     assign()
+
+
+def fetch_bot_config():
+    """ Fetches the bot configuration. """
+    return {
+        'user': cfparser.get(section='wiki', option='target_wiki_login'),
+        'wikidata_user': cfparser.get(section='wiki', option='wikidata_login')
+    }
 
 
 fetch_resources(buffers=resources.cached_teryt.striobuffers)
