@@ -30,7 +30,6 @@ __all__ = 'striobuffers'
 
 import io
 import pandas
-# noinspection PyUnresolvedReferences
 from ._cached_csv import (
     simc_csv,  # PyCharm: file size (5,62 MB) too big (> 2,56 MB), disabled code insight feautures
     terc_csv,
@@ -38,9 +37,9 @@ from ._cached_csv import (
 )
 
 striobuffers = {
-    'simc': io.StringIO(simc_csv),
-    'terc': io.StringIO(terc_csv),
-    'nts': io.StringIO(nts_csv)
+    'simc': simc_csv,
+    'terc': terc_csv,
+    'nts': nts_csv
 }
 
 

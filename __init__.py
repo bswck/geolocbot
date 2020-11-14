@@ -12,7 +12,7 @@ def run():
     # test
     while True:
         x = input('Find in SIMC: ')
-        re = searching.simc.search(equal=x, quiet=True)
+        re = searching.simc.search(contains=x, quiet=True)
         if re:
             print('\n', re.result, '\n', sep='')
 

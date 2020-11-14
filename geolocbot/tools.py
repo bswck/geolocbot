@@ -40,6 +40,7 @@ def output(*data, level='info', sep=' ', file='stdout', log=True, get_logger='ge
 def ensure(condition, m):
     """ Assert, but raising custom *Exception* objects. """
     import operator
+    # dferr - default error, chx - exception choose
     dferr, chx = geolocbot.exceptions.GeolocbotError, operator.or_
     if not condition:
         raise chx(dferr(m), m)

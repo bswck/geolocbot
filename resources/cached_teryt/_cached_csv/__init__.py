@@ -4,7 +4,7 @@
 
 """ Includes cached databases. """
 
-# noinspection PyUnresolvedReferences
-from ._cached_simc import simc_csv  # PyCharm: file size (5,62 MB) too big (> 2,56 MB), disabled code insight feautures
-from ._cached_terc import terc_csv
-from ._cached_nts import nts_csv
+import os
+terc_csv = open(os.path.join(__path__[0], '_cached_terc.csv'), encoding='utf-8')
+simc_csv = open(os.path.join(__path__[0], '_cached_simc.csv'), encoding='utf-8')
+nts_csv = open(os.path.join(__path__[0], '_cached_nts.csv'), encoding='utf-8')

@@ -357,6 +357,7 @@ class _TerytEntry(_TerytMetaEntry, metaclass=better_abc.ABCMeta):
         self._validate_search_kwargs(kwargs)
 
         self.candidate, frames = self.field, [self.field]
+
         for unparsed_col_name in self.unparsed_cols:
             _col = parse_cols[unparsed_col_name]
             # mapping all to strings
