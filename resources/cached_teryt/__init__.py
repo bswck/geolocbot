@@ -28,10 +28,9 @@ Refs:
 
 __all__ = 'striobuffers'
 
-import io
 import pandas
 from ._cached_csv import (
-    simc_csv,  # PyCharm: file size (5,62 MB) too big (> 2,56 MB), disabled code insight feautures
+    simc_csv,
     terc_csv,
     nts_csv
 )

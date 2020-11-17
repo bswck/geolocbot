@@ -3,11 +3,72 @@
 # GNU GPLv3 license
 
 import geolocbot
-sys = geolocbot.libs.sys
+from geolocbot.libs import *
+from geolocbot.auxiliary_types import TranslatableValue
 be_quiet = False
 
 
-def do_nothing(): pass
+def ensure(condition, m: (str, Exception)):
+    """ Assert, but raising custom exceptions. """
+    dferr = geolocbot.exceptions.GeolocbotError
+    if not condition:
+        raise dferr(m) | m
+    return True
+
+
+def no_type_collisions(func_or_meth: typing.Callable):
+    ensure(callable(func_or_meth), TypeError('object %r is not callable' % func_or_meth))
+    sign = inspect.signature(func_or_meth)
+    params = sign.parameters
+
+    def bodyguard(*arguments, **keyword_arguments):
+        arg_pos = 0
+        args_dict = {}
+        hold, key, arg = False, 0, ''
+
+        # zip args with their signatured names
+        for quantum in range(len(arguments)):
+            if not hold:
+                key = list(params.keys())[quantum]
+                arg = params.get(key)
+            current_arg = arguments[quantum]
+            if '*' in str(arg):
+                if key in args_dict:
+                    prev = (args_dict[key],) if not isinstance(args_dict[key], tuple) else args_dict[key]
+                    args_dict[key] = prev + (current_arg,)
+                else:
+                    args_dict.update({key: current_arg})
+                hold = True
+            else:
+                args_dict.update({key: current_arg})
+                hold = False
+
+        all_args = dict(**args_dict, **keyword_arguments)
+        for argument_name, value in params.items():
+            if arg_pos < len(all_args):
+                annotated_types = params[argument_name].annotation \
+                    if params[argument_name].annotation != params[argument_name].empty else \
+                    None
+                if annotated_types is not None:
+                    argument = all_args.pop(argument_name, NotImplemented)
+                    if argument is NotImplemented:
+                        break
+                    err = TypeError('%s() got an unexpected type %r of %r parameter (expected type(s): %r)' % (
+                        func_or_meth.__name__,
+                        type(argument).__name__,
+                        argument_name,
+                        ', '.join(
+                            ['%r' % obj_type.__name__ for obj_type in annotated_types]
+                        ) if isinstance(annotated_types, typing.Iterable) else type(annotated_types).__name__
+                    ))
+                    ensure(isinstance(argument, annotated_types), err)
+                arg_pos += 1
+
+        return func_or_meth(*arguments, **keyword_arguments)
+    return bodyguard
+
+
+def do_nothing(*__args, **__kwargs): pass
 
 
 class GetLogger(object):
@@ -18,57 +79,44 @@ class GetLogger(object):
     def __exit__(self, exc_type, exc_val, exc_tb): pass
 
 
-def nice_repr(clsn, **kwargs):
-    kwargs = ' (' + ', '.join(['%s=%r' % (k, v) for k, v in kwargs.items()]) + ')' if kwargs else ''
-    return '<%s%s>' % (clsn, kwargs)
+@no_type_collisions
+def representation(cls_name: str, **kwargs):
+    kwargs = '(' + ', '.join(['\n    %-13s =    %r' % (k, v) for k, v in kwargs.items()]) + '\n)' if kwargs else ''
+    return '%s%s' % (cls_name, kwargs)
 
 
-def output(*data, level='info', sep=' ', file='stdout', log=True, get_logger='geolocbot'):
+@no_type_collisions
+def output(*values,
+           level: str = 'info',
+           sep: str = ' ',
+           file: str = 'stdout',
+           log: bool = True,
+           get_logger: str = 'geolocbot'):
     """ Outputting function. """
-    ensure(isinstance(file, str), 'file cannot be a %r object' % type(file).__name__)
     file = getattr(sys, file, sys.stdout)
-    data = sep.join([str(dp) for dp in data])
+    values = sep.join([str(values_snippet) for values_snippet in values])
     if log:
         with getLogger(name=get_logger) as handler:
-            if isinstance(data, geolocbot.libs.pandas.DataFrame):
-                data = data.replace('\n', f'\n{" " * 46}')
-            getattr(handler, level, handler.info)(data)
-    print(data, file=file) if not be_quiet else do_nothing()
-    return data
-
-
-def ensure(condition, m):
-    """ Assert, but raising custom *Exception* objects. """
-    import operator
-    # dferr - default error, chx - exception choose
-    dferr, chx = geolocbot.exceptions.GeolocbotError, operator.or_
-    if not condition:
-        raise chx(dferr(m), m)
-    return True
+            if isinstance(values, geolocbot.libs.pandas.DataFrame):
+                values = values.replace('\n', f'\n{" " * 46}')
+            getattr(handler, level, handler.info)(values)
+    print(values, file=file) if not be_quiet else do_nothing()
+    return values
 
 
 getLogger = GetLogger
 
 
-def getter(meth):
+@no_type_collisions
+def getter(meth: typing.Callable):
     """ Decorator for getter methods. """
-    objn, ni = '_' + meth.__name__, NotImplemented
+    objn, ni = '_' + meth.__name__, TranslatableValue()
     def wrapper(*args, **__kwargs): return getattr(args[0], objn) if getattr(args[0], objn) is not None else ni
     return wrapper
 
 
-def deleter(meth):
+@no_type_collisions
+def deleter(meth: typing.Callable):
     """ Decorator for deleter methods. """
     def wrapper(*args, **__kwargs): setattr(args[0], '_' + meth.__name__, None)
     return wrapper
-
-
-def colsetter(meth):
-    def _stwrapper(*args, **kwargs):
-        col, df = kwargs['col'], kwargs['df']
-        if isinstance(col, str):
-            ensure(hasattr(df, col), 'no column named %r' % col)
-            kwargs['col'] = df[col]
-        return meth(*args, **kwargs)
-    return _stwrapper
-

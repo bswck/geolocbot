@@ -12,7 +12,9 @@ cfparser = libs.configparser.ConfigParser()
 
 
 def _validate_configuration_file(fname='geolocbot.conf'):
-    """ Checks whether the configuration file is valid to be evaluated. """
+    """ Checks whether the configuration file is valid to be evaluated.
+    @type fname: str
+    """
     dirpath, fname, require = abscd, fname, tools.ensure
     fpath = libs.os.path.join(dirpath, fname)
     _msgs = {
@@ -48,7 +50,7 @@ conf = _validate_configuration_file()
 def fetch_logger():
     """ Fetches the Geoloc-Bot`s logger. """
     # Could use logging.config.fileConfig() but pointless for further use
-    __loggingbasicConfig = {
+    logging_basic_config = {
         'filename': libs.os.path.join(abscd, cfparser.get('logging', 'filename')),
         'encoding': cfparser.get('logging', 'encoding'),
         'format': cfparser.get('logging', 'format'),
@@ -60,9 +62,9 @@ def fetch_logger():
     logging.disable(level=pywikibot.logging.VERBOSE)
     with tools.getLogger('requests') as req:
         req.setLevel(logging.CRITICAL)
-    logging.basicConfig(**__loggingbasicConfig)
-    with tools.getLogger('geolocbot') as __geolocbot_logger:
-        return __geolocbot_logger
+    logging.basicConfig(**logging_basic_config)
+    with tools.getLogger('geolocbot') as geolocbot_logger:
+        return geolocbot_logger
 
 
 def fetch_resources(buffers: dict):

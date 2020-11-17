@@ -9,7 +9,8 @@ from geolocbot.libs import *
 
 
 def log_in(*__a, _call=0):
-    """ Log in, etc. """
+    """ Log in, etc.
+    """
     ucf = geolocbot.loaders.fetch_bot_config()
     nonsa = pywikibot.Site('pl', 'nonsensopedia', user=ucf['user'])
     wd = pywikibot.Site('wikidata', 'wikidata', user=ucf['wikidata_user'])

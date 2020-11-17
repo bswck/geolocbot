@@ -19,13 +19,13 @@ class ConfigurationSetupError(GeolocbotError):
     """ Raised when loaders cannot validate configuration file. """
 
 
-class _TerytEntryError(GeolocbotError):
+class TerytFieldError(GeolocbotError):
     """ Exception class of `_TerytEntry`. """
 
 
-class ParserError(_TerytEntryError):
+class ParserError(TerytFieldError):
     """ Raised when parser fails. """
 
 
-class ResourceError(_TerytEntryError):
+class ResourceError(TerytFieldError):
     """ Raised if the field of `_TerytEntry` is empty. """
