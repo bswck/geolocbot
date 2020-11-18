@@ -440,13 +440,13 @@ class TerytField(abstract_class, metaclass=better_abstract_metaclass):
                 kwarg in self.kwargs, TypeError(self._msgs['unexpected-kwarg'] % ('search', kwarg, ', '.join(
                     self.kwargs)))
             )
-            expected_instance = bool if kwarg in self._optbool_values else (str, float, CodeTranslation)
+            expected_instance = bool if kwarg in self._optbool_values else (str, float, IdTranslation)
             unexpected_instance = self._msgs['unexpected-kwarg-instance'] % (
                 type(value).__name__, kwarg, ', '.join(
                             ['%r' % obj_type.__name__ for obj_type in expected_instance]
                         ) if isinstance(expected_instance, typing.Iterable) else type(expected_instance).__name__
             )
-            if isinstance(value, CodeTranslation):
+            if isinstance(value, IdTranslation):
                 _kwargs[kwarg] = str(value)
             ensure(isinstance(value, expected_instance), TypeError(unexpected_instance))
 
@@ -646,7 +646,7 @@ class TerytField(abstract_class, metaclass=better_abstract_metaclass):
             if value is not None:
                 setattr(
                     self, '_' + value_space,
-                    CodeTranslation(code=value, translation=self.translate(value_space, value))
+                    IdTranslation(ID=value, translation=self.translate(value_space, value))
                     if value_space in self.translatable_values
                     else value
                 )
