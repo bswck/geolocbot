@@ -4,15 +4,15 @@
 
 import geolocbot
 from geolocbot.libs import *
-from geolocbot.auxiliary_types import TranslatableValue
+
 be_quiet = False
 
 
-def ensure(condition, m: (str, Exception)):
+def ensure(logical_object, sox: (str, Exception)):
     """ Assert, but raising custom exceptions. """
     dferr = geolocbot.exceptions.GeolocbotError
-    if not condition:
-        raise dferr(m) | m
+    if not logical_object:
+        raise dferr(sox) | sox
     return True
 
 
@@ -46,10 +46,10 @@ def no_type_collisions(func_or_meth: typing.Callable):
         all_args = dict(**args_dict, **keyword_arguments)
         for argument_name, value in params.items():
             if arg_pos < len(all_args):
-                annotated_types = params[argument_name].annotation \
+                argument_annotation = params[argument_name].annotation \
                     if params[argument_name].annotation != params[argument_name].empty else \
                     None
-                if annotated_types is not None:
+                if argument_annotation is not None:
                     argument = all_args.pop(argument_name, NotImplemented)
                     if argument is NotImplemented:
                         break
@@ -58,13 +58,14 @@ def no_type_collisions(func_or_meth: typing.Callable):
                         type(argument).__name__,
                         argument_name,
                         ', '.join(
-                            ['%r' % obj_type.__name__ for obj_type in annotated_types]
-                        ) if isinstance(annotated_types, typing.Iterable) else type(annotated_types).__name__
+                            ['%r' % obj_type.__name__ for obj_type in argument_annotation]
+                        ) if isinstance(argument_annotation, typing.Iterable) else type(argument_annotation).__name__
                     ))
-                    ensure(isinstance(argument, annotated_types), err)
+                    ensure(isinstance(argument, argument_annotation), err)
                 arg_pos += 1
 
         return func_or_meth(*arguments, **keyword_arguments)
+
     return bodyguard
 
 
@@ -107,16 +108,48 @@ def output(*values,
 getLogger = GetLogger
 
 
-@no_type_collisions
-def getter(meth: typing.Callable):
+def getter_itself(meth: typing.Callable):
     """ Decorator for getter methods. """
-    objn, ni = '_' + meth.__name__, TranslatableValue()
+    objn, ni = '_' + meth.__name__, ''
     def wrapper(*args, **__kwargs): return getattr(args[0], objn) if getattr(args[0], objn) is not None else ni
     return wrapper
 
 
-@no_type_collisions
 def deleter(meth: typing.Callable):
     """ Decorator for deleter methods. """
     def wrapper(*args, **__kwargs): setattr(args[0], '_' + meth.__name__, None)
+    return wrapper
+
+
+@no_type_collisions
+def tfhook(check: typing.Callable):
+    @no_type_collisions
+    def inner(callable_: typing.Callable):
+        def checker(*_args, **kwargs):
+            self, args = (), list(_args)
+            if isinstance(args[0], geolocbot.searching.teryt.TerytField):
+                self = (args.pop(0),)
+            check(*self, _args=args, _kwargs=kwargs)
+            return callable_(*_args, **kwargs)
+
+        return checker
+
+    return inner
+
+
+def _rr_hook(_args, _kwargs):
+    exc = _args[0]
+    ensure(issubclass(exc, BaseException), 'exceptions must derive from BaseException')
+
+
+@tfhook(_rr_hook)
+@no_type_collisions
+def reraise(errtype: type = geolocbot.exceptions.GeolocbotError):
+    def wrapper(meth: typing.Callable):
+        def sieve(*args, **kwargs):
+            try:
+                meth(*args, **kwargs)
+            except (BaseException, Exception) as _err:
+                raise errtype from _err
+        return sieve
     return wrapper

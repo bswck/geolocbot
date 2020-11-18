@@ -1,10 +1,9 @@
 # This is the part of Geoloc-Bot for Nonsensopedia wiki (https://nonsa.pl/wiki/Main_Page).
 # Stim, 2020
 # GNU GPLv3 license
-#
 
 # (!) the order of imports is not accidental
 from geolocbot import auxiliary_types, exceptions, libs, _resources as resources, loaders, connecting, tools, searching
 
 output, logging = tools.output, loaders.fetch_logger()
-
+searching.teryt.IdTable = getattr(searching.teryt, '_IdTable')()

@@ -11,12 +11,19 @@ class GeolocbotBaseException(Exception):
 
 class GeolocbotError(GeolocbotBaseException):
     """ An error which occured when a Geoloc-Bot`s snippet was called. """
-    def __init__(self, m): self.m = m
-    def __or__(self, other): return self if isinstance(self.m, str) else other
+    def __init__(self, message):
+        self.message = message
+        super(GeolocbotError, self).__init__(message)
+
+    def __or__(self, other): return self if isinstance(self.message, str) else other
 
 
 class ConfigurationSetupError(GeolocbotError):
     """ Raised when loaders cannot validate configuration file. """
+
+
+class SearchError(GeolocbotError):
+    """ Raised when search failed. """
 
 
 class TerytFieldError(GeolocbotError):

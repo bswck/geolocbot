@@ -2,20 +2,20 @@
 # Stim, 2020
 # GNU GPLv3 license
 
-__all__ = ('TranslatableValue',)
+__all__ = ('CodeTranslation',)
 
 
-class TranslatableValue(object):
-    def __init__(self, raw='', translation=''):
-        self.raw = raw
+class CodeTranslation(object):
+    def __init__(self, code='', translation=''):
+        self.code = code
         self.translation = translation
 
-    def __getitem__(self, item): return getattr(self, item, NotImplemented)
-    def __repr__(self): return repr(dict(self))
-    def __str__(self): return str(self.raw) if self.raw else ''
-    def __add__(self, other): return str(self.raw) if self.raw else '' + other
+    def __getitem__(self, item): return getattr(self, item, '')
+    def __repr__(self): return '_ct(' + ', '.join(['%s=%r' % (k, v) for k, v in dict(self).items()]) + ')'
+    def __str__(self): return str(self.code) if self.code else ''
+    def __add__(self, other): return str(self.code) if self.code else '' + other
 
     def __iter__(self):
-        yield 'raw', self.raw
+        yield 'code', self.code
         if self.translation != '':
             yield 'translation', self.translation

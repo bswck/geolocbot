@@ -2,28 +2,31 @@
 # Stim, 2020
 # GNU GPLv3 license
 
-"""
-Searching tool for TERYT register subsystems.
-
-WARNING: Do not import this before importing loaders, otherwise searching classes will attempt to work on empty
-DataFrames.
-"""
+""" Searching tool for TERYT register subsystems. """
 
 from geolocbot.tools import *
 from geolocbot.libs import *
-import geolocbot
+from geolocbot.auxiliary_types import *
 
 
-TranslationDict = geolocbot.auxiliary_types.TranslatableValue
-Teryt = object
+class Teryt(object):
+    def __repr__(self): return representation(type(self).__name__, **dict(self))
 
-try:
-    resources = geolocbot._resources
-except NameError:
-    raise geolocbot.exceptions.ResourceError('please import %r before importing %r' % ('resources', 'searching'))
+    def __iter__(self):
+        for member_name in [n for n in self.__dict__.keys() if n[:1] != '_']:
+            yield member_name, getattr(self, member_name)
 
 
-class _SearchingTools(Teryt):
+resources = geolocbot._resources
+_transferred_searches = ()
+
+
+def get_transferred_searches():
+    for transfer in _transferred_searches:
+        yield transfer
+
+
+class _Tools(Teryt):
     def column_provider(self=Teryt):
         do_nothing(self)  # weak warning: best solution!
 
@@ -108,7 +111,7 @@ class _SearchingTools(Teryt):
     def __repr__(self): return representation('SearchingTools')
 
 
-class _TerytFieldSearch(Teryt):
+class _FieldSearch(Teryt):
     @no_type_collisions
     def __init__(
             self,
@@ -118,7 +121,6 @@ class _TerytFieldSearch(Teryt):
             msgs: dict,
             search_mode: str,
             value_spaces: dict,
-            errors: str = 'handle',
             case: bool,
             container_values: typing.Iterable,
             startswith_values: typing.Iterable,
@@ -130,7 +132,6 @@ class _TerytFieldSearch(Teryt):
         self.search_mode = search_mode
         self.value_spaces = value_spaces
         self.case = case
-        self.errors = errors
         self.search_indicators = {}
         self.ineffective_value_space = ''
         self.name_space_value = name_space_value
@@ -150,14 +151,14 @@ class _TerytFieldSearch(Teryt):
         self.search_indicators = dict(zip(keys, values))
         return self.search_indicators
 
-    def _real_search(self, search_indicators):
+    def _search(self, search_indicators):
         self.candidate = self.dataframe.copy()
         self.search_indicators = search_indicators
         value_spaces = self.value_spaces
         self.frames = [self.candidate]
 
         def initial_search():
-            self.candidate = getattr(_SearchingTools, self.search_mode)(
+            self.candidate = getattr(_Tools, self.search_mode)(
                 df=self.candidate,
                 col=value_spaces['name'],
                 value=self.name_space_value,
@@ -185,9 +186,9 @@ class _TerytFieldSearch(Teryt):
                     continue
                 stuff = dict(df=self.candidate, col=col, value=query, case=self.case)
                 self.candidate = \
-                    _SearchingTools.contains(**stuff) if value_space in self.container_values else \
-                    _SearchingTools.startswith(**stuff) if value_space in self.startswith_values else \
-                    _SearchingTools.equal(**stuff)
+                    _Tools.contains(**stuff) if value_space in self.container_values else \
+                    _Tools.startswith(**stuff) if value_space in self.startswith_values else \
+                    _Tools.equal(**stuff)
 
                 if self.failure():
                     self.candidate = self.frames[-1]
@@ -201,9 +202,7 @@ class _TerytFieldSearch(Teryt):
 
                 self.frames.append(self.candidate)
 
-        if not done:
-            search_loop()
-
+        search_loop() if not done else do_nothing()
         return self.candidate
 
     @no_type_collisions
@@ -211,11 +210,12 @@ class _TerytFieldSearch(Teryt):
             self,
             search_indicators: dict
     ):
-        return self._real_search(search_indicators=search_indicators)
+        """ Wrapper for self._search(). """
+        return self._search(search_indicators=search_indicators)
 
 
 class TerytField(abstract_class, metaclass=better_abstract_metaclass):
-    translate_table = None
+    translation_table = None
 
     def __init__(
             self,
@@ -226,6 +226,7 @@ class TerytField(abstract_class, metaclass=better_abstract_metaclass):
             terc_resource=resources.cached_teryt.terc,
             nts_resource=resources.cached_teryt.nts
     ):
+        geolocbot.tools.tf = self
         self._msgs: dict = {
             'args-assigned': 'cannot perform searching: please specify the arguments with their keys in the form '
                              '`key=value`, e.g. search(startswith=\'a\')',
@@ -256,7 +257,11 @@ class TerytField(abstract_class, metaclass=better_abstract_metaclass):
                 'found': '[%s] Result(s):',
                 'not-found': '[%s] Entry frame not found.',
             },
-            'parser-failed': 'parser failed: cannot parse more than one TERYT entry (got %s entries)'
+            'parser-failed': 'parser failed: cannot parse more than one TERYT entry (got %s entries)',
+            'not-teryt-subclass': 'cannot transfer search indicators not to TerytField subclass',
+            'not-parsed-for-indicators': 'cannot perform getting indicators from properties if search results were not '
+                                         'parsed (no parsed properties)',
+            'no-sfo': 'cannot evaluate subclass field object with provided name %r'
         }
 
         self.simc, self.terc, self.nts = simc_resource, terc_resource, nts_resource
@@ -265,23 +270,20 @@ class TerytField(abstract_class, metaclass=better_abstract_metaclass):
         ensure(self.field is not None, self._msgs['unknown-attr'] % self._field_name.lower())
         ensure(not self.field.empty, self._msgs['empty-field'])
         self._sfo: TerytField = sub  # subclass field object
+        self._gi_sfo = None  # subclass field object for indicators getting from properties
         self._candidate = None
         self._container_values = ('function',)
         self._nametype_values = ('equal', 'startswith', 'endswith', 'contains')
-        self._optbool_values = ('veinf', 'force_parse', 'parse', 'match_case', 'quiet')
+        self._optbool_values = ('veinf', 'force_parse', 'parse', 'by_codes', 'match_case', 'quiet')
         self._perr = geolocbot.exceptions.ParserError
         self._startswith_values = ('date',)
         self.case = None
         self.cols, self.len = [col for col in self.field.columns], len(self.field)
         self.conflicts = (self._nametype_values, ('force_parse', 'parse'))
-        self.fparse = None
-        self.kwargs = None
-        self.name_space_value = None
-        self.parse = None
-        self.search_indicators = None
-        self.search_kwargs = None
-        self.search_mode = None
-        self.veinf = None
+        self.fparse, self.kwargs, self.name_space_value, self.parse = None, None, None, None
+        self.search_indicators, self.search_kwargs, self.search_mode, self.veinf = None, None, None, None
+        self.parsed = False
+        self.to_get_id = {}
 
         # Single entry values
         self._id = None  # (!) real value is assigned by parser(s)
@@ -302,6 +304,19 @@ class TerytField(abstract_class, metaclass=better_abstract_metaclass):
         self._results = None  # (!) real value is assigned by parser(s)
         # End of single entry values
 
+    def __repr__(self): return representation(self._field_name + '_field' if not self.parsed
+                                              else self._field_name + '_field_and_entry',
+                                              **dict(self))
+
+    def __iter__(self):
+        for k in self.value_spaces:
+            if eval('self.%s' % k):
+                yield k, eval('self.%s' % k)
+
+    def __del__(self):
+        for k in self.value_spaces:
+            delattr(self, k)
+
     @abstractattribute
     def value_spaces(self): return {}
 
@@ -309,205 +324,181 @@ class TerytField(abstract_class, metaclass=better_abstract_metaclass):
     def translatable_values(self): return {}
 
     @property
-    def id(self) -> "str": return self._id
-
-    @id.getter
-    @getter
-    def id(self):
-        return
-
-    @id.deleter
-    @deleter
-    def id(self):
-        return
-
-    @property
-    def level(self) -> "str": return self._level
-
-    @level.getter
-    @getter
-    def level(self):
-        return
-
+    @getter_itself
+    def level(self): return
     @level.deleter
     @deleter
     def level(self): return
 
     @property
-    def integral_id(self) -> "str": return self._integral_id
-    @property
-    def region(self) -> "str": return self._region
-    @property
-    def subregion(self) -> "str": return self._subregion
-    @property
-    def function(self) -> "str": return self._function
-    @property
-    def voivodship(self) -> "str": return self._voivodship
-    @property
-    def powiat(self) -> "str": return self._powiat
-    @property
-    def gmina(self) -> "str": return self._gmina
-    @property
-    def gmina_type(self) -> "str": return self._gmina_type
-    @property
-    def locality_type(self) -> "str": return self._locality_type
-    @property
-    def name(self) -> "str": return self._name
-    @property
-    def date(self) -> "str": return self._date
-    @property
-    def entry_frame(self) -> "pandas.DataFrame": return self._entry_frame
-    @property
-    def results(self) -> "pandas.DataFrame": return self._results
-
-    # Getters
-    @integral_id.getter
-    @getter
-    def integral_id(self): return
-    @region.getter
-    @getter
+    @getter_itself
     def region(self): return
-    @subregion.getter
-    @getter
-    def subregion(self): return
-    @function.getter
-    @getter
-    def function(self): return
-    @voivodship.getter
-    @getter
-    def voivodship(self): return
-    @powiat.getter
-    @getter
-    def powiat(self): return
-    @gmina.getter
-    @getter
-    def gmina(self): return
-    @gmina_type.getter
-    @getter
-    def gmina_type(self): return
-    @locality_type.getter
-    @getter
-    def locality_type(self): return
-    @name.getter
-    @getter
-    def name(self): return
-    @date.getter
-    @getter
-    def date(self): return
-    @entry_frame.getter
-    @getter
-    def entry_frame(self): return
-    @results.getter
-    @getter
-    def results(self): return pandas.DataFrame()
-    # End of getters
-
-    # Deleters
-    @integral_id.deleter
-    @deleter
-    def integral_id(self): return
-    @function.deleter
-    @deleter
-    def function(self): return
     @region.deleter
     @deleter
     def region(self): return
+
+    @property
+    @getter_itself
+    def subregion(self): return
     @subregion.deleter
     @deleter
     def subregion(self): return
+
+    @property
+    @getter_itself
+    def voivodship(self): return
     @voivodship.deleter
     @deleter
     def voivodship(self): return
+
+    @property
+    @getter_itself
+    def powiat(self): return
     @powiat.deleter
     @deleter
     def powiat(self): return
+
+    @property
+    @getter_itself
+    def gmina(self): return
     @gmina.deleter
     @deleter
     def gmina(self): return
+
+    @property
+    @getter_itself
+    def gmina_type(self): return
     @gmina_type.deleter
     @deleter
     def gmina_type(self): return
+
+    @property
+    @getter_itself
+    def locality_type(self): return
     @locality_type.deleter
     @deleter
     def locality_type(self): return
+
+    @property
+    @getter_itself
+    def name(self): return
     @name.deleter
     @deleter
     def name(self): return
+
+    @property
+    @getter_itself
+    def function(self): return
+    @function.deleter
+    @deleter
+    def function(self): return
+
+    @property
+    @getter_itself
+    def id(self): return
+    @id.deleter
+    @deleter
+    def id(self): return
+
+    @property
+    @getter_itself
+    def integral_id(self): return
+    @integral_id.deleter
+    @deleter
+    def integral_id(self): return
+
+    @property
+    @getter_itself
+    def date(self): return
     @date.deleter
     @deleter
     def date(self): return
+
+    @property
+    @getter_itself
+    def entry_frame(self): return
     @entry_frame.deleter
     @deleter
     def entry_frame(self): return
+
+    @property
+    @getter_itself
+    def results(self): return
     @results.deleter
     @deleter
     def results(self): return
-    # End of deleters
 
-    def failure(self): return self._candidate.empty or self._candidate.equals(self.field)
+    def _search_hook(self, _args, _kwargs):
+        ensure(not _args, self._msgs['args-assigned'])
+        ensure(_kwargs, ValueError(self._msgs['no-kwargs']))
+        self.search_kwargs = self._nametype_values + tuple(self.value_spaces.keys())
+        self.kwargs = self.search_kwargs + self._optbool_values
 
-    @no_type_collisions
-    def _validate(self, kwargs: dict):
-        ensure(not not kwargs, ValueError(self._msgs['no-kwargs']))
-
-        # Check if arguments and their types are expected
-        for kwarg, value in kwargs.items():
+        # 1. Check if arguments and their types are expected
+        for kwarg, value in _kwargs.items():
             ensure(
                 kwarg in self.kwargs, TypeError(self._msgs['unexpected-kwarg'] % ('search', kwarg, ', '.join(
                     self.kwargs)))
             )
-            expected_instance = bool if kwarg in self._optbool_values else (str, float, TranslatableValue)
+            expected_instance = bool if kwarg in self._optbool_values else (str, float, CodeTranslation)
             unexpected_instance = self._msgs['unexpected-kwarg-instance'] % (
                 type(value).__name__, kwarg, ', '.join(
                             ['%r' % obj_type.__name__ for obj_type in expected_instance]
                         ) if isinstance(expected_instance, typing.Iterable) else type(expected_instance).__name__
             )
-            if isinstance(value, TranslatableValue):
-                kwargs[kwarg] = str(value)
+            if isinstance(value, CodeTranslation):
+                _kwargs[kwarg] = str(value)
             ensure(isinstance(value, expected_instance), TypeError(unexpected_instance))
 
+        # 2. Check if any search keyword arg has been provided
         ensure(
-            any([kwarg in kwargs for kwarg in self.search_kwargs]),
+            any([kwarg in _kwargs for kwarg in self.search_kwargs]),
             self._msgs['no-search-kwargs'] % ', '.join(self.search_kwargs)
         )
 
-        for conflict in self.conflicts:
-            conflicted = []
-            for arg in conflict:
-                if arg in kwargs:
-                    formatter = ' and '.join(['\'%s=…\'' % x for x in conflict])
-                    ensure(not conflicted, self._msgs['conflicting-kwargs'] % formatter)
-                    conflicted.append(arg)
+        # 3. Handle conflicts
+        for conflicted in self.conflicts:
+            conflict = []
+            for arg in conflicted:
+                if arg in _kwargs:
+                    formatter = ' and '.join(['\'%s=…\'' % x for x in conflicted])
+                    ensure(not conflict, self._msgs['conflicting-kwargs'] % formatter)
+                    conflict.append(arg)
 
         self.name_space_value, self.fparse = None, True
         modes = self._nametype_values + ('no_name_col',)
         self.search_mode = modes[-1]
-        for kwarg in kwargs.copy():
+
+        # 4. Get the search mode and name-type value
+        for kwarg in _kwargs.copy():
             for mode in self._nametype_values:
                 if kwarg == mode:
-                    self.search_mode, self.name_space_value = mode, kwargs[mode]
-                    del kwargs[mode]
+                    self.search_mode, self.name_space_value = mode, _kwargs[mode]
+                    del _kwargs[mode]
 
-        self.veinf = kwargs.pop('veinf', False)
-        if kwargs.pop('quiet', False):
+        # 5. Pop the boolean options
+        self.veinf = _kwargs.pop('veinf', False)
+        if _kwargs.pop('quiet', False):
             geolocbot.tools.be_quiet = True
-        self.parse = kwargs.pop('parse', True)
-        self.fparse, self.case = kwargs.pop('force_parse', False), kwargs.pop('match_case', False)
-        self.search_indicators = kwargs
+        self.parse = _kwargs.pop('parse', True)
+        self.fparse, self.case = _kwargs.pop('force_parse', False), _kwargs.pop('match_case', False)
+        self.by_codes = _kwargs.pop('by_codes', False)
+
+        # 6. Set the search indicators
+        if not self.by_codes:
+            _kwargs = self._get_IDs(**_kwargs)
+        self.search_indicators = _kwargs
         return True
 
-    def search(self, *args, **kwargs) -> "TerytField":
-        ensure(not args, self._msgs['args-assigned'])
-        ensure(self._sfo is not None, self._msgs['subclass-is-none'])
+    # @reraise(geolocbot.exceptions.SearchError)  ← TODO
+    @tfhook(_search_hook)
+    def search(self, *_args, **_kwargs) -> "TerytField":
         value_spaces = self.value_spaces
-        self.search_kwargs = self._nametype_values + tuple(value_spaces.keys())
-        self.kwargs = self.search_kwargs + self._optbool_values
-        self._validate(kwargs)
         self._candidate, frames = self.field, [self.field]
         for value_space in self.search_indicators:
             _col = value_spaces[value_space]
             self.field[_col] = self.field[value_spaces[value_space]].map(str)  # mapping all to strings
-        self._candidate = _TerytFieldSearch(
+        self._candidate = _FieldSearch(
             dataframe=self.field,
             field_name=self._field_name,
             msgs=self._msgs,
@@ -520,6 +511,149 @@ class TerytField(abstract_class, metaclass=better_abstract_metaclass):
         )(search_indicators=self.search_indicators)
 
         return self._results_handler()
+
+    @abstractmethod
+    def fetch_id(self) -> "TerytField":
+        pass
+
+    def _gi_hook(self, _args, _kwargs):
+        sfo_n = _args[0]
+        ensure(all([sfo_n, not sfo_n.isspace(), globals().get(sfo_n) is not None]), self._msgs['no-sfo'] % sfo_n)
+        self._gi_sfo = eval(sfo_n)
+        ensure(
+            issubclass(type(self._gi_sfo), TerytField), self._msgs['not-teryt-subclass']
+        )
+        ensure(self.parsed, self._msgs['not-parsed-for-indicators'])
+
+    @tfhook(_gi_hook)
+    @no_type_collisions
+    def get_indicators(self, _sfo_name: str):
+        sfo = self._gi_sfo
+        properties = dict(self)
+        name_space_value = properties.pop('name')
+        prop_copy = properties.copy()
+        [
+            properties.__setitem__(k, str(v))
+            if k in sfo.value_spaces and str(v)
+            else properties.__delitem__(k)
+            for k, v in prop_copy.items()
+        ]
+        kwds = {
+            'by_codes': True,
+            'equal': name_space_value,
+            'veinf': self.veinf,
+            'force_parse': self.fparse,
+            'match_case': self.case,
+        }
+        yield dict(**properties, **kwds)
+        yield sfo
+
+    @no_type_collisions
+    def transfer(self, sfo_name: str) -> "TerytField":
+        stuff, sfo = self.get_indicators(sfo_name)
+        global _transferred_searches
+        _transferred_searches = _transferred_searches + (self, sfo.search(**stuff))
+        return _transferred_searches[-1]
+
+    @no_type_collisions
+    def _gids_hook(self, _args, _kwargs):
+        ek, err = tuple(self.value_spaces.keys()), TypeError
+        # 1. Check if all keyword args are expected
+        [ensure(kwarg in ek, err(self._msgs['unexpected-kwarg'] % ('code', kwarg, ', '.join(ek)))) for kwarg in _kwargs]
+        # 2. Parse
+        for kwn, kwv in _kwargs.items():
+            if hasattr(IdTable, kwn + 's'):
+                self.to_get_id.update({kwn: kwv})
+
+    @tfhook(_gids_hook)
+    def _get_IDs(self, **_kwargs):
+        id_indicators = {}
+        for value_space, value in self.to_get_id.items():
+            id_dataframe = getattr(IdTable, value_space + 's')
+            entry = _FieldSearch(
+                dataframe=id_dataframe,
+                field_name=getattr(self.translation_table, '_field_name'),
+                msgs=self._msgs,
+                search_mode='equal',
+                value_spaces=self.value_spaces,
+                case=False,
+                container_values=self._container_values,
+                startswith_values=self._startswith_values,
+                name_space_value=value
+            )(search_indicators=id_indicators)
+            id_snippet = entry.iat[0, entry.columns.get_loc(self.value_spaces[value_space])]
+            id_indicators.update({value_space: id_snippet})
+        return id_indicators
+
+    def _translate_hook(self, _args, _kwargs):
+        value_space = _args[0]
+        # value = _args[1]
+        ensure(
+            value_space in self.translatable_values,
+            'untranslatable value space %r' % value_space
+        )
+
+    @tfhook(_translate_hook)
+    @no_type_collisions
+    def translate(self, value_space: str, value: str):
+        value = str(value)
+        translation_table = self.translation_table
+        indicators = {}
+        spaces = list(self.value_spaces.keys())
+
+        if value_space != spaces[0]:
+            quantum = spaces.index(value_space) - 1
+            for rot in range(quantum + 1):
+                prev_ = spaces[quantum - rot]
+                indicators[prev_] = str(getattr(self, '_' + prev_))
+        
+        indicators[value_space] = value
+        
+        if value_space != list(self.value_spaces.keys())[-1]:
+            next_ = list(self.value_spaces.keys())[list(self.value_spaces.keys()).index(value_space) + 1]
+            indicators[next_] = 'nan'
+
+        translation_dataframe = _FieldSearch(
+            dataframe=translation_table.field,
+            field_name=getattr(translation_table, '_field_name'),
+            msgs=getattr(translation_table, '_msgs'),
+            search_mode='no_name_col',
+            value_spaces=translation_table.value_spaces,
+            case=self.case,
+            container_values=getattr(translation_table, '_container_values'),
+            startswith_values=getattr(translation_table, '_startswith_values'),
+        )(search_indicators=indicators)
+
+        translation = translation_dataframe.iat[
+            0, translation_dataframe.columns.get_loc(translation_table.value_spaces['name'])
+        ]
+
+        return translation
+    
+    def failure(self):
+        return self._candidate.empty or self._candidate.equals(self.field)
+
+    @no_type_collisions
+    def parse_single_entry(self, dataframe: pandas.DataFrame = None) -> "type(None)":
+        dataframe, value_spaces = dataframe if dataframe is not None else self.results, self.value_spaces
+
+        ensure(len(dataframe) == 1, self._perr(self._msgs['parser-failed'] % len(dataframe)))
+        self._entry_frame = dataframe
+
+        for value_space, real_value in value_spaces.items():
+            value = dataframe.iat[0, dataframe.columns.get_loc(real_value)]
+            value = None if value == 'nan' or value is nan else value
+            if value is not None:
+                setattr(
+                    self, '_' + value_space,
+                    CodeTranslation(code=value, translation=self.translate(value_space, value))
+                    if value_space in self.translatable_values
+                    else value
+                )
+
+        self.fetch_id()
+        self.parsed = True
+        return self._sfo
 
     def _results_handler(self):
         if self.failure():
@@ -537,117 +671,6 @@ class TerytField(abstract_class, metaclass=better_abstract_metaclass):
                 self.parse_single_entry()
             return self._sfo
 
-    @abstractmethod
-    def fetch_id(self) -> "TerytField":
-        pass
-
-    def properties_to_indicators(self, field_object_name: str):
-        field_object = eval(field_object_name)
-        ensure(
-            issubclass(type(field_object), TerytField), 'cannot transfer search indicators not to TerytField subclass'
-        )
-        properties = dict(self)
-        name_space_value = properties.pop('name').raw
-        prop_copy = properties.copy()
-        [
-            properties.__setitem__(k, dict(v)['raw'])
-            if k in field_object.value_spaces and dict(v)['raw']
-            else properties.__delitem__(k)
-            for k, v in prop_copy.items()
-        ]
-        kwds = {
-            self.search_mode: name_space_value,
-            'veinf': self.veinf,
-            'force_parse': self.fparse,
-            'match_case': self.case,
-        }
-        return dict(
-            zip(
-                list(properties.keys()) + list(kwds.keys()),
-                list(properties.values()) + list(kwds.values())
-            )
-        ), field_object
-
-    @no_type_collisions
-    def transfer(self, field_object_name: str) -> "TerytField":
-        stuff, field_object = self.properties_to_indicators(field_object_name=field_object_name)
-        return field_object.search(**stuff)
-
-    @no_type_collisions
-    def translate(self, value_space: str, value: str):
-        ensure(
-            value_space in self.translatable_values['locally'] or value_space in self.translatable_values['globally'],
-            'untranslatable value space %r' % value_space
-        )
-        value = str(value)
-        trans_mode = 'locally' if value_space in self.translatable_values['locally'] else 'globally'
-        indicators = {}
-        spaces = list(self.value_spaces.keys())
-
-        if value_space != spaces[0]:
-            quantum = spaces.index(value_space) - 1
-            for q in range(quantum + 1):
-                prev_value_space = spaces[quantum - q]
-                indicators[prev_value_space] = str(getattr(self, '_' + prev_value_space))
-        indicators[value_space] = value
-        if value_space != list(self.value_spaces.keys())[-1]:
-            next_value_space = list(self.value_spaces.keys())[list(self.value_spaces.keys()).index(value_space) + 1]
-            indicators[next_value_space] = 'nan'
-
-        translate_table = self.translate_table if trans_mode == 'globally' else self
-
-        translation_dataframe = _TerytFieldSearch(
-            dataframe=translate_table.field,
-            field_name=getattr(translate_table, '_field_name'),
-            msgs=getattr(translate_table, '_msgs'),
-            search_mode='no_name_col',
-            value_spaces=translate_table.value_spaces,
-            errors='ignore',
-            case=self.case,
-            container_values=getattr(translate_table, '_container_values'),
-            startswith_values=getattr(translate_table, '_startswith_values'),
-        )(search_indicators=indicators)
-
-        translation = translation_dataframe.iat[
-            0, translation_dataframe.columns.get_loc(translate_table.value_spaces['name'])
-        ]
-
-        return translation
-
-    @no_type_collisions
-    def parse_single_entry(self, dataframe: pandas.DataFrame = None) -> "type(None)":
-        dataframe, value_spaces = dataframe if dataframe is not None else self.results, self.value_spaces
-
-        ensure(len(dataframe) == 1, self._perr(self._msgs['parser-failed'] % len(dataframe)))
-        self._entry_frame = dataframe
-
-        # Parsing
-        for value_space, real_value in value_spaces.items():
-            value = dataframe.iat[0, dataframe.columns.get_loc(real_value)]
-            value = None if value == 'nan' or value is nan else value
-            if value is not None:
-                setattr(
-                    self, '_' + value_space,
-                    TranslatableValue(raw=value, translation=self.translate(value_space, value))
-                    if value_space in self.translatable_values['globally']
-                    or value_space in self.translatable_values['locally']
-                    else TranslatableValue(raw=value)
-                )
-
-        self.fetch_id()
-        return self._sfo
-
-    def __repr__(self): return geolocbot.tools.representation(self._field_name + '_entry', **dict(self))
-
-    def __iter__(self):
-        for k in self.value_spaces:
-            if eval('self.%s' % k) is not NotImplemented:
-                yield k, eval('self.%s' % k)
-
-    def __del__(self):
-        for k in self.value_spaces:
-            delattr(self, k)
-
 
 class Terc(TerytField):
     def __init__(self, terc_resource=resources.cached_teryt.terc):
@@ -662,24 +685,16 @@ class Terc(TerytField):
             'date': 'STAN_NA',
         }
         self.translatable_values = \
-            {
-                'globally':
-                    (
-                        'voivodship',
-                        'powiat',
-                        'gmina',
-                        'gmina_type',
-                    ),
-                'locally':
-                    ()
-            }
-
-    def getstr(self, attrname):
-        str_ = getattr(self, attrname, TranslatableValue()).raw
-        return str_ if str_ is not NotImplemented or str_ is not None else ''
+            (
+                'voivodship',
+                'powiat',
+                'gmina',
+                'gmina_type',
+            )
+        TerytField.translation_table = self
 
     def fetch_id(self):
-        self._id = self.getstr('voivodship') + self.getstr('powiat') + self.getstr('gmina') + self.getstr('gmina_type')
+        self._id = str('voivodship') + str('powiat') + str('gmina') + str('gmina_type')
         return self
 
 
@@ -698,17 +713,12 @@ class Simc(TerytField):
             'date': 'STAN_NA',
         }  # (!) MZ column is static (only values == 1), no need to implement it
         self.translatable_values = \
-            {
-                'globally':
-                    (
-                        'voivodship',
-                        'powiat',
-                        'gmina',
-                        'gmina_type',
-                    ),
-                'locally':
-                    ()
-            }
+            (
+                'voivodship',
+                'powiat',
+                'gmina',
+                'gmina_type'
+            )
 
     def fetch_id(self, dataframe=None):
         dataframe = dataframe if dataframe is not None else self.results
@@ -733,28 +743,23 @@ class Nts(TerytField):
             'date': 'STAN_NA',
         }
         self.translatable_values = \
-            {
-                'globally':
-                    (
-                        'level',
-                        'region',
-                        'voivodship',
-                        'subregion',
-                        'powiat',
-                        'gmina',
-                        'gmina_type',
-                    ),
-                'locally':
-                    ()
-            }
+            (
+                'level',
+                'region',
+                'voivodship',
+                'subregion',
+                'powiat',
+                'gmina',
+                'gmina_type',
+            )
 
     def fetch_id(self, dataframe=None):
         self._id = self._region + self._subregion + self._voivodship + self._powiat + self._gmina + self._gmina_type
         return self
 
 
-# Modify params for future instanced classes (in variables `simc_filter', `terc_filter', `nts_filter') assigning
-# different values to `params' in the following form:
+# You can modify params for future instanced classes (in variables *simc_filter*, *terc_filter*, *nts_filter*) assigning
+# custom values in the following form:
 params = {
     'simc': resources.cached_teryt.simc,
     'terc': resources.cached_teryt.terc,
@@ -762,5 +767,18 @@ params = {
 }
 simc = Simc(simc_resource=params['simc'])
 terc = Terc(terc_resource=params['terc'])
-TerytField.translate_table = Terc(terc_resource=params['terc'])
 nts = Nts(nts_resource=params['nts'])
+
+
+# (!) never ever instantiate _IdTable in →this← file
+class _IdTable(Teryt):
+    def __init__(self):
+        self._search = TerytField.translation_table.search
+        self.regions = self._search(function='region', by_codes=True, quiet=True).results
+        self.subregions = self._search(function='podregion', by_codes=True, quiet=True).results
+        self.voivodships = self._search(function='województwo', by_codes=True, quiet=True).results
+        self.powiats = self._search(function='powiat', by_codes=True, quiet=True).results
+        self.gminas = self._search(function='gmina', by_codes=True, quiet=True).results
+
+
+IdTable = Teryt  # (!) real value is: _IdTable()
