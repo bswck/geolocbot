@@ -22,7 +22,7 @@ _transferred_searches = ()
 
 
 def get_transferred_searches():
-    for transfer in _transferred_searches:
+    for transfer in tuple(set(_transferred_searches)):
         yield transfer
 
 
@@ -283,7 +283,8 @@ class TerytField(abstract_class, metaclass=better_abstract_metaclass):
         self.fparse, self.kwargs, self.name_space_value, self.parse = None, None, None, None
         self.search_indicators, self.search_kwargs, self.search_mode, self.veinf = None, None, None, None
         self.parsed = False
-        self.to_get_id = {}
+        self._to_get_id = {}
+        self._rest = {}
 
         # Single entry values
         self._id = None  # (!) real value is assigned by parser(s)
@@ -563,12 +564,14 @@ class TerytField(abstract_class, metaclass=better_abstract_metaclass):
         # 2. Parse
         for kwn, kwv in _kwargs.items():
             if hasattr(IdTable, kwn + 's'):
-                self.to_get_id.update({kwn: kwv})
+                self._to_get_id.update({kwn: kwv})
+            self._rest.update({kwn: kwv})
 
     @tfhook(_gids_hook)
     def _get_IDs(self, **_kwargs):
-        id_indicators = {}
-        for value_space, value in self.to_get_id.items():
+        id_indicators = {**self._rest}
+        spaces = list(self.value_spaces.keys())
+        for value_space, value in self._to_get_id.items():
             id_dataframe = getattr(IdTable, value_space + 's')
             entry = _FieldSearch(
                 dataframe=id_dataframe,
@@ -583,6 +586,11 @@ class TerytField(abstract_class, metaclass=better_abstract_metaclass):
             )(search_indicators=id_indicators)
             id_snippet = entry.iat[0, entry.columns.get_loc(self.value_spaces[value_space])]
             id_indicators.update({value_space: id_snippet})
+            if value_space != spaces[0]:
+                quantum = spaces.index(value_space) - 1
+                for rot in range(quantum + 1):
+                    prev_ = spaces[quantum - rot]
+                    id_indicators[prev_] = entry.iat[0, entry.columns.get_loc(self.value_spaces[prev_])]
         return id_indicators
 
     def _translate_hook(self, _args, _kwargs):
@@ -754,7 +762,13 @@ class Nts(TerytField):
             )
 
     def fetch_id(self, dataframe=None):
-        self._id = self._region + self._subregion + self._voivodship + self._powiat + self._gmina + self._gmina_type
+        self._id = str(self._level) + \
+                   str(self._region) + \
+                   str(self._subregion) + \
+                   str(self._voivodship) + \
+                   str(self._powiat) + \
+                   str(self._gmina) + \
+                   str(self._gmina_type)
         return self
 
 
@@ -774,8 +788,8 @@ nts = Nts(nts_resource=params['nts'])
 class _IdTable(Teryt):
     def __init__(self):
         self._search = TerytField.translation_table.search
-        self.regions = self._search(function='region', by_codes=True, quiet=True).results
-        self.subregions = self._search(function='podregion', by_codes=True, quiet=True).results
+        self.regions = nts.search(function='region', by_codes=True, quiet=True).results
+        self.subregions = nts.search(function='podregion', by_codes=True, quiet=True).results
         self.voivodships = self._search(function='województwo', by_codes=True, quiet=True).results
         self.powiats = self._search(function='powiat', by_codes=True, quiet=True).results
         self.gminas = self._search(function='gmina', by_codes=True, quiet=True).results
