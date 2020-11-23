@@ -5,29 +5,27 @@
 """ Geoloc-Bot exceptions. """
 
 
-class GeolocbotBaseException(Exception):
-    __slots__ = ()
+class BotError(Exception):
+    """ An error which occured when a Geoloc-Bot's snippet was called. """
+    __slots__ = ('message',)
 
-
-class GeolocbotError(GeolocbotBaseException):
-    """ An error which occured when a Geoloc-Bot`s snippet was called. """
     def __init__(self, message):
         self.message = message
-        super(GeolocbotError, self).__init__(message)
+        super(BotError, self).__init__(message)
 
-    def __or__(self, other): return self if isinstance(self.message, str) else other
-
-
-class ConfigurationSetupError(GeolocbotError):
-    """ Raised when loaders cannot validate configuration file. """
+    def __bool__(self): return isinstance(self.message, str)
 
 
-class SearchError(GeolocbotError):
+class ConfigurationSetupError(BotError):
+    """ Raised when *loaders* could not validate configuration file. """
+
+
+class SearchError(BotError):
     """ Raised when search failed. """
 
 
-class TerytFieldError(GeolocbotError):
-    """ Exception class of `_TerytEntry`. """
+class TerytFieldError(BotError):
+    """ Exception class of *TerytField*. """
 
 
 class ParserError(TerytFieldError):
@@ -35,4 +33,4 @@ class ParserError(TerytFieldError):
 
 
 class ResourceError(TerytFieldError):
-    """ Raised if the field of `_TerytEntry` is empty. """
+    """ Raised e.g. if the field of *TerytEntry* is empty. """

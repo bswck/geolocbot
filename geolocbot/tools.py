@@ -7,26 +7,38 @@ from geolocbot.libs import *
 
 be_quiet = False
 
+# colors
+white = u'\u001b[30m'
+red = u'\u001b[31m'
+green = u'\u001b[32m'
+yellow = u'\u001b[33m'
+blue = u'\u001b[34m'
+magenta = u'\u001b[35m'
+cyan = u'\u001b[36m'
+grey = u'\u001b[37m'
+r = u'\u001b[0m'
+b = u'\033[1m'
+br = u'\033[0m'
 
-def ensure(logical_object, sox: (str, Exception)):
-    """ Assert, but raising custom exceptions. """
-    dferr = geolocbot.exceptions.GeolocbotError
+
+def ensure(logical_object, xm: (str, Exception)):
+    """ Asserts, but raises custom exceptions. """
+    dferr = geolocbot.exceptions.BotError
     if not logical_object:
-        raise dferr(sox) | sox
+        raise dferr(xm) or xm
+    # else:
     return True
 
 
-def no_type_collisions(func_or_meth: typing.Callable):
-    ensure(callable(func_or_meth), TypeError('object %r is not callable' % func_or_meth))
-    sign = inspect.signature(func_or_meth)
+def no_type_collisions(callable_: typing.Callable):
+    ensure(callable(callable_), TypeError('object %r is not callable' % callable_))
+    sign = inspect.signature(callable_)
     params = sign.parameters
 
-    def bodyguard(*arguments, **keyword_arguments):
-        arg_pos = 0
-        args_dict = {}
-        hold, key, arg = False, 0, ''
+    def typechecker(*arguments, **keyword_arguments):
+        hold, key, arg_pos, arg, args_dict = False, 0, 0, '', {}
 
-        # zip args with their signatured names
+        # 1. Establish arguments' keys.
         for quantum in range(len(arguments)):
             if not hold:
                 key = list(params.keys())[quantum]
@@ -43,30 +55,34 @@ def no_type_collisions(func_or_meth: typing.Callable):
                 args_dict.update({key: current_arg})
                 hold = False
 
-        all_args = dict(**args_dict, **keyword_arguments)
+        _args = dict(**args_dict, **keyword_arguments)
+
+        # 2. Check if the real types of arguments and keyword arguments passed are matching their annotated types.
         for argument_name, value in params.items():
-            if arg_pos < len(all_args):
+            if arg_pos < len(_args):
                 argument_annotation = params[argument_name].annotation \
                     if params[argument_name].annotation != params[argument_name].empty else \
                     None
                 if argument_annotation is not None:
-                    argument = all_args.pop(argument_name, NotImplemented)
+                    argument = _args.pop(argument_name, NotImplemented)
                     if argument is NotImplemented:
                         break
-                    err = TypeError('%s() got an unexpected type %r of %r parameter (expected type(s): %r)' % (
-                        func_or_meth.__name__,
-                        type(argument).__name__,
-                        argument_name,
-                        ', '.join(
-                            ['%r' % obj_type.__name__ for obj_type in argument_annotation]
-                        ) if isinstance(argument_annotation, typing.Iterable) else type(argument_annotation).__name__
-                    ))
+                    argtype_name = type(argument).__name__ if type(argument).__name__ != 'type' else argument
+                    err = TypeError(
+                        f'{callable_.__name__!s}() got an unexpected type {argtype_name!r} of parameter '
+                        f'{argument_name!r} (expected type(s): %s)' % (
+                            ', '.join(
+                                [f'{obj_type.__name__!r}' for obj_type in argument_annotation]
+                            )
+                            if isinstance(argument_annotation, typing.Iterable)
+                            else type(argument_annotation).__name__
+                        ))
                     ensure(isinstance(argument, argument_annotation), err)
                 arg_pos += 1
 
-        return func_or_meth(*arguments, **keyword_arguments)
-
-    return bodyguard
+        # 3. All checked: return the called function or method.
+        return callable_(*arguments, **keyword_arguments)
+    return typechecker
 
 
 def do_nothing(*__args, **__kwargs): pass
@@ -74,7 +90,6 @@ def do_nothing(*__args, **__kwargs): pass
 
 class GetLogger(object):
     """ Equivalent for logging.getLogger() made for ``with`` statement syntax. """
-
     def __init__(self, name='geolocbot'): self.name = name
     def __enter__(self): return geolocbot.libs.logging.getLogger(self.name)
     def __exit__(self, exc_type, exc_val, exc_tb): pass
@@ -82,8 +97,8 @@ class GetLogger(object):
 
 @no_type_collisions
 def representation(cls_name: str, **kwargs):
-    kwargs = '(' + ', '.join(['\n    %-13s =    %r' % (k, v) for k, v in kwargs.items()]) + '\n)' if kwargs else ''
-    return '%s%s' % (cls_name, kwargs)
+    kwargs = '(' + ', '.join(['\n    %-17s =    %r' % (k, v) for k, v in kwargs.items()]) + '\n)' if kwargs else ''
+    return f'{cls_name!s}{kwargs!s}'
 
 
 @no_type_collisions
@@ -94,62 +109,76 @@ def output(*values,
            log: bool = True,
            get_logger: str = 'geolocbot'):
     """ Outputting function. """
+    # 1. Get the stream file.
     file = getattr(sys, file, sys.stdout)
+
+    # 2. Concatenate the values to an output form.
     values = sep.join([str(values_snippet) for values_snippet in values])
+
+    # 3. Log the values.
     if log:
-        with getLogger(name=get_logger) as handler:
+        with GetLogger(name=get_logger) as handler:
             if isinstance(values, geolocbot.libs.pandas.DataFrame):
                 values = values.replace('\n', f'\n{" " * 46}')
             getattr(handler, level, handler.info)(values)
+
+    # 4. Print the values.
     print(values, file=file) if not be_quiet else do_nothing()
+
+    # 5. Return the values.
     return values
 
 
-getLogger = GetLogger
+def underscored(meth: typing.Callable):
+    """ Return value by its name with underscore as first character. """
+    methname = '_' + meth.__name__
 
+    def wrapper(cls, *_args, **_kwargs):
+        uval = '' if getattr(cls, methname) is None else getattr(cls, methname)
+        return uval
 
-def getter_itself(meth: typing.Callable):
-    """ Decorator for getter methods. """
-    objn, ni = '_' + meth.__name__, ''
-    def wrapper(*args, **__kwargs): return getattr(args[0], objn) if getattr(args[0], objn) is not None else ni
     return wrapper
 
 
-def deleter(meth: typing.Callable):
+def underscored_deleter(meth: typing.Callable):
     """ Decorator for deleter methods. """
     def wrapper(*args, **__kwargs): setattr(args[0], '_' + meth.__name__, None)
     return wrapper
 
 
-@no_type_collisions
-def tfhook(check: typing.Callable):
-    @no_type_collisions
-    def inner(callable_: typing.Callable):
-        def checker(*_args, **kwargs):
-            self, args = (), list(_args)
-            if isinstance(args[0], geolocbot.searching.teryt.TerytField):
-                self = (args.pop(0),)
-            check(*self, _args=args, _kwargs=kwargs)
-            return callable_(*_args, **kwargs)
-
-        return checker
-
-    return inner
+def hook(hang_on_hook: typing.Callable):
+    def wrap(take_off_hook: typing.Callable):
+        def hooking(*arguments, **keyword_arguments):
+            self, _args, _kwargs = (), list(arguments), keyword_arguments
+            if isinstance(_args[0], geolocbot.searching.teryt.TerytField):
+                self = (_args.pop(0),)
+            hang_on_hook(*self, _args=_args, _kwargs=_kwargs)
+            return \
+                take_off_hook(*arguments, **keyword_arguments)
+        return hooking
+    return wrap
 
 
+# WIP snippet
+# -----------
 def _rr_hook(_args, _kwargs):
     exc = _args[0]
     ensure(issubclass(exc, BaseException), 'exceptions must derive from BaseException')
 
 
-@tfhook(_rr_hook)
+@hook(_rr_hook)
 @no_type_collisions
-def reraise(errtype: type = geolocbot.exceptions.GeolocbotError):
-    def wrapper(meth: typing.Callable):
-        def sieve(*args, **kwargs):
+def reraise(errtype: type = geolocbot.exceptions.BotError):
+    def wrapper(callable_: typing.Callable):
+        def sieve(*arguments, **keyword_arguments):
             try:
-                meth(*args, **kwargs)
+                callable_(*arguments, **keyword_arguments)
             except (BaseException, Exception) as _err:
                 raise errtype from _err
         return sieve
     return wrapper
+# -----------
+
+
+def anonymous_warning(_warning, _category=FutureWarning):
+    exec(compile(source='warnings.warn(_warning, category=_category)', filename='Geoloc-Bot', mode='exec', flags=0))

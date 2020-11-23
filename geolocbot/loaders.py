@@ -12,9 +12,7 @@ cfparser = libs.configparser.ConfigParser()
 
 
 def _validate_configuration_file(fname='geolocbot.conf'):
-    """ Checks whether the configuration file is valid to be evaluated.
-    @type fname: str
-    """
+    """ Checks whether the configuration file is valid to be evaluated. """
     dirpath, fname, require = abscd, fname, tools.ensure
     fpath = libs.os.path.join(dirpath, fname)
     _msgs = {
@@ -60,10 +58,10 @@ def fetch_logger():
     logging = libs.logging
     from geolocbot.libs import pywikibot
     logging.disable(level=pywikibot.logging.VERBOSE)
-    with tools.getLogger('requests') as req:
+    with tools.GetLogger('requests') as req:
         req.setLevel(logging.CRITICAL)
     logging.basicConfig(**logging_basic_config)
-    with tools.getLogger('geolocbot') as geolocbot_logger:
+    with tools.GetLogger('geolocbot') as geolocbot_logger:
         return geolocbot_logger
 
 
@@ -88,7 +86,7 @@ def fetch_bot_config():
     """ Fetches the bot configuration. """
     return {
         'user': cfparser.get(section='wiki', option='target_wiki_login'),
-        'wikidata_user': cfparser.get(section='wiki', option='wikidata_login')
+        'wikidata-user': cfparser.get(section='wiki', option='wikidata_login')
     }
 
 
