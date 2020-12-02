@@ -10,10 +10,8 @@ from geolocbot.searching.wiki import *
 def login(call=0):
     if call < 6:
         try:
-            if not wiki.site.logged_in():
-                wiki.site.login()
-            if not wiki.src.logged_in():
-                wiki.src.login()
+            wiki.site.login()
+            wiki.src.login()
             geolocbot.output('Successfully logged in.')
         except (pywikibot.exceptions.FatalServerError, requests.exceptions.ConnectionError):
             time.sleep(2)

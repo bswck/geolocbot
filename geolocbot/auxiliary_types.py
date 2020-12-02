@@ -13,7 +13,8 @@ class IdName(object):
     def __getitem__(self, item): return getattr(self, item, '')
     def __repr__(self): return 'Id&Name(' + ', '.join(['%s=%r' % (k, v) for k, v in dict(self).items()]) + ')'
     def __str__(self): return str(self.ID) if self.ID else ''
-    def __add__(self, other): return str(self.ID) if self.ID else '' + other
+    def __add__(self, other): return str(self.ID) if self else '' + other
+    def __bool__(self): return all([self.name, str(self.ID) != 'nan'])
 
     def __iter__(self):
         yield 'ID', self.ID

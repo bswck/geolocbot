@@ -5,3 +5,7 @@
 """ Geoloc-Bot. """
 
 from geolocbot import *
+
+import random
+
+pool = list(set(searching.teryt.simc.to_list('name')))

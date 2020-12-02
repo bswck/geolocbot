@@ -134,7 +134,7 @@ def underscored(meth: typing.Callable):
     methname = '_' + meth.__name__
 
     def wrapper(cls, *_args, **_kwargs):
-        uval = '' if getattr(cls, methname) is None else getattr(cls, methname)
+        uval = meth(cls) if getattr(cls, methname) is None else getattr(cls, methname)
         return uval
 
     return wrapper
@@ -146,7 +146,7 @@ def underscored_deleter(meth: typing.Callable):
     return wrapper
 
 
-def hook(hang_on_hook: typing.Callable):
+def precede_with(hang_on_hook: typing.Callable):
     def wrap(take_off_hook: typing.Callable):
         def hooking(*arguments, **keyword_arguments):
             self, _args, _kwargs = (), list(arguments), keyword_arguments
@@ -166,7 +166,7 @@ def _rr_hook(_args, _kwargs):
     ensure(issubclass(exc, BaseException), 'exceptions must derive from BaseException')
 
 
-@hook(_rr_hook)
+@precede_with(_rr_hook)
 @no_type_collisions
 def reraise(errtype: type = geolocbot.exceptions.BotError):
     def wrapper(callable_: typing.Callable):
