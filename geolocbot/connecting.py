@@ -11,7 +11,7 @@ def login(call=0):
     if call < 6:
         try:
             wiki.site.login()
-            wiki.src.login()
+            wiki.data_repo.login()
             geolocbot.output('Successfully logged in.')
         except (pywikibot.exceptions.FatalServerError, requests.exceptions.ConnectionError):
             time.sleep(2)

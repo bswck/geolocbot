@@ -4,5 +4,6 @@
 
 from .teryt import teryt
 from .wiki import wiki
-from .wikidata import wikidata
-teryt, wiki, wikidata = teryt, wiki, wikidata
+teryt, wiki = teryt, wiki
+
+

@@ -4,6 +4,8 @@
 
 """ Prepare the bot to start. """
 
+__all__ = ('fetch_bot_config', 'fetch_logger', 'fetch_resources')
+
 from geolocbot import exceptions, libs, tools
 import resources
 
