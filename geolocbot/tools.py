@@ -76,7 +76,7 @@ def typecheck(callable_: typing.Callable):
                                 [f'{obj_type.__name__!r}' for obj_type in argument_annotation]
                             )
                             if isinstance(argument_annotation, typing.Iterable)
-                            else type(argument_annotation).__name__
+                            else f'{argument_annotation.__name__!r}'
                         ))
                     ensure(isinstance(argument, argument_annotation), err)
                 arg_pos += 1
@@ -158,6 +158,11 @@ def precede_with(precedent: typing.Callable):
                 callable_(*arguments, **keyword_arguments)
         return handling_sequence
     return wrap
+
+
+@typecheck
+def rev_dict(dct: dict):
+    return {v: k for k, v in dct.items()}
 
 
 # WIP snippet
