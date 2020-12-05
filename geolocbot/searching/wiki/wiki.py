@@ -3,6 +3,7 @@
 # GNU GPLv3 license
 
 from geolocbot.tools import *
+from geolocbot.exceptions import *
 from geolocbot.libs import *
 from geolocbot.loaders import *
 import geolocbot.searching.teryt as teryt
@@ -23,7 +24,7 @@ def _wpage(title):
     return pywikibot.Page(source=wiki.site, title=title)
 
 
-def _process_page(callable_: typing.Callable):
+def _processes_page(callable_: typing.Callable):
     def wrapper(class_, pagename: str, *arguments_, **keyword_arguments):
         class_.processed_page, arguments = pywikibot.Page(class_.site, pagename), (class_, pagename, *arguments_)
         return callable_(*arguments, **keyword_arguments)
@@ -46,6 +47,7 @@ nts_property = 'P1653'  # ......................................................
 class Wikidata(BotSite):
     def __init__(self):
         super(Wikidata, self).__init__(site=pywikibot.Site('wikidata', 'wikidata', user=_botconf['wikidata-user']))
+        self.processed_item_id = None
 
     class CoordinateQueries:
         def __init__(self, simc, terc='', nts=''):
@@ -80,23 +82,28 @@ class Wikidata(BotSite):
 
     @typecheck
     def _get_item_id(self, *, simc: str, terc: str = '', nts: str = ''):
-        cquery = self.CoordinateQueries(simc=simc, terc=terc, nts=nts)
+        cqueries = self.CoordinateQueries(simc=simc, terc=terc, nts=nts)
         results = {}
         for subsystem in teryt.subsystems:
             if eval(subsystem):
-                results |= {subsystem: self.query(query=cquery.construct(subsystem=subsystem))}
+                results |= {subsystem: self.query(query=cqueries.construct(subsystem=subsystem))}
         for subresults in results.values():
-            ensure(len(subresults) == 1, f'Wikidata: {len(subresults)} results')
-            return subresults[0]
-        return None
+            if subresults:
+                ensure(len(subresults) == 1, f'Wikidata: {len(subresults)} results')
+                self.processed_item_id = subresults[0]
+                return self.processed_item_id
 
+        raise ValueError(f'Wikidata ItemPage not found (simc={simc!r}, terc={terc!r}, nts={nts!r})')
+
+    @typecheck
     def _get_item_source(self, item: pywikibot.ItemPage):
         try:
             return item.get()
         except pywikibot.exceptions.MaxlagTimeoutError:
             self._get_item_source(item=item)
 
-    def _get_item_coords(self, item):
+    @typecheck
+    def _get_item_coords(self, item: pywikibot.ItemPage):
         source = self._get_item_source(item)
         labels = tuple(dict(source['labels']).values())
         pagename = self.processed_page.title(with_ns=False, without_brackets=True)
@@ -104,9 +111,9 @@ class Wikidata(BotSite):
         if coord_property not in item.claims:
             return {}
         coordinate_obj = item.claims[coord_property][0].getTarget()
-        return {'lat': coordinate_obj.lat, 'lon': coordinate_obj.lon}
+        return {'lat': coordinate_obj.lat, 'lon': coordinate_obj.lon, 'wikidata': self.processed_item_id}
 
-    @_process_page
+    @_processes_page
     def coords(self, _pagename, *, simc: str, terc: str = '', nts: str = ''):
         return self._get_item_coords(self._get_item_id(simc=simc, terc=terc, nts=nts))
 
@@ -126,7 +133,7 @@ class Wiki(BotSite):
         return tuple(pywikibot.Category(source=self.site, title=_category).articles())
 
     @typecheck
-    @_process_page
+    @_processes_page
     def terinfo(self, _pagename: str):
         def lookup(master: str) -> "dict":
             self.trace.append(master)
@@ -147,14 +154,15 @@ class Wiki(BotSite):
         def label(sub: str):
             return next(iter([catpref for catpref in self.rcps if catpref in sub]), False)
 
-        def fillempty(data: dict) -> "dict":
-            hierarchy = tuple(teryt.simc.loctype_compt.keys())
+        def fillempty(data: dict):
+            simc = teryt.Simc()
+            hierarchy = tuple(simc.loctype_nim.keys())
             for loctype in hierarchy:
-                origin = teryt.simc.search(**data, loctype=loctype)
+                origin = simc.search(**data, loctype=loctype)
                 if origin.parsed:
                     origin.transfer('nts') if origin.transfer('terc').parsed else do_nothing()
-                    return origin.to_dict()
-            return data
+                    return origin
+            raise BotError('wikidata item not found')
 
         self._ppterinf['name'] = self.processed_page.title(with_section=False, underscore=False, without_brackets=True)
         return fillempty(lookup(self.processed_page.title()))

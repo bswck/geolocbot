@@ -114,7 +114,7 @@ def output(*values,
     file = getattr(sys, file, sys.stdout)
 
     # 2. Concatenate the values to an output form.
-    values = sep.join([str(values_snippet) for values_snippet in values])
+    values = sep.join([str(value) for value in values])
 
     # 3. Log the values.
     if log:
@@ -147,12 +147,13 @@ def underscored_deleter(meth: typing.Callable):
     return wrapper
 
 
-def precede_with(precedent: typing.Callable):
+def called_after(precedent: typing.Callable):
     def wrap(callable_: typing.Callable):
         def handling_sequence(*arguments, **keyword_arguments):
             self, _args, _kwargs = (), list(arguments), keyword_arguments
-            if isinstance(_args[0], geolocbot.searching.teryt.TerytField):
-                self = (_args.pop(0),)
+            if _args:
+                if isinstance(_args[0], geolocbot.searching.teryt.TF):
+                    self = (_args.pop(0),)
             precedent(*self, _args=_args, _kwargs=_kwargs)
             return \
                 callable_(*arguments, **keyword_arguments)
@@ -172,7 +173,7 @@ def _rr_hook(_args, _kwargs):
     ensure(issubclass(exc, BaseException), 'exceptions must derive from BaseException')
 
 
-@precede_with(_rr_hook)
+@called_after(_rr_hook)
 @typecheck
 def reraise(errtype: type = geolocbot.exceptions.BotError):
     def wrapper(callable_: typing.Callable):

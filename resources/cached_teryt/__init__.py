@@ -3,6 +3,7 @@
 # GNU GPLv3 license
 
 """
+TODO: Update this docstring.
 Loads buffers for pandas.DataFrame objects (using configurations in *.conf file in this dir) from cached TERYT
 register databases.
 
@@ -13,7 +14,7 @@ Variables `simc_csv', `terc_csv' and `nts_csv' contain raw text of *.csv databas
       purposes in Poland. Outdated since 2017 (important: do not confuse with NUTS geocode standard). Occurs as a
       pandas.DataFrame object in resources due to its occurences in Wikidata.
 
-Refs:
+**Refs**
     * For more about TERYT (including SIMC and TERC), see:
         (en) http://eteryt.stat.gov.pl/eTeryt/english.aspx?contrast=default
         (pl) ⤵
@@ -26,20 +27,16 @@ Refs:
         (pl) https://pl.wikipedia.org/wiki/NUTS
 """
 
-__all__ = 'striobuffers'
+__all__ = ('buffers',)
 
-import pandas
 from ._cached_csv import (
     simc_csv,
     terc_csv,
     nts_csv
 )
 
-striobuffers = {
+buffers = {
     'simc': simc_csv,
     'terc': terc_csv,
     'nts': nts_csv
 }
-
-
-simc, terc, nts = pandas.DataFrame(), pandas.DataFrame(), pandas.DataFrame()

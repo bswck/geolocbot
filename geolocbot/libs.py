@@ -34,6 +34,6 @@ pandas.set_option('display.max_columns', 20)
 pandas.set_option('display.width', 1000)
 
 # other stuff
-abstractClass, betterAbstractMetaclass = abc.ABC, better_abc.ABCMeta
+ABC, bABCMeta = abc.ABC, better_abc.ABCMeta
 abstractMethod, abstractAttribute = abc.abstractmethod, better_abc.abstract_attribute
 nan = numpy.nan

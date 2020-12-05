@@ -92,4 +92,4 @@ def fetch_bot_config():
     }
 
 
-fetch_resources(buffers=resources.cached_teryt.striobuffers)
+fetch_resources(buffers=resources.cached_teryt.buffers)
