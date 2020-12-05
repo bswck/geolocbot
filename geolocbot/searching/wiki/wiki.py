@@ -124,7 +124,7 @@ class Wiki(BotSite):
         self.data_repo = Wikidata()
         self._ppterinf = {}
         self.rcps = {'Kategoria:Województwo ': 'voivodship', 'Kategoria:Powiat ': 'powiat', 'Kategoria:Gmina ': 'gmina'}
-        self.wrappers = ('Kategoria:Powiaty w', 'Kategoria:Gminy w', 'Kategoria:Województwa w')
+        self.wrapper_cats = ('Kategoria:Powiaty w', 'Kategoria:Gminy w', 'Kategoria:Województwa w')
         self.trace = []
         self.doubling = []
 
@@ -144,7 +144,7 @@ class Wiki(BotSite):
             return self._ppterinf
 
         def find(master: str, subcategories: list):
-            if master in self.trace and master not in self.wrappers:
+            if master in self.trace and all([wrapping_cat not in master for wrapping_cat in self.wrapper_cats]):
                 self.doubling.append(master)
             [pull(sub) if label(sub) else lookup(sub) for sub in subcategories]
 
