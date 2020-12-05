@@ -20,7 +20,6 @@ if __name__ == '__main__':
             coords = searching.wiki.data_repo.coords(loc.name, **ids)
             result = {'coords': coords, 'simc': simc.id, 'terc': terc.terid, 'nts': nts.terid}
         except (BaseException, Exception) as exception:
-            print(f'{tools.TC.grey}(exception){tools.TC.r}', exception)
+            output(f'{tools.TC.grey}(exception){tools.TC.r}', exception)
             result = NotFound()
-        print(loc.name, '->', result)
-
+        return result

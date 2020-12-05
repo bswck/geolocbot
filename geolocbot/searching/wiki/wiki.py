@@ -162,7 +162,7 @@ class Wiki(BotSite):
                 if origin.parsed:
                     origin.transfer('nts') if origin.transfer('terc').parsed else do_nothing()
                     return origin
-            raise BotError('wikidata item not found')
+            raise BotError('Item not found in TERYT register')
 
         self._ppterinf['name'] = self.processed_page.title(with_section=False, underscore=False, without_brackets=True)
         return fillempty(lookup(self.processed_page.title()))
