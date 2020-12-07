@@ -98,7 +98,9 @@ class GetLogger(object):
 
 @typecheck
 def representation(cls_name: str, **kwargs):
-    kwargs = '(' + ', '.join(['\n    %-17s =    %r' % (k, v) for k, v in kwargs.items()]) + '\n)' if kwargs else ''
+    max_l = max([len(s) for s in kwargs], default=4)
+    indented = f'\n    %-{max_l}s  =  %r'
+    kwargs = '(' + ', '.join([indented % (k, v) for k, v in kwargs.items()]) + '\n)' if kwargs else ''
     return f'{cls_name!s}{kwargs!s}'
 
 
@@ -141,6 +143,14 @@ def underscored(meth: typing.Callable):
     return wrapper
 
 
+def processes_page(callable_: typing.Callable):
+    def wrapper(class_, pagename: str, *arguments_, **keyword_arguments):
+        class_.processed_page, arguments = pywikibot.Page(class_.site, pagename), (class_, pagename, *arguments_)
+        return callable_(*arguments, **keyword_arguments)
+
+    return wrapper
+
+
 def underscored_deleter(meth: typing.Callable):
     """ Decorator for deleter methods. """
     def wrapper(*args, **__kwargs): setattr(args[0], '_' + meth.__name__, None)
@@ -162,18 +172,34 @@ def called_after(precedent: typing.Callable):
 
 
 @typecheck
-def rev_dict(dct: dict):
+def reverse_(dct: dict):
     return {v: k for k, v in dct.items()}
+
+
+# noinspection PyArgumentList
+@typecheck
+def keys_(dct: dict, rslot=tuple, sort: bool = False, key=None):
+    if sort:
+        return sorted(rslot(dct.keys()), **({'key': key} if key else {}))
+    return rslot(dct.keys())
+
+
+# noinspection PyArgumentList
+@typecheck
+def values_(dct: dict, rslot=tuple, sort: bool = False, key=None):
+    if sort:
+        return sorted(rslot(dct.values()), **({'key': key} if key else {}))
+    return rslot(dct.values())
 
 
 # WIP snippet
 # -----------
-def _rr_hook(_args, _kwargs):
+def __reraise(_args, _kwargs):
     exc = _args[0]
     ensure(issubclass(exc, BaseException), 'exceptions must derive from BaseException')
 
 
-@called_after(_rr_hook)
+@called_after(__reraise)
 @typecheck
 def reraise(errtype: type = geolocbot.exceptions.BotError):
     def wrapper(callable_: typing.Callable):

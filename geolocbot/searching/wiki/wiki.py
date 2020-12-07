@@ -2,14 +2,14 @@
 # Stim, 2020
 # GNU GPLv3 license
 
-from geolocbot.tools import *
+from geolocbot.utils import *
 from geolocbot.exceptions import *
 from geolocbot.libs import *
 from geolocbot.loaders import *
 import geolocbot.searching.teryt as teryt
 
 
-__all__ = ('wiki',)
+__all__ = ('Wiki',)
 
 _botconf = fetch_bot_config()
 
@@ -24,23 +24,15 @@ def _wpage(title):
     return pywikibot.Page(source=wiki.site, title=title)
 
 
-def _processes_page(callable_: typing.Callable):
-    def wrapper(class_, pagename: str, *arguments_, **keyword_arguments):
-        class_.processed_page, arguments = pywikibot.Page(class_.site, pagename), (class_, pagename, *arguments_)
-        return callable_(*arguments, **keyword_arguments)
-
-    return wrapper
-
-
 coord_property = 'P625'
 # To do in Wikidata: replace NTS IDs from 2005 confused with TERC IDs (which is called "TERYT" municipality code)
 # with proper, up to date TERC IDs.
 #
 # See: https://www.wikidata.org/wiki/Property:P1653
 # ==================================================================================================
-simc_property = 'P4046'  # ............................................................. 3.12.2020 .
-terc_property = 'P1653'  # ............................................................. 3.12.2020 .
-nts_property = 'P1653'  # .............................................................. 3.12.2020 .
+wdt_simc_property = 'P4046'  # ............................................................. 3.12.2020 .
+wdt_terc_property = 'P1653'  # ............................................................. 3.12.2020 .
+wtd_nts_property = 'P1653'  # .............................................................. 3.12.2020 .
 # ==================================================================================================
 
 
@@ -53,7 +45,6 @@ class Wikidata(BotSite):
         def __init__(self, simc, terc='', nts=''):
             self.simc = simc
             self.terc, self.nts = terc, nts
-            self.simc_property = simc_property
             self.sparql_pat = \
                 f"""
                 SELECT ?coord ?item ?itemLabel 
@@ -67,7 +58,7 @@ class Wikidata(BotSite):
 
         @typecheck
         def construct(self, subsystem: str):
-            propname = subsystem.lower() + '_property'
+            propname = 'wdt_' + subsystem.lower() + '_property'
             ensure(propname in globals(), f'{subsystem} is not a valid TERYT subsystem')
             prop = eval(propname)
             ensure(prop, f'cannot construct a query: {subsystem} ID has not been provided')
@@ -76,7 +67,7 @@ class Wikidata(BotSite):
 
     @typecheck
     def query(self, query, maximum: int = 1, index: str = None):
-        result = tuple(pywikibot.pagegenerators.WikidataSPARQLPageGenerator(query, site=self.site))
+        result = tuple(pagegenerators.WikidataSPARQLPageGenerator(query, site=self.site))
         ensure(len(result) <= maximum, f'got {len(result)} results whilst maximum was set to {maximum}')
         return result[index] if isinstance(index, int) else result
 
@@ -93,7 +84,10 @@ class Wikidata(BotSite):
                 self.processed_item_id = subresults[0]
                 return self.processed_item_id
 
-        raise ValueError(f'Wikidata ItemPage not found (simc={simc!r}, terc={terc!r}, nts={nts!r})')
+        raise ValueError(
+            f'Wikidata ItemPage not found: '
+            f'{representation("WikidataQuery-%r" % self.processed_page, simc=simc, terc=terc, nts=nts)}'
+        )
 
     @typecheck
     def _get_item_source(self, item: pywikibot.ItemPage):
@@ -106,14 +100,14 @@ class Wikidata(BotSite):
     def _get_item_coords(self, item: pywikibot.ItemPage):
         source = self._get_item_source(item)
         labels = tuple(dict(source['labels']).values())
-        pagename = self.processed_page.title(with_ns=False, without_brackets=True)
-        ensure(any([pagename in label for label in labels]), 'item has different name (label)')
+        pagename = self.processed_page.title(with_ns=False, with_section=False, without_brackets=True)
+        ensure(any([pagename in label for label in labels]), f'found item {item} has different name (label)')
         if coord_property not in item.claims:
             return {}
-        coordinate_obj = item.claims[coord_property][0].getTarget()
-        return {'lat': coordinate_obj.lat, 'lon': coordinate_obj.lon, 'wikidata': self.processed_item_id}
+        coords = item.claims[coord_property][0].getTarget()
+        return {'lat': coords.lat, 'lon': coords.lon, 'wikidata': self.processed_item_id}
 
-    @_processes_page
+    @processes_page
     def coords(self, _pagename, *, simc: str, terc: str = '', nts: str = ''):
         return self._get_item_coords(self._get_item_id(simc=simc, terc=terc, nts=nts))
 
@@ -121,9 +115,11 @@ class Wikidata(BotSite):
 class Wiki(BotSite):
     def __init__(self):
         super(Wiki, self).__init__(site=pywikibot.Site('pl', 'nonsensopedia', user=_botconf['user']))
-        self.data_repo = Wikidata()
-        self._ppterinf = {}
-        self.rcps = {'Kategoria:Województwo ': 'voivodship', 'Kategoria:Powiat ': 'powiat', 'Kategoria:Gmina ': 'gmina'}
+        self.wikidata = Wikidata()
+        self.ppterinfo = {}
+        self.terdiv_cats = {
+            'Kategoria:Województwo ': 'voivodship', 'Kategoria:Powiat ': 'powiat', 'Kategoria:Gmina ': 'gmina'
+        }
         self.wrapper_cats = ('Kategoria:Powiaty w', 'Kategoria:Gminy w', 'Kategoria:Województwa w')
         self.trace = []
         self.doubling = []
@@ -133,7 +129,7 @@ class Wiki(BotSite):
         return tuple(pywikibot.Category(source=self.site, title=_category).articles())
 
     @typecheck
-    @_processes_page
+    @processes_page
     def terinfo(self, _pagename: str):
         def lookup(master: str) -> "dict":
             self.trace.append(master)
@@ -141,7 +137,7 @@ class Wiki(BotSite):
                 subcategories = \
                     [subcat.title() for subcat in _wpage(master).categories() if 'hidden' not in subcat.categoryinfo]
                 find(subcategories=subcategories, master=master)
-            return self._ppterinf
+            return self.ppterinfo
 
         def find(master: str, subcategories: list):
             if master in self.trace and all([wrapping_cat not in master for wrapping_cat in self.wrapper_cats]):
@@ -149,10 +145,10 @@ class Wiki(BotSite):
             [pull(sub) if label(sub) else lookup(sub) for sub in subcategories]
 
         def pull(sub: str):
-            self._ppterinf[self.rcps[label(sub)]] = sub.split(label(sub))[1]
+            self.ppterinfo[self.terdiv_cats[label(sub)]] = sub.split(label(sub))[1]
 
         def label(sub: str):
-            return next(iter([catpref for catpref in self.rcps if catpref in sub]), False)
+            return next(iter([catpref for catpref in self.terdiv_cats if catpref in sub]), False)
 
         def fillempty(data: dict):
             simc = teryt.Simc()
@@ -164,8 +160,6 @@ class Wiki(BotSite):
                     return origin
             raise BotError('Item not found in TERYT register')
 
-        self._ppterinf['name'] = self.processed_page.title(with_section=False, underscore=False, without_brackets=True)
+        self.ppterinfo['name'] = self.processed_page.title(with_section=False, underscore=False, without_brackets=True)
         return fillempty(lookup(self.processed_page.title()))
 
-
-wiki = Wiki()
