@@ -3,7 +3,7 @@
 # GNU GPLv3 license
 
 from .teryt import teryt
-from .wiki import wiki
-teryt, wiki = teryt, wiki
+from .wiki import WikiWrapper
+teryt, wiki = teryt, WikiWrapper
 
 

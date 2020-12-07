@@ -5,10 +5,8 @@
 import geolocbot
 from geolocbot.libs import *
 
-be_quiet = False
 
-
-class TC:
+class TerminalColors:
     white = u'\u001b[30m'
     red = u'\u001b[31m'
     green = u'\u001b[32m'
@@ -22,6 +20,9 @@ class TC:
     br = u'\033[0m'
 
 
+tc = TerminalColors
+
+
 def ensure(logical_object, xm: (str, Exception)):
     """ Asserts, but raises custom exceptions. """
     dferr = geolocbot.exceptions.BotError
@@ -32,11 +33,19 @@ def ensure(logical_object, xm: (str, Exception)):
 
 
 def typecheck(callable_: typing.Callable):
+    """
+    Decorator for checking if types of passed towards callable arguments are valid (matching callable's annotation).
+
+    Parameters
+    ----------
+    callable_ : callable
+        Function or method to be type-checked.
+    """
     ensure(callable(callable_), TypeError('object %r is not callable' % callable_))
     sign = inspect.signature(callable_)
     params = sign.parameters
 
-    def typechecker(*arguments, **keyword_arguments):
+    def __typecheck(*arguments, **keyword_arguments):
         hold, key, arg_pos, arg, args_dict = False, 0, 0, '', {}
 
         # 1. Establish args' keys.
@@ -47,7 +56,7 @@ def typecheck(callable_: typing.Callable):
             current_arg = arguments[quantum]
             if '*' in str(arg):
                 if key in args_dict:
-                    prev = (args_dict[key],) if not isinstance(args_dict[key], tuple) else args_dict[key]
+                    prev = (args_dict.get(key),) if not isinstance(args_dict[key], tuple) else args_dict[key]
                     args_dict[key] = prev + (current_arg,)
                 else:
                     args_dict |= {key: current_arg}
@@ -61,10 +70,10 @@ def typecheck(callable_: typing.Callable):
         # 2. Check if the real types of arguments and keyword arguments passed are matching their annotated types.
         for argument_name, value in params.items():
             if arg_pos < len(_args):
-                argument_annotation = params[argument_name].annotation \
+                valid_type = params[argument_name].annotation \
                     if params[argument_name].annotation != params[argument_name].empty else \
                     None
-                if argument_annotation is not None:
+                if valid_type is not None:
                     argument = _args.pop(argument_name, NotImplemented)
                     if argument is NotImplemented:
                         break
@@ -73,26 +82,26 @@ def typecheck(callable_: typing.Callable):
                         f'{callable_.__name__!s}() got an unexpected type {argtype_name!r} of parameter '
                         f'{argument_name!r} (expected type(s): %s)' % (
                             ', '.join(
-                                [f'{obj_type.__name__!r}' for obj_type in argument_annotation]
+                                [f'{obj_type.__name__!r}' for obj_type in valid_type]
                             )
-                            if isinstance(argument_annotation, typing.Iterable)
-                            else f'{argument_annotation.__name__!r}'
+                            if isinstance(valid_type, typing.Iterable)
+                            else f'{valid_type.__name__!r}'
                         ))
-                    ensure(isinstance(argument, argument_annotation), err)
+                    ensure(isinstance(argument, valid_type), err)
                 arg_pos += 1
 
         # 3. All checked: return the called function or method.
         return callable_(*arguments, **keyword_arguments)
-    return typechecker
+    return __typecheck
 
 
 def do_nothing(*__args, **__kwargs): pass
 
 
-class GetLogger(object):
+class get_logger(object):
     """ Equivalent for logging.getLogger() made for *with_stmt* syntax. """
     def __init__(self, name='geolocbot'): self.name = name
-    def __enter__(self): return geolocbot.libs.logging.getLogger(self.name)
+    def __enter__(self): return logging.getLogger(self.name)
     def __exit__(self, exc_type, exc_val, exc_tb): pass
 
 
@@ -110,7 +119,7 @@ def output(*values,
            sep: str = ' ',
            file: str = 'stdout',
            log: bool = True,
-           get_logger: str = 'geolocbot'):
+           logger: str = 'geolocbot'):
     """ Outputting function. """
     # 1. Get the stream file.
     file = getattr(sys, file, sys.stdout)
@@ -120,46 +129,42 @@ def output(*values,
 
     # 3. Log the values.
     if log:
-        with GetLogger(name=get_logger) as handler:
+        with get_logger(name=logger) as handler:
             if isinstance(values, geolocbot.libs.pandas.DataFrame):
                 values = values.replace('\n', f'\n{" " * 46}')
             getattr(handler, level, handler.info)(values)
 
-    # 4. Print the values.
-    print(values, file=file) if not be_quiet else do_nothing()
+    # 4. Write the values in the stream file.
+    print(values, file=file)
 
     # 5. Return the values.
     return values
 
 
-def underscored(meth: typing.Callable):
-    """ Return value by its name with underscore as first character. """
+def setordefault(meth: typing.Callable):
+    """ Return set (self._value) or default (returned in the method) value. """
     methname = '_' + meth.__name__
-
-    def wrapper(cls, *_args, **_kwargs):
-        uval = meth(cls) if getattr(cls, methname) is None else getattr(cls, methname)
-        return uval
-
+    def wrapper(cls, *_args, **_kwargs): return meth(cls) if getattr(cls, methname) is None else getattr(cls, methname)
     return wrapper
 
 
-def processes_page(callable_: typing.Callable):
-    def wrapper(class_, pagename: str, *arguments_, **keyword_arguments):
-        class_.processed_page, arguments = pywikibot.Page(class_.site, pagename), (class_, pagename, *arguments_)
+def getpagebyname(callable_: typing.Callable):
+    def wrapper(self, pagename: str, *arguments_, **keyword_arguments):
+        self.processed_page, arguments = pywikibot.Page(self.site, pagename), (self, pagename, *arguments_)
         return callable_(*arguments, **keyword_arguments)
 
     return wrapper
 
 
-def underscored_deleter(meth: typing.Callable):
+def deleter(meth: typing.Callable):
     """ Decorator for deleter methods. """
     def wrapper(*args, **__kwargs): setattr(args[0], '_' + meth.__name__, None)
     return wrapper
 
 
 def called_after(precedent: typing.Callable):
-    def wrap(callable_: typing.Callable):
-        def handling_sequence(*arguments, **keyword_arguments):
+    def _w(callable_: typing.Callable):
+        def _sequence(*arguments, **keyword_arguments):
             self, _args, _kwargs = (), list(arguments), keyword_arguments
             if _args:
                 if isinstance(_args[0], geolocbot.searching.teryt.TF):
@@ -167,8 +172,8 @@ def called_after(precedent: typing.Callable):
             precedent(*self, _args=_args, _kwargs=_kwargs)
             return \
                 callable_(*arguments, **keyword_arguments)
-        return handling_sequence
-    return wrap
+        return _sequence
+    return _w
 
 
 @typecheck
@@ -178,18 +183,62 @@ def reverse_(dct: dict):
 
 # noinspection PyArgumentList
 @typecheck
-def keys_(dct: dict, rslot=tuple, sort: bool = False, key=None):
+def keys_(dct: dict, rtype=tuple, sort: bool = False, key=None):
     if sort:
-        return sorted(rslot(dct.keys()), **({'key': key} if key else {}))
-    return rslot(dct.keys())
+        return sorted(rtype(dct.keys()), **({'key': key} if key else {}))
+    return rtype(dct.keys())
 
 
 # noinspection PyArgumentList
 @typecheck
-def values_(dct: dict, rslot=tuple, sort: bool = False, key=None):
+def values_(dct: dict, rtype=tuple, sort: bool = False, key=None):
     if sort:
-        return sorted(rslot(dct.values()), **({'key': key} if key else {}))
-    return rslot(dct.values())
+        return sorted(rtype(dct.values()), **({'key': key} if key else {}))
+    return rtype(dct.values())
+
+
+def lcx(x: typing.Any, seq: typing.Iterable, _lcx=True):
+    """
+    Check if *x* is (or is not) in each sequence element.
+
+    Parameters
+    ----------
+    x : any
+        Value to compare with each *seq* element.
+    seq : iterable
+        Iterable containing values comparable with *x*.
+    _lcx : bool
+        Whether to check if each *seq* element contains *x* or it does not.
+
+    Returns
+    -------
+    list
+        List with boolean values only.
+
+    """
+    return [x in elem for elem in seq] if _lcx else [x not in elem for elem in seq]
+
+
+def xcl(seq: typing.Iterable, x: typing.Any, _xcl=True):
+    """
+    Check if each sequence element is (or is not) in x.
+
+    Parameters
+    ----------
+    seq : iterable
+        Iterable containing values comparable with *x*.
+    x : any
+        Value to compare with each *seq* element.
+    _xcl : bool
+        Whether to check if *x* contains each *seq* element or it does not.
+
+    Returns
+    -------
+    list
+        List with boolean values only.
+
+    """
+    return [elem in x for elem in seq] if _xcl else [elem not in x for elem in seq]
 
 
 # WIP snippet

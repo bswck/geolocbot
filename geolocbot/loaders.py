@@ -6,7 +6,7 @@
 
 __all__ = ('fetch_bot_config', 'fetch_logger', 'fetch_resources')
 
-from geolocbot import exceptions, libs, tools
+from geolocbot import exceptions, libs, utils
 import resources
 
 abscd = libs.os.path.abspath(libs.os.path.curdir[0])
@@ -15,7 +15,7 @@ cfparser = libs.configparser.ConfigParser()
 
 def _validate_configuration_file(fname='geolocbot.conf'):
     """ Checks whether the configuration file is valid to be evaluated. """
-    dirpath, fname, require = abscd, fname, tools.ensure
+    dirpath, fname, require = abscd, fname, utils.ensure
     fpath = libs.os.path.join(dirpath, fname)
     _msgs = {
         'missing-file': 'missing configuration file: {0} in {1}'.format(fname, dirpath),
@@ -60,10 +60,10 @@ def fetch_logger():
     logging = libs.logging
     from geolocbot.libs import pywikibot
     logging.disable(level=pywikibot.logging.VERBOSE)
-    with tools.GetLogger('requests') as req:
+    with utils.get_logger('requests') as req:
         req.setLevel(logging.CRITICAL)
     logging.basicConfig(**logging_basic_config)
-    with tools.GetLogger('geolocbot') as geolocbot_logger:
+    with utils.get_logger('geolocbot') as geolocbot_logger:
         return geolocbot_logger
 
 

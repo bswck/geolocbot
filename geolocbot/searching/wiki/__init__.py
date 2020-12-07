@@ -2,4 +2,4 @@
 # Stim, 2020
 # GNU GPLv3 license
 
-from .wiki import *
+from .wiki import WikiWrapper

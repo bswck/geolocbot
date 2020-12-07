@@ -35,5 +35,5 @@ pandas.set_option('display.width', 1000)
 
 # other stuff
 ABC, bABCMeta = abc.ABC, better_abc.ABCMeta
-abstractMethod, abstractAttribute = abc.abstractmethod, better_abc.abstract_attribute
+abstractmethod, abstractattribute = abc.abstractmethod, better_abc.abstract_attribute
 nan = numpy.nan

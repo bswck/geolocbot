@@ -3,7 +3,8 @@
 # GNU GPLv3 license
 
 # (!) the order of imports is not accidental
-from geolocbot import exceptions, libs, _resources as resources, loaders, tools, searching, connecting
+from geolocbot import exceptions, libs, _resources as resources, loaders, utils, searching, connecting
+from geolocbot.utils import output
 
-output, logging = tools.output, loaders.fetch_logger()
-searching.teryt.NameIDMap = getattr(searching.teryt, '_NameIDMap')()
+logging = loaders.fetch_logger()
+searching.teryt.NameIDMaps = searching.teryt.NIMGet()
