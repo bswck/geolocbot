@@ -26,7 +26,7 @@ class _TerytAssociated:
 
 
 class __CTRP(_TerytAssociated):
-    """ Common TERYT register properties. """
+    """ Common TERYTRegister properties. """
     def __init__(self):
         self.gmitype_nim = {
             'miejska': '1',
