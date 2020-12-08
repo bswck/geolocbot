@@ -22,6 +22,7 @@ class Geolocbot(searching.WikiWrapper):
             f'wikidata)s{"}}"}'
 
     class Nil:
+        """ Marker for not found data. """
         def __repr__(self): return f'{utils.tc.grey}<{utils.tc.red}not found{utils.tc.grey}>{utils.tc.r}'
         def __bool__(self): return False
 

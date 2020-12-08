@@ -28,7 +28,7 @@ class TerytFieldError(BotError):
     """ Exception class of *TerytField*. """
 
 
-class ParserError(TerytFieldError):
+class DispatcherError(TerytFieldError):
     """ Raised when parser fails. """
 
 

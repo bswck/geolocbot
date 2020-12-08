@@ -23,13 +23,16 @@ class TerminalColors:
 tc = TerminalColors
 
 
-def ensure(logical_object, xm: (str, Exception)):
+def __assert(logical_object, xm: (str, Exception)):
     """ Asserts, but raises custom exceptions. """
     dferr = geolocbot.exceptions.BotError
     if not logical_object:
         raise dferr(xm) or xm
     # else:
     return True
+
+
+require = __assert
 
 
 def typecheck(callable_: typing.Callable):
@@ -41,7 +44,7 @@ def typecheck(callable_: typing.Callable):
     callable_ : callable
         Function or method to be type-checked.
     """
-    ensure(callable(callable_), TypeError('object %r is not callable' % callable_))
+    __assert(callable(callable_), TypeError('object %r is not callable' % callable_))
     sign = inspect.signature(callable_)
     params = sign.parameters
 
@@ -87,7 +90,7 @@ def typecheck(callable_: typing.Callable):
                             if isinstance(valid_type, typing.Iterable)
                             else f'{valid_type.__name__!r}'
                         ))
-                    ensure(isinstance(argument, valid_type), err)
+                    __assert(isinstance(argument, valid_type), err)
                 arg_pos += 1
 
         # 3. All checked: return the called function or method.
@@ -144,7 +147,8 @@ def output(*values,
 def setordefault(meth: typing.Callable):
     """ Return set (self._value) or default (returned in the method) value. """
     methname = '_' + meth.__name__
-    def wrapper(cls, *_args, **_kwargs): return meth(cls) if getattr(cls, methname) is None else getattr(cls, methname)
+    def wrapper(cls, *_args, **_kwargs): return getattr(cls, methname) if getattr(cls, methname) is not None else meth(
+        cls)
     return wrapper
 
 
@@ -167,7 +171,7 @@ def called_after(precedent: typing.Callable):
         def _sequence(*arguments, **keyword_arguments):
             self, _args, _kwargs = (), list(arguments), keyword_arguments
             if _args:
-                if isinstance(_args[0], geolocbot.searching.teryt.TF):
+                if isinstance(_args[0], geolocbot.searching.teryt.TERYTRegister):
                     self = (_args.pop(0),)
             precedent(*self, _args=_args, _kwargs=_kwargs)
             return \
@@ -245,7 +249,7 @@ def xcl(seq: typing.Iterable, x: typing.Any, _xcl=True):
 # -----------
 def __reraise(_args, _kwargs):
     exc = _args[0]
-    ensure(issubclass(exc, BaseException), 'exceptions must derive from BaseException')
+    __assert(issubclass(exc, BaseException), 'exceptions must derive from BaseException')
 
 
 @called_after(__reraise)
@@ -264,3 +268,7 @@ def reraise(errtype: type = geolocbot.exceptions.BotError):
 
 def anonymous_warning(_warning, _category=FutureWarning):
     exec(compile(source='warnings.warn(_warning, category=_category)', filename='bot', mode='exec', flags=0))
+
+
+def notna(value) -> "bool":
+    return value != 'nan' and value is not nan

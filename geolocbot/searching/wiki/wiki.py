@@ -4,13 +4,13 @@
 
 from geolocbot.utils import *
 from geolocbot.libs import *
-from geolocbot.loaders import *
+from geolocbot.prepare import *
 import geolocbot.searching.teryt as teryt
 
 
 __all__ = ('WikiWrapper',)
 
-_botconf = fetch_bot_config()
+_botconf = bot_config()
 
 
 class BotSite:
@@ -65,9 +65,9 @@ class WikidataWrapper(BotSite):
         @typecheck
         def construct_query(self, subsystem: str):
             propname = 'wdt_' + subsystem.lower() + '_property'
-            ensure(propname in globals(), f'{propname} is not defined')
+            __assert(propname in globals(), f'{propname} is not defined')
             prop = eval(propname)
-            ensure(prop, f'cannot construct a query: {subsystem} ID has not been provided')
+            __assert(prop, f'cannot construct a query: {subsystem} ID has not been provided')
             terid = getattr(self, subsystem.lower())
             return self.sparql % dict(prop=prop, terid=terid)
 
@@ -86,7 +86,7 @@ class WikidataWrapper(BotSite):
             Results tuple indice to return. If not specified, returns all results.
         """
         result = tuple(pagegenerators.WikidataSPARQLPageGenerator(query, site=self.site))
-        ensure(len(result) <= maximum, f'got {len(result)} results whilst maximum was set to {maximum}')
+        __assert(len(result) <= maximum, f'got {len(result)} results whilst maximum was set to {maximum}')
         return result[index] if isinstance(index, int) else result
 
     @typecheck
@@ -101,7 +101,7 @@ class WikidataWrapper(BotSite):
                 self.processed_item = result
                 return self.processed_item
 
-        ensure(not isinstance(self.nil, type(None)), ValueError(
+        __assert(not isinstance(self.nil, type(None)), ValueError(
             f'Wikidata ItemPage not found: '
             f'{representation("WikidataQuery-%r" % self.processed_page, simc=simc, terc=terc, nts=nts)}'
         ))
@@ -132,7 +132,7 @@ class WikidataWrapper(BotSite):
         source = self._get_wdtitem_source(item)
         labels = values_(dict(source['labels']))
         name = _clear_title(self.processed_page)
-        ensure(any(xcl(x=name, seq=labels)), f'no item label {item} matches pagename {self.processed_page.title()}')
+        __assert(any(xcl(x=name, seq=labels)), f'no item label {item} matches pagename {self.processed_page.title()}')
         if _property not in item.claims:
             return ()
         return item.claims[_property]
@@ -208,14 +208,14 @@ class WikiWrapper(BotSite):
             return next(iter([cat_prefix for cat_prefix in self.ter_cat_prefixes if cat_prefix in subcat]), False)
 
         def fillempty(data: dict):
-            simc = teryt.Simc()
+            simc = teryt.SIMC()
             hierarchy = tuple(simc.loctype_nim.keys())
             for loctype in hierarchy:
                 origin = simc.search(**data, loctype=loctype)
                 if origin.parsed:
                     origin.transfer('nts') if origin.transfer('terc').parsed else do_nothing()
                     return origin
-            ensure(not isinstance(nil, type(None)), 'Item not found in TERYT register')
+            __assert(not isinstance(nil, type(None)), 'Item not found in TERYT register')
             return nil
 
         self.page_terinfo['name'] = _clear_title(self.processed_page)
