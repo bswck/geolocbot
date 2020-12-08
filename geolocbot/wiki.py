@@ -16,7 +16,7 @@ _botconf = bot_config()
 class BotSite:
     def __init__(self, site: pywikibot.Site):
         self.site = site
-        self.processed_page = pywikibot.Page(self.site, 'Main Page')  # default
+        self.processed_page = pywikibot.Page(self.site, 'Użytkownik:Stim/bot-api-sandbox')  # default
 
 
 def _wpage(title):
@@ -187,7 +187,9 @@ class WikiWrapper(BotSite):
         return f'{preceding}{break1}{newtext}{break2}{remaining}'
 
     def group_template(self, _pagename, templatename):
-        return getattr(re.search(f'({"{{"}{templatename}.*{"}}"})', self.processed_page.text), 'group', do_nothing)(0)
+        return getattr(
+            re.search(f'({"{{"}{templatename}.*{"}}"})', self.processed_page.text, flags=re.I), 'group', do_nothing
+        )(0)
 
     @getpagebyname
     @typecheck

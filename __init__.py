@@ -29,7 +29,8 @@ class Geolocbot(wiki.WikiWrapper):
         self._comment_added = 'dodano lokalizację (%(name)s: %(lat).4f, %(lon).4f)'
         self._comment_replaced = 'zastąpiono lokalizację (%(name)s: %(lat).4f, %(lon).4f)'
         self._comment_postponed = 'usunięto lokalizację; zgłoszono stronę do przejrzenia'
-        self._comment_postpone_report = 'zgłoszono stronę do przejrzenia'
+        self._comment_postponed_report = 'zgłoszono stronę do przejrzenia'
+        self._loc_pagename = ''
 
         self._template = ''
         self._locname = None
@@ -90,24 +91,24 @@ class Geolocbot(wiki.WikiWrapper):
 
     @getpagebyname
     def proceed(self, _pagename):
-        pagename = self.processed_page.title()
-        page_wikitext = self.processed_page.text
-        prev_template = self.group_template(pagename, 'lokalizacja')
-        save = self.processed_page.save
+        locpage = self.inst_page(self._loc_pagename)
+        locpage_text = locpage.text
+        prev_template = self.group_template(self._loc_pagename, 'lokalizacja')
         fmt = {'name': self._locname, 'lat': self._lat, 'lon': self._lon}
         if self._postpone:
             self.postpone()
-            self.processed_page.text = page_wikitext.replace(f'\n{prev_template}', '')
-            return save(self._comment_postponed)
+            locpage.text = locpage_text.replace(f'\n{prev_template}', '')
+            return locpage.save(self._comment_postponed)
         elif prev_template:
-            self.processed_page.text = page_wikitext.replace(prev_template, self._template)
-            return save(self._comment_replaced % fmt)
-        self.processed_page.text = self.insert(pagename, text=self._template)
-        return save(self._comment_added % fmt)
+            locpage.text = locpage_text.replace(prev_template, self._template)
+            return locpage.save(self._comment_replaced % fmt)
+        locpage.text = self.insert(self._loc_pagename, text=self._template)
+        return locpage.save(self._comment_added % fmt)
 
     @typecheck
     def run_on_page(self, pagename: str):
         self._data = self.geolocate(pagename)
+        self._loc_pagename = pagename
         self._simc = self._data['simc']
         self._terc = self._data['terc']
         self._nts = self._data['nts']
@@ -116,6 +117,7 @@ class Geolocbot(wiki.WikiWrapper):
         if isinstance(coords, self.Nil):
             self._postpone = True
             return self.proceed(pagename)
+        self._postpone = False
         self._lat = coords['lat']
         self._lon = coords['lon']
         self._wdtsource = coords['source'].title()
@@ -136,4 +138,4 @@ class Geolocbot(wiki.WikiWrapper):
         fmt = {'name': self.processed_page.title(), 'simc': self._simc, 'terc': self._terc or '/',
                'nts': self._nts or '/'}
         page.text = self.insert(pagename, text=self._postpone_pat % fmt, prefixes=('\n *',))
-        page.save(self._comment_postponed)
+        page.save(self._comment_postponed_report)
