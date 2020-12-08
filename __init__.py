@@ -4,26 +4,46 @@
 
 """ Geoloc-Bot. """
 
+# TODO: Error handling.
+
+
 # import argparse
 from geolocbot import *
 from geolocbot.utils import getpagebyname, typecheck
 
 
 class Geolocbot(wiki.WikiWrapper):
-    def __init__(self, fallback=None, geoloctemplate_name='lokalizacja'):
+    def __init__(self, fallback=None, template_name='lokalizacja'):
         super().__init__()
+        connecting.login()
         self._fallback = fallback or self.fallback
         self.nil = self.Nil()
         self.site = self.site
-        self.processed_page = self.processed_page
-        self.geoloctemplate_name = geoloctemplate_name
-        self.geoloctemplate_pat = \
-            f'{"{{"}%(template_name)s|%(lat).10f, %(lon).10f|simc=%(simc)s|%(terc)swikidata=%(' \
+        self._template_name = template_name
+        self._template_pat = \
+            f'{"{{"}%(template_name)s|%(lat).6f, %(lon).6f|simc=%(simc)s|%(terc)swikidata=%(' \
             f'wikidata)s{"}}"}'
+        self._postpone_pat = \
+            f'* [[%(name)s|]] * {"{{/co|%(name)s|%(simc)s|%(terc)s|%(nts)s}}"} -- ~~~~~ | {"{{/p}}"}'
+        self._data = {}
+        self._comment_added = 'dodano lokalizację (%(name)s: %(lat).4f, %(lon).4f)'
+        self._comment_replaced = 'zastąpiono lokalizację (%(name)s: %(lat).4f, %(lon).4f)'
+        self._comment_postponed = 'usunięto lokalizację; zgłoszono stronę do przejrzenia'
+        self._comment_postpone_report = 'zgłoszono stronę do przejrzenia'
+
+        self._template = ''
+        self._locname = None
+        self._lat = None
+        self._lon = None
+        self._wdtsource = None
+        self._simc = None
+        self._terc = None
+        self._nts = None
+        self._postpone = False
 
     class Nil:
         """ Marker for not found data. """
-        def __repr__(self): return f'{utils.tc.grey}<{utils.tc.red}not found{utils.tc.grey}>{utils.tc.r}'
+        def __repr__(self): return f'<not found>'
         def __bool__(self): return False
 
     @getpagebyname
@@ -34,7 +54,8 @@ class Geolocbot(wiki.WikiWrapper):
 
         Examples
         --------
-        >>> Geolocbot.geolocate('Pszczyna')
+        >>> g = Geolocbot()
+        >>> g.geolocate('Pszczyna')
         TODO
 
         Returns
@@ -47,7 +68,7 @@ class Geolocbot(wiki.WikiWrapper):
         geoloc = self.loc_terinfo(pagename, nil=self.nil)
         if geoloc:
             transferred = dict(teryt.transferred_searches(geoloc.name))
-            simc, terc, nts = (transferred[sub.upper()] for sub in teryt.subsystems)
+            simc, terc, nts = (transferred.get(sub.upper(), None) for sub in teryt.subsystems)
             ids = {'simc': simc.id, 'terc': getattr(terc, 'terid', ''), 'nts': getattr(nts, 'terid', '')}
             coords = self.base.geolocate(geoloc.name, nil=self.nil, **ids)
             result = {'name': pagename, 'coords': coords, **ids}
@@ -58,28 +79,61 @@ class Geolocbot(wiki.WikiWrapper):
     @typecheck
     def geoloctemplate(self, lat: float, lon: float, simc: str, wikidata: str, terc: str = ''):
         terc = f'terc={terc}|' if terc else ''
-        return self.geoloctemplate_pat % dict(
-            template_name=self.geoloctemplate_name, lat=lat, lon=lon, simc=simc, terc=terc, wikidata=wikidata
+        return self._template_pat % dict(
+            template_name=self._template_name, lat=lat, lon=lon, simc=simc, terc=terc, wikidata=wikidata
         )
 
     def run_on_category(self, category='Kategoria:Strony z niewypełnionym szablonem lokalizacji'):
-        articles = tuple(pywikibot.Category(source=self.site, title=category).articles())
+        articles = tuple(libs.pywikibot.Category(source=self.site, title=category).articles())
         for page in articles:
-            self.run_on_page(page)
+            self.run_on_page(page.title())
+
+    @getpagebyname
+    def proceed(self, _pagename):
+        pagename = self.processed_page.title()
+        page_wikitext = self.processed_page.text
+        prev_template = self.group_template(pagename, 'lokalizacja')
+        save = self.processed_page.save
+        fmt = {'name': self._locname, 'lat': self._lat, 'lon': self._lon}
+        if self._postpone:
+            self.postpone()
+            self.processed_page.text = page_wikitext.replace(f'\n{prev_template}', '')
+            return save(self._comment_postponed)
+        elif prev_template:
+            self.processed_page.text = page_wikitext.replace(prev_template, self._template)
+            return save(self._comment_replaced % fmt)
+        self.processed_page.text = self.insert(pagename, text=self._template)
+        return save(self._comment_added % fmt)
 
     @typecheck
     def run_on_page(self, pagename: str):
-        data = self.geolocate(pagename)
-        if isinstance(data, self.Nil):
-            return False
-        coords = data['coords']
-        name, lat, lon, simc, terc = data['name'], coords['lat'], coords['lon'], data['simc'], data['terc']
-        wikidata = coords['source'].title()
-        template = self.geoloctemplate(lat=lat, lon=lon, simc=simc, wikidata=wikidata, terc=terc)
-        self.insert(pagename, template, f'dodano lokalizację ({name}: {lat:.4f}, {lon:.4f})')
-        return True
+        self._data = self.geolocate(pagename)
+        self._simc = self._data['simc']
+        self._terc = self._data['terc']
+        self._nts = self._data['nts']
+        self._locname = self._data['name']
+        coords = self._data['coords']
+        if isinstance(coords, self.Nil):
+            self._postpone = True
+            return self.proceed(pagename)
+        self._lat = coords['lat']
+        self._lon = coords['lon']
+        self._wdtsource = coords['source'].title()
+        self._template = self.geoloctemplate(
+            lat=self._lat, lon=self._lon,
+            simc=self._simc, wikidata=self._wdtsource,
+            terc=self._terc
+        )
+        return self.proceed(pagename)
 
     def run(self, procedure): pass
 
     def fallback(self, page):
         pass
+
+    def postpone(self, pagename='User:Stim/geolocbot/przejrzeć'):
+        page = self.inst_page(pagename)
+        fmt = {'name': self.processed_page.title(), 'simc': self._simc, 'terc': self._terc or '/',
+               'nts': self._nts or '/'}
+        page.text = self.insert(pagename, text=self._postpone_pat % fmt, prefixes=('\n *',))
+        page.save(self._comment_postponed)

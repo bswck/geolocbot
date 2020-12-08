@@ -12,11 +12,11 @@ def login(call=0):
         _wiki = wiki.WikiWrapper()
         try:
             _wiki.site.login()
-            _wiki.base.login()
-            output('Successfully logged in.')
-        except (pywikibot.exceptions.FatalServerError, libs.requests.exceptions.ConnectionError):
+            _wiki.base.site.login()
+            utils.output('Successfully logged in.')
+        except (libs.pywikibot.exceptions.FatalServerError, libs.requests.exceptions.ConnectionError):
             libs.time.sleep(2)
             login(call=call + 1)
     else:
-        output('Attempted to log in 5 times, failed. Raising SystemExit with code -1.')
+        utils.output('Attempted to log in 5 times, failed. Raising SystemExit with code -1.')
         exit(-1)

@@ -16,7 +16,7 @@ def load_nim():
     return True
 
 
-class _TerytAssociated:
+class _TERYTAssociated:
     """ TERYT-associated object marker. """
     def __repr__(self): return representation(type(self).__name__, **dict(self))
 
@@ -25,7 +25,7 @@ class _TerytAssociated:
             yield attrname, getattr(self, attrname)
 
 
-class __CTRP(_TerytAssociated):
+class __CTRP(_TERYTAssociated):
     """ Common TERYTRegister properties. """
     def __init__(self):
         self.gmitype_nim = {
@@ -233,7 +233,7 @@ class __CTRP(_TerytAssociated):
         return
 
 
-class _BoundNameAndID(_TerytAssociated):
+class _BoundNameAndID(_TERYTAssociated):
     """ Twofold object containing TERYT ID and name linked to that ID. """
     @typecheck
     def __init__(self, name: (str, bool) = '', identificator: str = ''):
@@ -271,9 +271,9 @@ def transferred_searches(name):
         yield getattr(transfer, '_field_name'), transfer
 
 
-class _Loc(_TerytAssociated):
+class _Loc(_TERYTAssociated):
     """ Broker for DataFrame indexing with LocationIndexer. """
-    def approve_col(self=_TerytAssociated):
+    def approve_col(self=_TERYTAssociated):
         def decorator(meth: typing.Callable):
             def wrapper(*args, **kwargs):
                 __self, col, df = self, kwargs['col'], kwargs['df']
@@ -337,7 +337,7 @@ class _Loc(_TerytAssociated):
     def __repr__(self): return representation('_LocIndexerWrapper')
 
 
-class _Search(_TerytAssociated):
+class _Search(_TERYTAssociated):
     @typecheck
     def __init__(
             self,
@@ -573,24 +573,10 @@ class TERYTRegister(ABC, __CTRP, metaclass=bABCMeta):
         """ Precede self.generate_indicators(). """
         require(_args, 'generate_indicators(): no arguments')
         target_name = _args[0]
-        cannot_eval = f'cannot evalue transfer target using name {target_name!r}'
-        require(
-            all([target_name, not target_name.isspace(), globals().get(target_name) is not None]),
-            cannot_eval
-        )
+        require(target_name in subsystems, f'cannot evalue transfer target using name {target_name!r}')
         self._transfer_target = \
             eval(f'{target_name!s}')
-        require(
-            callable(self._transfer_target),
-            'cannot instantiate transfer target'
-        )
-        # noinspection PyTypeChecker
-        require(not isinstance(self._transfer_target, types.FunctionType), cannot_eval)
         self._transfer_target = self._transfer_target()
-        require(
-            issubclass(type(self._transfer_target), TERYTRegister),
-            f'cannot transfer search indicators not to {TERYTRegister.__name__} subclass'
-        )
         require(
             self.parsed,
             'cannot perform generating indicators from properties if search results were not parsed'
@@ -1072,7 +1058,7 @@ class TERYTRegister(ABC, __CTRP, metaclass=bABCMeta):
         return dictionary
 
     @typecheck
-    def transfer(self, transfer_target_name: str) -> "TERYTRegister":
+    def transfer(self, transfer_target_name: str, **other) -> "TERYTRegister":
         """
         Search another TERYT subsystem using currently available properties (e.g. self.name, self.voivodship).
 
@@ -1084,7 +1070,10 @@ class TERYTRegister(ABC, __CTRP, metaclass=bABCMeta):
         indicators, transfer_target = self._generate_indicators(transfer_target_name)
         global _tsearches
         name = indicators['name']
-        _tsearches[name] = _tsearches.pop(name, ()) + (self, transfer_target.search(**indicators))
+        _tsearches[name] = _tsearches.pop(name, ()) + (self, transfer_target.search(
+            **{vs: v for vs, v in other.items() if vs in transfer_target.value_spaces},
+            **indicators)
+        )
         return _tsearches[name][-1]
 
 
@@ -1173,7 +1162,7 @@ class NTS(TERYTRegister):
         return {**{'level': level}, **other}
 
 
-class GetNIMs(_TerytAssociated):
+class GetNIMs(_TERYTAssociated):
     """ Get Name-ID maps. """
     def __init__(self):
         global _NIM_initialized
@@ -1190,7 +1179,7 @@ class GetNIMs(_TerytAssociated):
         TERYTRegister.TERCNIM.clear()
 
 
-NameIDMaps = _TerytAssociated  # (!) shortcut: NIM, real value is an instantiated GetNIM class
+NameIDMaps = _TERYTAssociated  # (!) shortcut: NIM, real value is an instantiated GetNIM class
 simc = Simc = SIMC
 terc = Terc = TERC
 nts = Nts = NTS

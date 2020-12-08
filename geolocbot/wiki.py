@@ -36,7 +36,7 @@ def _clear_title(page):
 wdt_coord_property = 'P625'  # .................... 3.12.2020
 wdt_simc_property = 'P4046'  # .................... 3.12.2020
 wdt_terc_property = 'P1653'  # .................... 3.12.2020
-wtd_nts_property = 'P1653'  # ..................... 3.12.2020
+wdt_nts_property = 'P1653'  # ..................... 3.12.2020
 
 
 class WikidataWrapper(BotSite):
@@ -87,7 +87,10 @@ class WikidataWrapper(BotSite):
         """
         result = tuple(pagegenerators.WikidataSPARQLPageGenerator(query, site=self.site))
         require(len(result) <= maximum, f'got {len(result)} results whilst maximum was set to {maximum}')
-        return result[index] if isinstance(index, int) else result
+        if isinstance(index, int):
+            if index < len(result):
+                return result[index]
+        return result
 
     @typecheck
     def _get_wdtitem(self, *, simc: str, terc: str = '', nts: str = ''):
@@ -157,6 +160,7 @@ class WikiWrapper(BotSite):
     def __init__(self):
         super(WikiWrapper, self).__init__(site=pywikibot.Site('pl', 'nonsensopedia', user=_botconf['user']))
         self.base = WikidataWrapper()
+        self.inst_page = _wpage
         self.page_terinfo = {}
         self.ter_cat_prefixes = {
             'Kategoria:Województwo ': 'voivodship', 'Kategoria:Powiat ': 'powiat', 'Kategoria:Gmina ': 'gmina'
@@ -166,7 +170,7 @@ class WikiWrapper(BotSite):
         self.doubling = []
 
     @staticmethod
-    def _index_prefixes(wikitext: str, prefixes=('[[Kategoria:', '[[Category:')):
+    def _index_prefixes(wikitext: str, prefixes: tuple):
         indexes = []
         wikitext = wikitext.lower()
         for prefix in prefixes:
@@ -176,16 +180,21 @@ class WikiWrapper(BotSite):
 
     @staticmethod
     def _insert_to_wikitext(wikitext: str, index: int, newtext: str):
+        preceding = wikitext[:index]
         remaining = wikitext[index:] if index <= len(wikitext) - 1 else ''
-        return f'{wikitext[:index]}\n{newtext}\n{remaining}'
+        break1 = '' if preceding.endswith('\n') else '\n'
+        break2 = '' if remaining.startswith('\n') else '\n'
+        return f'{preceding}{break1}{newtext}{break2}{remaining}'
+
+    def group_template(self, _pagename, templatename):
+        return getattr(re.search(f'({"{{"}{templatename}.*{"}}"})', self.processed_page.text), 'group', do_nothing)(0)
 
     @getpagebyname
     @typecheck
-    def insert(self, _pagename, template, comment):
+    def insert(self, _pagename, text, prefixes=('[[Kategoria:', '[[Category:')):
         wikitext: str = self.processed_page.text
-        index = self._index_prefixes(wikitext=wikitext)
-        self.processed_page.text = self._insert_to_wikitext(wikitext=wikitext, index=index, newtext=template)
-        self.processed_page.save(comment)
+        index = self._index_prefixes(wikitext=wikitext, prefixes=prefixes)
+        return self._insert_to_wikitext(wikitext=wikitext, index=index, newtext=text)
 
     @getpagebyname
     @typecheck
@@ -215,7 +224,8 @@ class WikiWrapper(BotSite):
             for loctype in hierarchy:
                 origin = simc.search(**data, loctype=loctype)
                 if origin.parsed:
-                    origin.transfer('nts') if origin.transfer('terc').parsed else do_nothing()
+                    origin.transfer('nts') if \
+                        origin.transfer('terc', function='powiat').parsed else do_nothing()
                     return origin
             require(not isinstance(nil, type(None)), 'Item not found in TERYT register')
             return nil
