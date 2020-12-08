@@ -573,9 +573,10 @@ class TERYTRegister(ABC, __CTRP, metaclass=bABCMeta):
         """ Precede self.generate_indicators(). """
         require(_args, 'generate_indicators(): no arguments')
         target_name = _args[0]
+        cannot_eval = f'cannot evalue transfer target using name {target_name!r}'
         require(
             all([target_name, not target_name.isspace(), globals().get(target_name) is not None]),
-            f'cannot evalue transfer target using name {target_name!r}'
+            cannot_eval
         )
         self._transfer_target = \
             eval(f'{target_name!s}')
@@ -583,10 +584,12 @@ class TERYTRegister(ABC, __CTRP, metaclass=bABCMeta):
             callable(self._transfer_target),
             'cannot instantiate transfer target'
         )
+        # noinspection PyTypeChecker
+        require(not isinstance(self._transfer_target, types.FunctionType), cannot_eval)
         self._transfer_target = self._transfer_target()
         require(
             issubclass(type(self._transfer_target), TERYTRegister),
-            'cannot transfer search indicators not to TerytField subclass'
+            f'cannot transfer search indicators not to {TERYTRegister.__name__} subclass'
         )
         require(
             self.parsed,
@@ -779,7 +782,7 @@ class TERYTRegister(ABC, __CTRP, metaclass=bABCMeta):
             def _hf():
                 """ Handle failure. """
                 self.__del__()
-                require(not self.veinf, 'no results found')
+                require(not self.veinf, ValueError('no results found'))
                 return self._sfo
             return _hf()
         else:
@@ -1096,7 +1099,20 @@ class SIMC(TERYTRegister):
         # ↑ See: https://bit.ly/2VqfxMG ('SIMC' tab)
         self.has_common_name_nim = {True: '1', False: '0'}
         self.nim_value_spaces = {'voivodship': 2, 'powiat': 2, 'gmina': 2, 'gmitype': 1}
-
+        self.loctype_nim = {  # hierarchized
+            'miasto': '96',
+            'delegatura': '98',
+            'dzielnica m. st. Warszawy': '95',
+            'część miasta': '99',
+            'wieś': '01',
+            'przysiółek': '03',
+            'kolonia': '02',
+            'osada': '04',
+            'osada leśna': '05',
+            'osiedle': '06',
+            'schronisko turystyczne': '07',
+            'część miejscowości': '00',
+        }
 
 class TERC(TERYTRegister):
     """ TERC, TERYT subsystem. """

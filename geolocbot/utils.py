@@ -171,7 +171,7 @@ def called_after(precedent: typing.Callable):
         def _sequence(*arguments, **keyword_arguments):
             self, _args, _kwargs = (), list(arguments), keyword_arguments
             if _args:
-                if isinstance(_args[0], geolocbot.searching.teryt.TERYTRegister):
+                if isinstance(_args[0], geolocbot.teryt.TERYTRegister):
                     self = (_args.pop(0),)
             precedent(*self, _args=_args, _kwargs=_kwargs)
             return \

@@ -9,7 +9,7 @@ from geolocbot import *
 from geolocbot.utils import getpagebyname, typecheck
 
 
-class Geolocbot(searching.WikiWrapper):
+class Geolocbot(wiki.WikiWrapper):
     def __init__(self, fallback=None, geoloctemplate_name='lokalizacja'):
         super().__init__()
         self._fallback = fallback or self.fallback
@@ -46,8 +46,8 @@ class Geolocbot(searching.WikiWrapper):
         pagename = self.processed_page.title()
         geoloc = self.loc_terinfo(pagename, nil=self.nil)
         if geoloc:
-            transferred = dict(searching.teryt.transferred_searches(geoloc.name))
-            simc, terc, nts = (transferred[sub.upper()] for sub in searching.teryt.subsystems)
+            transferred = dict(teryt.transferred_searches(geoloc.name))
+            simc, terc, nts = (transferred[sub.upper()] for sub in teryt.subsystems)
             ids = {'simc': simc.id, 'terc': getattr(terc, 'terid', ''), 'nts': getattr(nts, 'terid', '')}
             coords = self.base.geolocate(geoloc.name, nil=self.nil, **ids)
             result = {'name': pagename, 'coords': coords, **ids}
@@ -59,9 +59,7 @@ class Geolocbot(searching.WikiWrapper):
     def geoloctemplate(self, lat: float, lon: float, simc: str, wikidata: str, terc: str = ''):
         terc = f'terc={terc}|' if terc else ''
         return self.geoloctemplate_pat % dict(
-            template_name=self.geoloctemplate_name,
-            lat=lat, lon=lon,
-            simc=simc, terc=terc, wikidata=wikidata
+            template_name=self.geoloctemplate_name, lat=lat, lon=lon, simc=simc, terc=terc, wikidata=wikidata
         )
 
     def run_on_category(self, category='Kategoria:Strony z niewypełnionym szablonem lokalizacji'):
@@ -69,8 +67,19 @@ class Geolocbot(searching.WikiWrapper):
         for page in articles:
             self.run_on_page(page)
 
-    def run_on_page(self, page):
-        pass
+    @typecheck
+    def run_on_page(self, pagename: str):
+        data = self.geolocate(pagename)
+        if isinstance(data, self.Nil):
+            return False
+        coords = data['coords']
+        name, lat, lon, simc, terc = data['name'], coords['lat'], coords['lon'], data['simc'], data['terc']
+        wikidata = coords['source'].title()
+        template = self.geoloctemplate(lat=lat, lon=lon, simc=simc, wikidata=wikidata, terc=terc)
+        self.insert(pagename, template, f'dodano lokalizację ({name}: {lat:.4f}, {lon:.4f})')
+        return True
+
+    def run(self, procedure): pass
 
     def fallback(self, page):
         pass

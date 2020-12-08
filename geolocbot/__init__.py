@@ -3,5 +3,5 @@
 # GNU GPLv3 license
 
 # (!) the order of imports is not accidental
-from geolocbot import exceptions, libs, _resources as resources, prepare, utils, searching, connecting
+from geolocbot import exceptions, libs, _resources as resources, prepare, utils, teryt, wiki, connecting
 from geolocbot.utils import output
