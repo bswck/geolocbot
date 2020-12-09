@@ -908,17 +908,17 @@ class TERYTRegister(ABC, __CTRP, metaclass=bABCMeta):
                 break
             frames |= {dfnim_value_space: getattr(NameIDMaps, dfnim_value_space + 's')}
             partial = teritorial_id[index:index + valid_length]
-            parse = self.dispatch
+            dispatch = self.dispatch
             if errors:
                 require(
-                    not self.search(by_IDs=True, parse=False, **{dfnim_value_space: partial}).results.empty,
+                    not self.search(by_IDs=True, dispatch=False, **{dfnim_value_space: partial}).results.empty,
                     'parse_terid(…, errors=True, …): ' + self._repr_not_str % (
                         '…' + partial,
                         f'valid teritorial ID part '
                         f'(error at {dfnim_value_space!r} value space, col {self.value_spaces[dfnim_value_space]!r})'
                     )
                 )
-            self.dispatch = parse
+            self.dispatch = dispatch
             code_indicators |= {dfnim_value_space: partial}
             index += valid_length
 
@@ -1137,7 +1137,7 @@ class NTS(TERYTRegister):
         level = teritorial_id[0]
         if errors:
             require(
-                not self.search(by_IDs=True, parse=False, **{'level': level}).results.empty,
+                not self.search(by_IDs=True, dispatch=False, **{'level': level}).results.empty,
                 'dispatch_terid(…, errors=True, …): ' + self._repr_not_str % (
                     level,
                     f'valid teritorial ID part (error at \'level\' value space, col {self.value_spaces["level"]!r})'
@@ -1158,11 +1158,11 @@ class GetNIMs(_TERYTAssociated):
         for subsystem in subsystems:
             eval(subsystem)()  # initialize all subsystems classes to set NIMs
         self.levels = pandas.DataFrame()  # just a placeholder
-        self.regions = TERYTRegister.NTSNIM.search(function='^region', parse=False, by_IDs=True).results
-        self.subregions = TERYTRegister.NTSNIM.search(function='podregion', parse=False, by_IDs=True).results
-        self.voivodships = TERYTRegister.TERCNIM.search(function='województwo', parse=False, by_IDs=True).results
-        self.powiats = TERYTRegister.TERCNIM.search(function='powiat', parse=False, by_IDs=True).results
-        self.gminas = TERYTRegister.TERCNIM.search(function='gmina', parse=False, by_IDs=True).results
+        self.regions = TERYTRegister.NTSNIM.search(function='^region', dispatch=False, by_IDs=True).results
+        self.subregions = TERYTRegister.NTSNIM.search(function='podregion', dispatch=False, by_IDs=True).results
+        self.voivodships = TERYTRegister.TERCNIM.search(function='województwo', dispatch=False, by_IDs=True).results
+        self.powiats = TERYTRegister.TERCNIM.search(function='powiat', dispatch=False, by_IDs=True).results
+        self.gminas = TERYTRegister.TERCNIM.search(function='gmina', dispatch=False, by_IDs=True).results
         TERYTRegister.NTSNIM.clear()
         TERYTRegister.TERCNIM.clear()
 
