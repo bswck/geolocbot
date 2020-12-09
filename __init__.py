@@ -19,7 +19,8 @@ class Geolocbot(wiki.WikiWrapper):
             template_name='lokalizacja',
             quiet=False,
             errpage='User:Stim/geolocbot/błędy',
-            postponepage='User:Stim/geolocbot/przejrzeć'
+            postponepage='User:Stim/geolocbot/przejrzeć',
+            sleepless=False
     ):
         super().__init__()
         if login:
@@ -32,6 +33,7 @@ class Geolocbot(wiki.WikiWrapper):
 
         self.errpage = errpage
         self.postponepage = postponepage
+        self.sleepless = sleepless
         self._fallback = fallback or self.fallback
         self.nil = self.Nil()
         self.site = self.site
@@ -98,7 +100,8 @@ class Geolocbot(wiki.WikiWrapper):
         cat_prefixes = ['kategoria:', 'category:']
         if not any([category.lower().startswith(pref) for pref in cat_prefixes]):
             category = cat_prefixes[0].capitalize() + category
-        output(f"Haps! {category!r}")
+        if not self.sleepless:
+            output(f"Haps! [[{category}]]")
         articles = tuple(libs.pywikibot.Category(source=self.site, title=category).articles())
         for page in articles:
             self.run_on_page(page.title())
@@ -155,9 +158,14 @@ class Geolocbot(wiki.WikiWrapper):
             awaiting_category = 'Kategoria:Strony z niewypełnionym szablonem lokalizacji'
             if arguments.page:
                 return self.run_on_page(arguments.page)
-            if arguments.cat:
-                return self.run_on_category(arguments.cat)
-            return self.run_on_category(category=awaiting_category)
+            category = arguments.cat or awaiting_category
+            if self.sleepless:
+                while True:
+                    self.run_on_category(category=category)
+                    libs.time.sleep(30)
+            return self.run_on_category(category=category)
+        except SystemExit as sysexit:
+            raise SystemExit from sysexit
         except utils.any_exception as exception:
             import traceback
             output(f'{utils.tc.red}ERROR{utils.tc.r}: {exception}')
@@ -188,6 +196,7 @@ if __name__ == '__main__':
             quiet=args.shut_up,
             log=not args.dont_log,
             errpage=args.errpage,
-            postponepage=args.postponepage
+            postponepage=args.postponepage,
+            sleepless=args.sleepless
         )
         bot.run(arguments=args)

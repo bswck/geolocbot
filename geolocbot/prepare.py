@@ -116,6 +116,9 @@ def argparser():
     _argparser.add_argument(
         '--debug', default=False, help='Turn on debugging mode.', action='store_true'
     )
+    _argparser.add_argument(
+        '--sleepless', default=False, help='Work 24/7 on the awaiting category.', action='store_true'
+    )
     return _argparser
 
 
