@@ -44,7 +44,7 @@ class WikidataWrapper(BotSite):
         super(WikidataWrapper, self).__init__(
             site=pywikibot.Site('wikidata', 'wikidata', user=_botconf['wikidata-user'])
         )
-        self.processed_item = None
+        self.processed_wdt_item = None
         self.nil = None
 
     class GeolocQueries:
@@ -101,8 +101,8 @@ class WikidataWrapper(BotSite):
                 results |= {subsystem: self.query(query=geolocqueries.construct_query(subsystem=subsystem), index=0)}
         for result in results.values():
             if result:
-                self.processed_item = result
-                return self.processed_item
+                self.processed_wdt_item = result
+                return self.processed_wdt_item
 
         require(not isinstance(self.nil, type(None)), ValueError(
             f'Wikidata ItemPage not found: '
@@ -143,7 +143,7 @@ class WikidataWrapper(BotSite):
     @typecheck
     def _get_wdtitem_coords(self, item: pywikibot.ItemPage):
         coords = self._get_wdtitem_property(item, wdt_coord_property)[0].getTarget()
-        return {'lat': coords.lat, 'lon': coords.lon, 'source': self.processed_item}
+        return {'lat': coords.lat, 'lon': coords.lon, 'source': self.processed_wdt_item}
 
     @getpagebyname
     def geolocate(self, _pagename, *, simc: str, terc: str = '', nts: str = '', nil=None):
@@ -160,7 +160,7 @@ class WikiWrapper(BotSite):
     def __init__(self):
         super(WikiWrapper, self).__init__(site=pywikibot.Site('pl', 'nonsensopedia', user=_botconf['user']))
         self.base = WikidataWrapper()
-        self.inst_page = _wpage
+        self.instantiate_page = _wpage
         self.page_terinfo = {}
         self.ter_cat_prefixes = {
             'Kategoria:Województwo ': 'voivodship', 'Kategoria:Powiat ': 'powiat', 'Kategoria:Gmina ': 'gmina'
@@ -186,9 +186,11 @@ class WikiWrapper(BotSite):
         break2 = '' if remaining.startswith('\n') else '\n'
         return f'{preceding}{break1}{newtext}{break2}{remaining}'
 
-    def group_template(self, _pagename, templatename):
+    @getpagebyname
+    def search_for_template(self, _pagename, templatename):
         return getattr(
-            re.search(f'({"{{"}{templatename}.*{"}}"})', self.processed_page.text, flags=re.I), 'group', do_nothing
+            re.search(f'({"{{"}{templatename}.*{"}}"}\\s*)', self.processed_page.text, flags=re.I), 'group',
+            do_nothing
         )(0)
 
     @getpagebyname
@@ -225,14 +227,18 @@ class WikiWrapper(BotSite):
             hierarchy = tuple(simc.loctype_nim.keys())
             for loctype in hierarchy:
                 origin = simc.search(**data, loctype=loctype)
-                if origin.parsed:
+                if origin.dispatched:
                     origin.transfer('nts') if \
-                        origin.transfer('terc', function='powiat').parsed else do_nothing()
+                        origin.transfer('terc', function='powiat').dispatched else do_nothing()
                     return origin
             require(not isinstance(nil, type(None)), 'Item not found in TERYT register')
             return nil
 
-        self.page_terinfo['name'] = _clear_title(self.processed_page)
+        self.page_terinfo['contains'] = _clear_title(self.processed_page)
         return fillempty(look_up(self.processed_page.title()))
+
+    @staticmethod
+    def date_time():
+        return datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 # ======================================================================================================================

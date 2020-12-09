@@ -4,18 +4,34 @@
 
 """ Geoloc-Bot. """
 
-# TODO: Error handling.
-
-
-# import argparse
 from geolocbot import *
 from geolocbot.utils import getpagebyname, typecheck
 
+args = prepare.argparser().parse_args()
+
 
 class Geolocbot(wiki.WikiWrapper):
-    def __init__(self, fallback=None, template_name='lokalizacja'):
+    def __init__(
+            self,
+            fallback=None,
+            login=True,
+            log=True,
+            template_name='lokalizacja',
+            quiet=False,
+            errpage='User:Stim/geolocbot/błędy',
+            postponepage='User:Stim/geolocbot/przejrzeć'
+    ):
         super().__init__()
-        connecting.login()
+        if login:
+            connecting.login()
+        if quiet:
+            utils.quiet = True
+        if not log:
+            utils.log = False
+        self.args = None
+
+        self.errpage = errpage
+        self.postponepage = postponepage
         self._fallback = fallback or self.fallback
         self.nil = self.Nil()
         self.site = self.site
@@ -23,15 +39,15 @@ class Geolocbot(wiki.WikiWrapper):
         self._template_pat = \
             f'{"{{"}%(template_name)s|%(lat).6f, %(lon).6f|simc=%(simc)s|%(terc)swikidata=%(' \
             f'wikidata)s{"}}"}'
-        self._postpone_pat = \
-            f'* [[%(name)s|]] * {"{{/co|%(name)s|%(simc)s|%(terc)s|%(nts)s}}"} -- ~~~~~ | {"{{/p}}"}'
+        self._postpone_pat = f'* {"{{/co|%(name)s|%(simc)s|%(terc)s|%(nts)s|%(date)s|}}"}'
+        self._error_pat = '%(name)s\n----\n%(traceback)s\n%(date)s'
         self._data = {}
         self._comment_added = 'dodano lokalizację (%(name)s: %(lat).4f, %(lon).4f)'
         self._comment_replaced = 'zastąpiono lokalizację (%(name)s: %(lat).4f, %(lon).4f)'
         self._comment_postponed = 'usunięto lokalizację; zgłoszono stronę do przejrzenia'
         self._comment_postponed_report = 'zgłoszono stronę do przejrzenia'
+        self._comment_error_report = 'zgłoszono błąd'
         self._loc_pagename = ''
-
         self._template = ''
         self._locname = None
         self._lat = None
@@ -53,12 +69,6 @@ class Geolocbot(wiki.WikiWrapper):
         """
         Find the geolocation of Polish locality by its name identical with *_pagename*.
 
-        Examples
-        --------
-        >>> g = Geolocbot()
-        >>> g.geolocate('Pszczyna')
-        TODO
-
         Returns
         -------
         dict
@@ -78,35 +88,46 @@ class Geolocbot(wiki.WikiWrapper):
         return geoloc  # <not found>
 
     @typecheck
-    def geoloctemplate(self, lat: float, lon: float, simc: str, wikidata: str, terc: str = ''):
+    def template(self, lat: float, lon: float, simc: str, wikidata: str, terc: str = ''):
         terc = f'terc={terc}|' if terc else ''
         return self._template_pat % dict(
             template_name=self._template_name, lat=lat, lon=lon, simc=simc, terc=terc, wikidata=wikidata
         )
 
-    def run_on_category(self, category='Kategoria:Strony z niewypełnionym szablonem lokalizacji'):
+    def run_on_category(self, category):
+        cat_prefixes = ['kategoria:', 'category:']
+        if not any([category.lower().startswith(pref) for pref in cat_prefixes]):
+            category = cat_prefixes[0].capitalize() + category
+        output(f"Haps! {category!r}")
         articles = tuple(libs.pywikibot.Category(source=self.site, title=category).articles())
         for page in articles:
             self.run_on_page(page.title())
 
     @getpagebyname
     def proceed(self, _pagename):
-        locpage = self.inst_page(self._loc_pagename)
+        locpage = self.instantiate_page(self._loc_pagename)
         locpage_text = locpage.text
-        prev_template = self.group_template(self._loc_pagename, 'lokalizacja')
+        breakline = '\n'
+        prev_template: str = self.search_for_template(self._loc_pagename, 'lokalizacja')
         fmt = {'name': self._locname, 'lat': self._lat, 'lon': self._lon}
         if self._postpone:
             self.postpone()
-            locpage.text = locpage_text.replace(f'\n{prev_template}', '')
-            return locpage.save(self._comment_postponed)
+            output(f'Odkładam {self._loc_pagename!r} na później, zgłoszone gdzie trzeba.')
+            locpage.text = locpage_text.replace(f'{prev_template}', '')
+            return locpage.save(self._comment_postponed, quiet=True)
         elif prev_template:
+            output(f'Riplejs, {self._template!r} do {self._loc_pagename!r} zamiast '
+                   f'{prev_template.removesuffix(breakline).removesuffix(" ")!r}')
             locpage.text = locpage_text.replace(prev_template, self._template)
-            return locpage.save(self._comment_replaced % fmt)
+            return locpage.save(self._comment_replaced % fmt, quiet=True)
         locpage.text = self.insert(self._loc_pagename, text=self._template)
-        return locpage.save(self._comment_added % fmt)
+        output(f'Cyk, {self._template!r} do {self._loc_pagename!r}')
+        return locpage.save(self._comment_added % fmt, quiet=True)
 
     @typecheck
     def run_on_page(self, pagename: str):
+        self.instantiate_page(pagename)  # checkpoint
+        output(f'Mlem: {pagename!r}')
         self._data = self.geolocate(pagename)
         self._loc_pagename = pagename
         self._simc = self._data['simc']
@@ -121,21 +142,50 @@ class Geolocbot(wiki.WikiWrapper):
         self._lat = coords['lat']
         self._lon = coords['lon']
         self._wdtsource = coords['source'].title()
-        self._template = self.geoloctemplate(
+        self._template = self.template(
             lat=self._lat, lon=self._lon,
             simc=self._simc, wikidata=self._wdtsource,
             terc=self._terc
         )
         return self.proceed(pagename)
 
-    def run(self, procedure): pass
+    def run(self, arguments):
+        try:
+            output('Uruchomiono')
+            awaiting_category = 'Kategoria:Strony z niewypełnionym szablonem lokalizacji'
+            if arguments.page:
+                return self.run_on_page(arguments.page)
+            if arguments.cat:
+                return self.run_on_category(arguments.cat)
+            return self.run_on_category(category=awaiting_category)
+        except utils.any_exception as exception:
+            output(f'{utils.tc.red}ERROR{utils.tc.r}: {exception}')
+            traceback = exception.__traceback__
+            self.fallback(traceback=traceback)
 
-    def fallback(self, page):
-        pass
+    def fallback(self, traceback):
+        pagename = self.errpage
+        page = self.instantiate_page(pagename)
+        fmt = {'name': self._loc_pagename or 'Nie podczas przetwarzania miejscowości', 'traceback': traceback,
+               'date': self.date_time()}
+        page.text = self.insert(pagename, text=self._error_pat % fmt, prefixes=('\n',))
+        page.save(self._comment_error_report, quiet=True)
 
-    def postpone(self, pagename='User:Stim/geolocbot/przejrzeć'):
-        page = self.inst_page(pagename)
+    def postpone(self):
+        pagename = self.postponepage
+        page = self.instantiate_page(pagename)
         fmt = {'name': self.processed_page.title(), 'simc': self._simc, 'terc': self._terc or '/',
-               'nts': self._nts or '/'}
+               'nts': self._nts or '/', 'date': self.date_time()}
         page.text = self.insert(pagename, text=self._postpone_pat % fmt, prefixes=('\n *',))
-        page.save(self._comment_postponed_report)
+        page.save(self._comment_postponed_report, quiet=True)
+
+
+if __name__ == '__main__':
+    bot = Geolocbot(
+        login=not args.no_wiki_login,
+        quiet=args.shut_up,
+        log=not args.dont_log,
+        errpage=args.errpage,
+        postponepage=args.postponepage
+    )
+    bot.run(arguments=args)

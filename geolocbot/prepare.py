@@ -91,5 +91,30 @@ def bot_config():
     }
 
 
+def argparser():
+    import argparse
+    _argparser = argparse.ArgumentParser()
+    _argparser.add_argument('--page', nargs='?', const='', default='', help='Name of the page to be geolocated.')
+    _argparser.add_argument(
+        '--cat', nargs='?', const='', default='', help='Name of the category with pages to be geolocated.'
+    )
+    _argparser.add_argument('--shut_up', help='Whether the bot should be quiet.', action='store_true')
+    _argparser.add_argument(
+        '--no_wiki_login', default=False, help='Whether to log in before performing tasks.', action='store_true'
+    )
+    _argparser.add_argument(
+        '--dont_log', default=False, help='Whether to log messages from Geolocbot.', action='store_true'
+    )
+    _argparser.add_argument(
+        '--errpage', const='errpage',
+        default='User:Stim/geolocbot/błędy', help='Name of the page for error reporting.', action='store_const'
+    )
+    _argparser.add_argument(
+        '--postponepage', const='postponepage',
+        default='User:Stim/geolocbot/przejrzeć', help='Name of the page for error reporting.', action='store_const'
+    )
+    return _argparser
+
+
 teryt_resources(buffers=resources.cached_teryt.buffers)
 geolocbot.logging = logger()

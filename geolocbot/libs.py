@@ -17,6 +17,7 @@ import pandas
 import numpy
 import inspect
 import time
+import datetime
 import better_abc
 import types
 import typing
@@ -26,7 +27,7 @@ import requests
 # for code completion
 abc, pywikibot, logging, warnings, sys, configparser, os = abc, pywikibot, logging, warnings, sys, configparser, os
 re, pandas, numpy, time, better_abc, requests, types = re, pandas, numpy, time, better_abc, requests, types
-typing, inspect, pagegenerators, io, time = typing, inspect, pagegenerators, io, time
+typing, inspect, pagegenerators, io, time, datetime = typing, inspect, pagegenerators, io, time, datetime
 
 # pandas set-up
 pandas.set_option('display.max_rows', 500)

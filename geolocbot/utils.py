@@ -5,6 +5,11 @@
 import geolocbot
 from geolocbot.libs import *
 
+quiet = False
+log = True
+
+any_exception = (BaseException, Exception)
+
 
 class TerminalColors:
     white = u'\u001b[30m'
@@ -121,8 +126,8 @@ def representation(cls_name: str, **kwargs):
 def output(*values,
            level: str = 'info',
            sep: str = ' ',
+           timestamp: str = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
            file: str = 'stdout',
-           log: bool = True,
            logger: str = 'geolocbot'):
     """ Outputting function. """
     # 1. Get the stream file.
@@ -139,7 +144,11 @@ def output(*values,
             getattr(handler, level, handler.info)(values)
 
     # 4. Write the values in the stream file.
-    print(values, file=file)
+    if not quiet:
+        # more aesthetic
+        timestamp = \
+            timestamp.replace(':', f'{tc.grey}:{tc.r}').replace('-', f'{tc.grey}-{tc.r}') + f' {tc.green}|{tc.r}'
+        print(f'{timestamp} ', values, file=file)
 
     # 5. Return the values.
     return values

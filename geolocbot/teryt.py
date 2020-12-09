@@ -334,8 +334,6 @@ class _Loc(_TERYTAssociated):
             (col.str.lower().str.endswith(value.lower(), na=False))
         return df.loc[query]
 
-    def __repr__(self): return representation('_LocIndexerWrapper')
-
 
 class _Search(_TERYTAssociated):
     @typecheck
@@ -478,7 +476,7 @@ class TERYTRegister(ABC, __CTRP, metaclass=bABCMeta):
         self._candidate = None  # auxiliary
         self._container_values = ('function',)  # auxiliary
         self._name_value_space_kwds = ('name', 'match', 'startswith', 'endswith', 'contains')  # auxiliary
-        self._bool_optional = ('veinf', 'force_parse', 'parse', 'by_IDs', 'match_case')  # auxiliary
+        self._bool_optional = ('veinf', 'force_dispatch', 'dispatch', 'parse', 'by_IDs', 'match_case')  # auxiliary
         self._str_optional = ('terid',)  # auxiliary
         self._other_kwds = self._bool_optional + self._str_optional  # auxiliary
         self._derr = geolocbot.exceptions.DispatcherError  # auxiliary
@@ -486,10 +484,12 @@ class TERYTRegister(ABC, __CTRP, metaclass=bABCMeta):
         self.case = None
         self.cols, self.len = [col for col in self.field.columns], len(self.field)
         self.columns = self.cols
-        self.conflicts = (self._name_value_space_kwds, ('force_parse', 'parse'))
-        self.fparse, self._valid_kwds, self.name_value_space, self.parse = None, None, None, None
+        self.conflicts = (self._name_value_space_kwds, ('force_dispatch', 'dispatch'))
+        self.fdispatch, self._valid_kwds, self.name_value_space, self.dispatch = None, None, None, None
         self.search_indicators, self._search_only_kwds, self.search_mode, self.veinf = None, None, None, None
+        self.parse = None
         self.results_found = False
+        self.dispatched = False
         self.parsed = False
         self._argid = {}  # auxiliary
         self._argshed = {}  # auxiliary
@@ -521,9 +521,9 @@ class TERYTRegister(ABC, __CTRP, metaclass=bABCMeta):
     def __repr__(self):
         fn = self._field_name.upper()
         return representation(
-            fn if not self.parsed and not self.results_found
+            fn if not self.dispatched and not self.results_found
             else fn + '\n(*.results – accessor for results in a DataFrame)'
-            if self.results_found and not self.parsed else fn + 'Entry', **dict(self)
+            if self.results_found and not self.dispatched else fn + 'Entry', **dict(self)
         )
 
     def __iter__(self):
@@ -578,7 +578,7 @@ class TERYTRegister(ABC, __CTRP, metaclass=bABCMeta):
             eval(f'{target_name!s}')
         self._transfer_target = self._transfer_target()
         require(
-            self.parsed,
+            self.dispatched,
             'cannot perform generating indicators from properties if search results were not parsed'
         )
 
@@ -684,7 +684,7 @@ class TERYTRegister(ABC, __CTRP, metaclass=bABCMeta):
                     )
                     conflict.append(argument)
 
-        self.name_value_space, self.fparse = None, True
+        self.name_value_space, self.fdispatch = None, True
         modes = self._name_value_space_kwds + ('no_name_col',)
         self.search_mode = modes[-1]
 
@@ -697,8 +697,9 @@ class TERYTRegister(ABC, __CTRP, metaclass=bABCMeta):
 
         # 6. Pop stuff
         self.veinf = keywords.pop('veinf', False)
+        self.dispatch = keywords.pop('dispatch', True)
         self.parse = keywords.pop('parse', True)
-        self.fparse, self.case = keywords.pop('force_parse', False), keywords.pop('match_case', False)
+        self.fdispatch, self.case = keywords.pop('force_dispatch', False), keywords.pop('match_case', False)
         self.by_IDs = keywords.pop('by_IDs', False)
         terid = keywords.pop('terid', '')
 
@@ -774,7 +775,7 @@ class TERYTRegister(ABC, __CTRP, metaclass=bABCMeta):
         else:
             self.results_found = True
             self._results = self._candidate.reset_index()
-            if (len(self._candidate) == 1 or self.fparse) and self.parse:
+            if (len(self._candidate) == 1 or self.fdispatch) and self.dispatch:
                 self.dispatch_entry()
             return self._sfo
 
@@ -826,7 +827,7 @@ class TERYTRegister(ABC, __CTRP, metaclass=bABCMeta):
         return ni
 
     def _failure(self):
-        """ Internal method  """
+        """ Internal method, returns True if there were no search results. """
         return self._candidate.empty or self._candidate.equals(self.field)
 
     @called_after(__generate_indicators)
@@ -843,7 +844,7 @@ class TERYTRegister(ABC, __CTRP, metaclass=bABCMeta):
             for k, v in prop_copy.items()
         ]
         indicators = {**properties, 'by_IDs': True, 'name': name_space_value, 'veinf': self.veinf,
-                      'force_parse': self.fparse, 'match_case': self.case}
+                      'force_parse': self.fdispatch, 'match_case': self.case}
         yield indicators
         yield transfer_target
 
@@ -907,7 +908,7 @@ class TERYTRegister(ABC, __CTRP, metaclass=bABCMeta):
                 break
             frames |= {dfnim_value_space: getattr(NameIDMaps, dfnim_value_space + 's')}
             partial = teritorial_id[index:index + valid_length]
-            parse = self.parse
+            parse = self.dispatch
             if errors:
                 require(
                     not self.search(by_IDs=True, parse=False, **{dfnim_value_space: partial}).results.empty,
@@ -917,7 +918,7 @@ class TERYTRegister(ABC, __CTRP, metaclass=bABCMeta):
                         f'(error at {dfnim_value_space!r} value space, col {self.value_spaces[dfnim_value_space]!r})'
                     )
                 )
-            self.parse = parse
+            self.dispatch = parse
             code_indicators |= {dfnim_value_space: partial}
             index += valid_length
 
@@ -945,11 +946,11 @@ class TERYTRegister(ABC, __CTRP, metaclass=bABCMeta):
                 setattr(
                     self, '_' + value_space,
                     _BoundNameAndID(identificator=value, name=self._get_name_by_id(value_space, value))
-                    if self._has_nim(value_space)
+                    if self._has_nim(value_space) and self.parse
                     else value
                 )
         self.set_terid()
-        self.parsed = True
+        self.dispatched = True
         return self._sfo
 
     @called_after(__search)
@@ -1103,6 +1104,7 @@ class SIMC(TERYTRegister):
             'część miejscowości': '00',
         }
 
+
 class TERC(TERYTRegister):
     """ TERC, TERYT subsystem. """
     def __init__(self, resource=resources.cached_teryt.terc, *_args, **_kwargs):
@@ -1113,20 +1115,6 @@ class TERC(TERYTRegister):
             'function': 'NAZWA_DOD', 'date': 'STAN_NA',
         }
         self.nim_value_spaces = {'voivodship': 2, 'powiat': 2, 'gmina': 2, 'gmitype': 1}
-        self.loctype_nim = {  # hierarchized
-            'miasto': '96',
-            'delegatura': '98',
-            'dzielnica m. st. Warszawy': '95',
-            'część miasta': '99',
-            'wieś': '01',
-            'przysiółek': '03',
-            'kolonia': '02',
-            'osada': '04',
-            'osada leśna': '05',
-            'osiedle': '06',
-            'schronisko turystyczne': '07',
-            'część miejscowości': '00',
-        }
 
 
 class NTS(TERYTRegister):
@@ -1184,4 +1172,4 @@ simc = Simc = SIMC
 terc = Terc = TERC
 nts = Nts = NTS
 
-del ABC, bABCMeta
+del ABC, bABCMeta  # not for export
