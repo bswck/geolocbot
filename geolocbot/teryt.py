@@ -844,7 +844,7 @@ class TERYTRegister(ABC, __CTRP, metaclass=bABCMeta):
             for k, v in prop_copy.items()
         ]
         indicators = {**properties, 'by_IDs': True, 'name': name_space_value, 'veinf': self.veinf,
-                      'force_parse': self.fdispatch, 'match_case': self.case}
+                      'force_dispatch': self.fdispatch, 'match_case': self.case}
         yield indicators
         yield transfer_target
 

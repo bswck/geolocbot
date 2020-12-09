@@ -13,10 +13,10 @@ def login(call=0):
         try:
             _wiki.site.login()
             _wiki.base.site.login()
-            utils.output('Successfully logged in.')
+            utils.output('Zalogowano')
         except (libs.pywikibot.exceptions.FatalServerError, libs.requests.exceptions.ConnectionError):
             libs.time.sleep(2)
             login(call=call + 1)
     else:
-        utils.output('Attempted to log in 5 times, failed. Raising SystemExit with code -1.')
+        utils.output('5 razy próbowano zalogować, SystemExit -1')
         exit(-1)

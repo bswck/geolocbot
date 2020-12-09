@@ -113,6 +113,9 @@ def argparser():
         '--postponepage', const='postponepage',
         default='User:Stim/geolocbot/przejrzeć', help='Name of the page for error reporting.', action='store_const'
     )
+    _argparser.add_argument(
+        '--debug', default=False, help='Turn on debugging mode.', action='store_true'
+    )
     return _argparser
 
 

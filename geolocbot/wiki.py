@@ -135,7 +135,8 @@ class WikidataWrapper(BotSite):
         source = self._get_wdtitem_source(item)
         labels = values_(dict(source['labels']))
         name = _clear_title(self.processed_page)
-        require(any(xcl(x=name, seq=labels)), f'no item label {item} matches pagename {self.processed_page.title()}')
+        require(any(xcl(x=name, seq=labels)) or any(lcx(x=name, seq=labels))
+                , f'no item label {item} matches pagename {self.processed_page.title()}')
         if _property not in item.claims:
             return ()
         return item.claims[_property]
@@ -188,10 +189,8 @@ class WikiWrapper(BotSite):
 
     @getpagebyname
     def search_for_template(self, _pagename, templatename):
-        return getattr(
-            re.search(f'({"{{"}{templatename}.*{"}}"}\\s*)', self.processed_page.text, flags=re.I), 'group',
-            do_nothing
-        )(0)
+        search = re.search(f'({"{{"}{templatename}.*{"}}"}\\s*)', self.processed_page.text, flags=re.I)
+        return search.group(0) if search else ''
 
     @getpagebyname
     @typecheck
@@ -234,7 +233,7 @@ class WikiWrapper(BotSite):
             require(not isinstance(nil, type(None)), 'Item not found in TERYT register')
             return nil
 
-        self.page_terinfo['contains'] = _clear_title(self.processed_page)
+        self.page_terinfo['match'] = f'.*{_clear_title(self.processed_page)}$'
         return fillempty(look_up(self.processed_page.title()))
 
     @staticmethod

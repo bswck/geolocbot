@@ -40,7 +40,7 @@ class Geolocbot(wiki.WikiWrapper):
             f'{"{{"}%(template_name)s|%(lat).6f, %(lon).6f|simc=%(simc)s|%(terc)swikidata=%(' \
             f'wikidata)s{"}}"}'
         self._postpone_pat = f'* {"{{/co|%(name)s|%(simc)s|%(terc)s|%(nts)s|%(date)s|}}"}'
-        self._error_pat = '%(name)s\n----\n%(traceback)s\n%(date)s'
+        self._error_pat = '\n%(name)s\n----\n<pre>\n%(traceback)s\n</pre>\n%(date)s\n'
         self._data = {}
         self._comment_added = 'dodano lokalizację (%(name)s: %(lat).4f, %(lon).4f)'
         self._comment_replaced = 'zastąpiono lokalizację (%(name)s: %(lat).4f, %(lon).4f)'
@@ -112,22 +112,22 @@ class Geolocbot(wiki.WikiWrapper):
         fmt = {'name': self._locname, 'lat': self._lat, 'lon': self._lon}
         if self._postpone:
             self.postpone()
-            output(f'Odkładam {self._loc_pagename!r} na później, zgłoszone gdzie trzeba.')
+            output(f'Odkładam [[{self._loc_pagename}]] na później, zgłoszone gdzie trzeba.')
             locpage.text = locpage_text.replace(f'{prev_template}', '')
             return locpage.save(self._comment_postponed, quiet=True)
         elif prev_template:
-            output(f'Riplejs, {self._template!r} do {self._loc_pagename!r} zamiast '
+            output(f'Riplejs, {self._template!r} do [[{self._loc_pagename}]] zamiast '
                    f'{prev_template.removesuffix(breakline).removesuffix(" ")!r}')
-            locpage.text = locpage_text.replace(prev_template, self._template)
+            locpage.text = locpage_text.replace(prev_template, self._template + '\n')
             return locpage.save(self._comment_replaced % fmt, quiet=True)
         locpage.text = self.insert(self._loc_pagename, text=self._template)
-        output(f'Cyk, {self._template!r} do {self._loc_pagename!r}')
+        output(f'Cyk, {self._template!r} do [[{self._loc_pagename}]]')
         return locpage.save(self._comment_added % fmt, quiet=True)
 
     @typecheck
     def run_on_page(self, pagename: str):
         self.instantiate_page(pagename)  # checkpoint
-        output(f'Mlem: {pagename!r}')
+        output(f'Mlem: [[{pagename}]]')
         self._data = self.geolocate(pagename)
         self._loc_pagename = pagename
         self._simc = self._data['simc']
@@ -151,7 +151,7 @@ class Geolocbot(wiki.WikiWrapper):
 
     def run(self, arguments):
         try:
-            output('Uruchomiono')
+            output('Geolocbot v2.0™ by Błagamdziałaj®')
             awaiting_category = 'Kategoria:Strony z niewypełnionym szablonem lokalizacji'
             if arguments.page:
                 return self.run_on_page(arguments.page)
@@ -159,14 +159,15 @@ class Geolocbot(wiki.WikiWrapper):
                 return self.run_on_category(arguments.cat)
             return self.run_on_category(category=awaiting_category)
         except utils.any_exception as exception:
+            import traceback
             output(f'{utils.tc.red}ERROR{utils.tc.r}: {exception}')
-            traceback = exception.__traceback__
+            traceback = traceback.format_exc()
             self.fallback(traceback=traceback)
 
     def fallback(self, traceback):
         pagename = self.errpage
         page = self.instantiate_page(pagename)
-        fmt = {'name': self._loc_pagename or 'Nie podczas przetwarzania miejscowości', 'traceback': traceback,
+        fmt = {'name': self._loc_pagename or '(Nie podczas przetwarzania miejscowości)', 'traceback': traceback,
                'date': self.date_time()}
         page.text = self.insert(pagename, text=self._error_pat % fmt, prefixes=('\n',))
         page.save(self._comment_error_report, quiet=True)
@@ -181,11 +182,12 @@ class Geolocbot(wiki.WikiWrapper):
 
 
 if __name__ == '__main__':
-    bot = Geolocbot(
-        login=not args.no_wiki_login,
-        quiet=args.shut_up,
-        log=not args.dont_log,
-        errpage=args.errpage,
-        postponepage=args.postponepage
-    )
-    bot.run(arguments=args)
+    if not args.debug:
+        bot = Geolocbot(
+            login=not args.no_wiki_login,
+            quiet=args.shut_up,
+            log=not args.dont_log,
+            errpage=args.errpage,
+            postponepage=args.postponepage
+        )
+        bot.run(arguments=args)

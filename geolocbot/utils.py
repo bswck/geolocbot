@@ -104,7 +104,7 @@ def typecheck(callable_: typing.Callable):
 
 
 def do_nothing(*__args, **__kwargs):
-    return ''
+    pass
 
 
 class get_logger(object):
