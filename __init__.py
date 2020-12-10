@@ -3,6 +3,16 @@
 # GNU GPLv3 license
 
 """ Geoloc-Bot. """
+import os
+
+if not os.path.isfile('geolocbot.conf'):
+    with open('geolocbot.conf', 'w+') as conf:
+        dfconfig = "[wiki]\ntarget_wiki_login=StimBOT\nwikidata_login=Stim pl\n\n[logging]\nfilename=" \
+                   "geolocbot.log\nencoding = utf-8\nformat = %%(asctime)-25s %%(name)-9s %%(levelname)-9s %%(" \
+                   "message)s\ndatefmt = [%%Y-%%m-%%d]  %%H:%%M:%%S\nlevel = logging.DEBUG\n\n[pandas]\nsep = " \
+                   ";\ndtype = str\nencoding = utf-8"
+        conf.write(dfconfig)
+
 
 if __name__ == '__main__':
     # noinspection PyUnresolvedReferences
@@ -10,3 +20,6 @@ if __name__ == '__main__':
 else:
     # noinspection PyUnresolvedReferences
     from .bot import *
+
+
+del os
