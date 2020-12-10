@@ -7,17 +7,20 @@
 __all__ = ('bot_config', 'logger', 'resources')
 
 import geolocbot
-import resources
-from geolocbot import utils
+try:
+    from geolocbot import resources
+except ImportError:
+    from . import _resources as resources
+from . import utils
 
-abscd = geolocbot.libs.os.path.abspath(geolocbot.libs.os.path.curdir[0])
-cfparser = geolocbot.libs.configparser.ConfigParser()
+abscd = utils.os.path.abspath(utils.os.path.curdir[0])
+cfparser = utils.configparser.ConfigParser()
 
 
 def _validate_configuration_file(fname='geolocbot.conf'):
     """ Checks whether the configuration file is valid to be evaluated. """
     dirpath, fname = abscd, fname
-    fpath = geolocbot.libs.os.path.join(dirpath, fname)
+    fpath = utils.os.path.join(dirpath, fname)
     _msgs = {
         'missing-file': 'missing configuration file: {0} in {1}'.format(fname, dirpath),
         'missing-section': 'no section %r in configuration file: ' + fpath,
@@ -30,16 +33,16 @@ def _validate_configuration_file(fname='geolocbot.conf'):
         'wiki': ('target_wiki_login', 'wikidata_login')
     }
 
-    assert geolocbot.libs.os.path.isfile(fpath), geolocbot.exceptions.ConfigurationSetupError(_msgs['missing-file'])
+    utils.require(utils.os.path.isfile(fpath), utils.ConfigurationSetupError(_msgs['missing-file']))
     cfparser.read(fpath)
     for section in required_sections:
-        assert section in cfparser.sections(), \
-            geolocbot.exceptions.ConfigurationSetupError(_msgs['missing-section'] % section)
+        utils.require(section in cfparser.sections(),
+                      utils.ConfigurationSetupError(_msgs['missing-section'] % section))
 
     for section, options in required_options.items():
         for option in options:
-            assert option in cfparser.options(section=section), \
-                geolocbot.exceptions.ConfigurationSetupError(_msgs['missing-option'] % option)
+            utils.require(option in cfparser.options(section=section),
+                          utils.ConfigurationSetupError(_msgs['missing-option'] % option))
 
     return True
 
@@ -51,15 +54,14 @@ def logger():
     """ Fetches the Geoloc-Bot`s logger. """
     # Could use logging.config.fileConfig() but pointless for further use
     logging_basic_config = {
-        'filename': geolocbot.libs.os.path.join(abscd, cfparser.get('logging', 'filename')),
+        'filename': utils.os.path.join(abscd, cfparser.get('logging', 'filename')),
         'encoding': cfparser.get('logging', 'encoding'),
         'format': cfparser.get('logging', 'format'),
         'datefmt': cfparser.get('logging', 'datefmt'),
-        'level': eval('geolocbot.libs.' + cfparser.get('logging', 'level'))
+        'level': eval('utils.' + cfparser.get('logging', 'level'))
     }
-    logging = geolocbot.libs.logging
-    from geolocbot.libs import pywikibot
-    logging.disable(level=pywikibot.logging.VERBOSE)
+    logging = utils.logging
+    logging.disable(level=utils.pywikibot.logging.VERBOSE)
     with utils.get_logger('requests') as req:
         req.setLevel(logging.CRITICAL)
     logging.basicConfig(**logging_basic_config)
@@ -76,9 +78,9 @@ def teryt_resources(buffers: dict):
     }
 
     def assign():
-        resources.cached_teryt.simc = geolocbot.libs.pandas.read_csv(filepath_or_buffer=buffers['simc'], **pdconfkwds)
-        resources.cached_teryt.terc = geolocbot.libs.pandas.read_csv(filepath_or_buffer=buffers['terc'], **pdconfkwds)
-        resources.cached_teryt.nts = geolocbot.libs.pandas.read_csv(filepath_or_buffer=buffers['nts'], **pdconfkwds)
+        resources.cached_teryt.simc = utils.pandas.read_csv(filepath_or_buffer=buffers['simc'], **pdconfkwds)
+        resources.cached_teryt.terc = utils.pandas.read_csv(filepath_or_buffer=buffers['terc'], **pdconfkwds)
+        resources.cached_teryt.nts = utils.pandas.read_csv(filepath_or_buffer=buffers['nts'], **pdconfkwds)
 
     assign()
 
@@ -93,33 +95,20 @@ def bot_config():
 
 def argparser():
     import argparse
-    _argparser = argparse.ArgumentParser()
-    _argparser.add_argument('--page', nargs='?', const='', default='', help='Name of the page to be geolocated.')
-    _argparser.add_argument(
-        '--cat', nargs='?', const='', default='', help='Name of the category with pages to be geolocated.'
-    )
-    _argparser.add_argument('--shut_up', help='Whether the bot should be quiet.', action='store_true')
-    _argparser.add_argument(
-        '--no_wiki_login', default=False, help='Whether to log in before performing tasks.', action='store_true'
-    )
-    _argparser.add_argument(
-        '--dont_log', default=False, help='Whether to log messages from Geolocbot.', action='store_true'
-    )
-    _argparser.add_argument(
-        '--errpage', const='errpage',
-        default='User:Stim/geolocbot/błędy', help='Name of the page for error reporting.', action='store_const'
-    )
-    _argparser.add_argument(
-        '--postponepage', const='postponepage',
-        default='User:Stim/geolocbot/przejrzeć', help='Name of the page for error reporting.', action='store_const'
-    )
-    _argparser.add_argument(
-        '--debug', default=False, help='Turn on debugging mode.', action='store_true'
-    )
-    _argparser.add_argument(
-        '--sleepless', default=False, help='Work 24/7 on the awaiting category.', action='store_true'
-    )
-    return _argparser
+    errpage = {'default': 'User:Stim/geolocbot/błędy', 'help': 'name of the page for error reporting'}
+    deferpage = {'default': 'User:Stim/geolocbot/przejrzeć', 'help': 'name of the page for deferred pages reporting'}
+    parser = argparse.ArgumentParser()
+    arg = parser.add_argument
+    arg('--page', nargs='?', const='', default='', help='name of the page to be geolocated')
+    arg('--cat', nargs='?', const='', default='', help='name of the category with pages to be geolocated')
+    arg('--errpage', nargs='?', const='', **errpage)
+    arg('--deferpage', nargs='?', const='', **deferpage)
+    arg('--shut_up', help='mute the bot', action='store_true')
+    arg('--no_wiki_login', default=False, help='do not log in to wiki before performing tasks', action='store_true')
+    arg('--dont_log', default=False, help='do not log messages from Geolocbot', action='store_true')
+    arg('--debug', default=False, help='turn on debugging mode', action='store_true')
+    arg('--sleepless', default=False, help='process CAT forever every 30 seconds', action='store_true')
+    return parser
 
 
 teryt_resources(buffers=resources.cached_teryt.buffers)

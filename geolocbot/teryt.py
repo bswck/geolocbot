@@ -2,8 +2,10 @@
 # Stim, 2020
 # GNU GPLv3 license
 
-from geolocbot.utils import *
-from geolocbot.libs import *
+from .utils import *
+from .libs import *
+from .prepare import *
+sys.path.extend(str(pathlib.Path(os.getcwd()).parent))
 
 subsystems = ('simc', 'terc', 'nts')
 _NIM_initialized = False
@@ -263,7 +265,7 @@ class _BoundNameAndID(_TERYTAssociated):
         yield 'ID', self.id
 
 
-resources, _tsearches = geolocbot._resources, {}
+_tsearches = {}
 
 
 def transferred_searches(name):
@@ -422,7 +424,7 @@ class _Search(_TERYTAssociated):
 
                 if self.failure():
                     if self.candidate.equals(self.dataframe):
-                        anonymous_warning(f'It seems that all values in {value_space!r} value space are equal to '
+                        warn(f'It seems that all values in {value_space!r} value space are equal to '
                                           f'{query!r}. Try using more unique key words.')
                     self.candidate = self.frames[-1]
                     if attempts <= max_attempts:
@@ -734,7 +736,7 @@ class TERYTRegister(ABC, __CTRP, metaclass=bABCMeta):
             id_dataframe = getattr(NameIDMaps, pvalue_space)
 
             if id_dataframe.empty:
-                anonymous_warning(
+                warn(
                     f'no name-ID map available for {pvalue_space}. Updating search indicators with the provided value, '
                     f'however results are possible not to be found if it is not a valid ID.'
                 )

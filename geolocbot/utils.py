@@ -3,7 +3,8 @@
 # GNU GPLv3 license
 
 import geolocbot
-from geolocbot.libs import *
+from .libs import *
+from .exceptions import *
 
 quiet = False
 log = True
@@ -12,25 +13,26 @@ any_exception = (BaseException, Exception)
 
 
 class TerminalColors:
-    white = u'\u001b[30m'
-    red = u'\u001b[31m'
-    green = u'\u001b[32m'
-    yellow = u'\u001b[33m'
-    blue = u'\u001b[34m'
-    magenta = u'\u001b[35m'
-    cyan = u'\u001b[36m'
-    grey = u'\u001b[37m'
-    r = u'\u001b[0m'
-    b = u'\033[1m'
-    br = u'\033[0m'
+    def __init__(self):
+        self.white = u'\u001b[30m'
+        self.red = u'\u001b[31m'
+        self.green = u'\u001b[32m'
+        self.yellow = u'\u001b[33m'
+        self.blue = u'\u001b[34m'
+        self.magenta = u'\u001b[35m'
+        self.cyan = u'\u001b[36m'
+        self.grey = u'\u001b[37m'
+        self.r = u'\u001b[0m'
+        self.b = u'\033[1m'
+        self.br = u'\033[0m'
 
 
-tc = TerminalColors
+tc = TerminalColors = TerminalColors()
 
 
 def __assert(logical_object, xm: (str, Exception)):
-    """ Asserts, but raises custom exceptions. """
-    dferr = geolocbot.exceptions.BotError
+    """ Assert and raise custom exception. """
+    dferr = BotError
     if not logical_object:
         raise dferr(xm) or xm
     # else:
@@ -211,7 +213,7 @@ def values_(dct: dict, rtype=tuple, sort: bool = False, key=None):
     return rtype(dct.values())
 
 
-def lcx(x: typing.Any, seq: typing.Iterable, _lcx=True):
+def lcx(x: typing.Any, seq: typing.Iterable, boolean=True):
     """
     Check if *x* is (or is not) in each sequence element.
 
@@ -221,7 +223,7 @@ def lcx(x: typing.Any, seq: typing.Iterable, _lcx=True):
         Value to compare with each *seq* element.
     seq : iterable
         Iterable containing values comparable with *x*.
-    _lcx : bool
+    boolean : bool
         Whether to check if each *seq* element contains *x* or it does not.
 
     Returns
@@ -230,10 +232,10 @@ def lcx(x: typing.Any, seq: typing.Iterable, _lcx=True):
         List with boolean values only.
 
     """
-    return [x in elem for elem in seq] if _lcx else [x not in elem for elem in seq]
+    return [x in elem for elem in seq] if boolean else [x not in elem for elem in seq]
 
 
-def xcl(seq: typing.Iterable, x: typing.Any, _xcl=True):
+def xcl(seq: typing.Iterable, x: typing.Any, boolean=True):
     """
     Check if each sequence element is (or is not) in x.
 
@@ -243,7 +245,7 @@ def xcl(seq: typing.Iterable, x: typing.Any, _xcl=True):
         Iterable containing values comparable with *x*.
     x : any
         Value to compare with each *seq* element.
-    _xcl : bool
+    boolean : bool
         Whether to check if *x* contains each *seq* element or it does not.
 
     Returns
@@ -252,32 +254,11 @@ def xcl(seq: typing.Iterable, x: typing.Any, _xcl=True):
         List with boolean values only.
 
     """
-    return [elem in x for elem in seq] if _xcl else [elem not in x for elem in seq]
+    return [elem in x for elem in seq] if boolean else [elem not in x for elem in seq]
 
 
-# WIP snippet
-# -----------
-def __reraise(_args, _kwargs):
-    exc = _args[0]
-    __assert(issubclass(exc, BaseException), 'exceptions must derive from BaseException')
-
-
-@called_after(__reraise)
-@typecheck
-def reraise(errtype: type = geolocbot.exceptions.BotError):
-    def wrapper(callable_: typing.Callable):
-        def sieve(*arguments, **keyword_arguments):
-            try:
-                callable_(*arguments, **keyword_arguments)
-            except (BaseException, Exception) as _err:
-                raise errtype from _err
-        return sieve
-    return wrapper
-# -----------
-
-
-def anonymous_warning(_warning, _category=FutureWarning):
-    exec(compile(source='warnings.warn(_warning, category=_category)', filename='bot', mode='exec', flags=0))
+def warn(_warning, _category=FutureWarning):
+    exec(compile(source='warnings.warn(_warning, category=_category)', filename='bot', mode='eval', flags=0))
 
 
 def notna(value) -> "bool":

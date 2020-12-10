@@ -5,13 +5,22 @@
 """ Libraries and modules for Geoloc-Bot in one place. """
 
 import abc
-import pywikibot
-import pywikibot.pagegenerators as pagegenerators
+import os
+import sys
+import pathlib
+try:
+    import pywikibot
+except ImportError:
+    sys.path.extend([str(pathlib.Path(os.getcwd()).parent)])
+    import pywikibot
+
+try:
+    import pywikibot.pagegenerators as pagegenerators
+except ImportError:
+    from pywikibot import pagegenerators
 import logging
 import warnings
-import sys
 import configparser
-import os
 import re
 import pandas
 import numpy
@@ -29,7 +38,7 @@ abc, pywikibot, logging, warnings, sys, configparser, os = abc, pywikibot, loggi
 re, pandas, numpy, time, better_abc, requests, types = re, pandas, numpy, time, better_abc, requests, types
 typing, inspect, pagegenerators, io, time, datetime = typing, inspect, pagegenerators, io, time, datetime
 
-# pandas set-up
+# pandas setup
 pandas.set_option('display.max_rows', 500)
 pandas.set_option('display.max_columns', 20)
 pandas.set_option('display.width', 1000)

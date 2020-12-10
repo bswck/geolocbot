@@ -2,10 +2,10 @@
 # Stim, 2020
 # GNU GPLv3 license
 
-from geolocbot.utils import *
-from geolocbot.libs import *
-from geolocbot.prepare import *
-import geolocbot.teryt as teryt
+from .utils import *
+from .libs import *
+from .prepare import *
+from . import teryt
 
 
 __all__ = ('WikiWrapper',)
@@ -211,7 +211,7 @@ class WikiWrapper(BotSite):
             return self.page_terinfo
 
         def find(master: str, subcategories: list):
-            if master in self.trace and all(xcl(seq=self.indirect_ter_cat_prefixes, x=master, _xcl=False)):
+            if master in self.trace and all(xcl(seq=self.indirect_ter_cat_prefixes, x=master, boolean=False)):
                 self.doubling.append(master)
             [pull_data(sub) if ter_prefix(sub) else look_up(sub) for sub in subcategories]
 

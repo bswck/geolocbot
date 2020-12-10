@@ -5,18 +5,20 @@
 """ Connect + log in to Nonsensopedia wiki. """
 
 from geolocbot import *
+from .wiki import *
+from .libs import *
 
 
 def login(call=0):
     if call < 6:
-        _wiki = wiki.WikiWrapper()
+        ww = WikiWrapper()
         try:
-            _wiki.site.login()
-            _wiki.base.site.login()
-            utils.output('Zalogowano')
-        except (libs.pywikibot.exceptions.FatalServerError, libs.requests.exceptions.ConnectionError):
-            libs.time.sleep(2)
+            ww.site.login()
+            ww.base.site.login()
+            output('Zalogowano')
+        except (pywikibot.exceptions.FatalServerError, requests.exceptions.ConnectionError):
+            time.sleep(2)
             login(call=call + 1)
     else:
-        utils.output('5 razy próbowano zalogować, SystemExit -1')
+        output('5 razy próbowano zalogować, SystemExit -1')
         exit(-1)

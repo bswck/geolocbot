@@ -4,5 +4,11 @@
 
 """ Create access to resources. """
 
-import resources.cached_teryt as cached_teryt
+import sys
+import os
+import pathlib
+try:
+    from resources import cached_teryt
+except ImportError:
+    from ..resources import cached_teryt
 cached_teryt = cached_teryt
