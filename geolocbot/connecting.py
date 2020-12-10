@@ -15,10 +15,10 @@ def login(call=0):
         try:
             ww.site.login()
             ww.base.site.login()
-            output('Zalogowano')
+            utils.output('Zalogowano')
         except (pywikibot.exceptions.FatalServerError, requests.exceptions.ConnectionError):
             time.sleep(2)
             login(call=call + 1)
     else:
-        output('5 razy próbowano zalogować, SystemExit -1')
+        utils.output('5 razy próbowano zalogować, SystemExit -1')
         exit(-1)
