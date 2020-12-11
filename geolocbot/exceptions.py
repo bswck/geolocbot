@@ -1,8 +1,8 @@
+""" Geoloc-Bot exceptions. """
+
 # This is the part of Geoloc-Bot for Nonsensopedia wiki (https://nonsa.pl/wiki/Main_Page).
 # Stim, 2020
 # GNU GPLv3 license
-
-""" Geoloc-Bot exceptions. """
 
 
 class BotError(Exception):
@@ -24,13 +24,13 @@ class SearchError(BotError):
     """ Raised when search failed. """
 
 
-class TerytFieldError(BotError):
+class TERYTError(BotError):
     """ Exception class of *TerytField*. """
 
 
-class DispatcherError(TerytFieldError):
-    """ Raised when parser fails. """
+class UnpackError(TERYTError):
+    """ Raised when unpacking fails. """
 
 
-class ResourceError(TerytFieldError):
+class ResourceError(TERYTError):
     """ Raised e.g. if the field of *TerytEntry* is empty. """

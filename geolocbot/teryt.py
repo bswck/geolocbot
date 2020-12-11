@@ -1,3 +1,5 @@
+""" Submodule implementing TERYT register. """
+
 # This is the part of Geoloc-Bot for Nonsensopedia wiki (https://nonsa.pl/wiki/Main_Page).
 # Stim, 2020
 # GNU GPLv3 license
@@ -8,14 +10,8 @@ from .prepare import *
 sys.path.extend(str(pathlib.Path(os.getcwd()).parent))
 
 subsystems = ('simc', 'terc', 'nts')
-_NIM_initialized = False
+_got_nims = False
 __all__ = ('transferred_searches', *subsystems)
-
-
-def load_nim():
-    global NameIDMaps
-    NameIDMaps = GetNIMs()
-    return True
 
 
 class _TERYTAssociated:
@@ -23,11 +19,11 @@ class _TERYTAssociated:
     def __repr__(self): return representation(type(self).__name__, **dict(self))
 
     def __iter__(self):
-        for attrname in [attr for attr in keys_(self.__dict__) if attr[:1] != '_']:
+        for attrname in [attr for attr in keysdict(self.__dict__) if attr[:1] != '_']:
             yield attrname, getattr(self, attrname)
 
 
-class __CTRP(_TERYTAssociated):
+class __TERYTRegisterProps(_TERYTAssociated):
     """ Common TERYTRegister properties. """
     def __init__(self):
         self.gmitype_nim = {
@@ -241,14 +237,14 @@ class _BoundNameAndID(_TERYTAssociated):
     def __init__(self, name: (str, bool) = '', identificator: str = ''):
         self.name = self.Name = name
         self.id = self.ID = self.Id = identificator
-        self.items_t = values_(dict(self))
+        self.items_t = valuesdict(dict(self))
 
     @typecheck
     def __getitem__(self, item: (int, str)):
         return self.items_t[item] if isinstance(item, int) else getattr(self, item, '')
 
     def __repr__(self):
-        return '(' + ', '.join([repr(value) for value in values_(dict(self))]) + ')'
+        return ' ↔ '.join([repr(value) for value in valuesdict(dict(self))])
 
     def __str__(self):
         return str(self.id) if self.id else ''
@@ -268,12 +264,26 @@ class _BoundNameAndID(_TERYTAssociated):
 _tsearches = {}
 
 
+@typecheck
 def transferred_searches(name):
+    """
+    Generator that accesses transferred searches from a global dictionary.
+    For example use, see TERYTRegister.transfer() doc.
+
+    Parameters
+    ----------
+    name : str
+        Name of the locality.
+
+    Returns
+    -------
+    generator
+    """
     for transfer in tuple(set(_tsearches.get(name, ()))):
         yield getattr(transfer, '_field_name'), transfer
 
 
-class _Loc(_TERYTAssociated):
+class _Locate(_TERYTAssociated):
     """ Broker for DataFrame indexing with LocationIndexer. """
     def approve_col(self=_TERYTAssociated):
         def decorator(meth: typing.Callable):
@@ -338,6 +348,9 @@ class _Loc(_TERYTAssociated):
 
 
 class _Search(_TERYTAssociated):
+    """
+    Search the field.
+    """
     @typecheck
     def __init__(
             self,
@@ -347,9 +360,9 @@ class _Search(_TERYTAssociated):
             search_mode: str,
             value_spaces: dict,
             case: bool,
-            container_values: typing.Iterable,
-            startswith_values: typing.Iterable,
-            name_space_value: str = '',
+            containers: typing.Iterable,
+            startswiths: typing.Iterable,
+            locname: str = '',
     ):
         self.dataframe = dataframe
         self.field_name = field_name
@@ -357,13 +370,13 @@ class _Search(_TERYTAssociated):
         self.value_spaces = value_spaces
         self.case = case
         self.search_indicators = {}
-        self.ineffective_value_space = ''
-        self.name_space_value = name_space_value
-        self.container_values = container_values
-        self.startswith_values = startswith_values
+        self.ineffective = ''
+        self.locname = locname
+        self.containers = containers
+        self.startswiths = startswiths
 
     def failure(self):
-        """ Internal method marking if no search were found. """
+        """ Internal method marking if search got no results. """
         return self.candidate.empty or self.candidate.equals(self.dataframe)
 
     def shuffle(self):
@@ -375,33 +388,49 @@ class _Search(_TERYTAssociated):
         dict
             Shuffled search indicators.
         """
-        keys, values = keys_(self.search_indicators, rtype=list), values_(self.search_indicators, rtype=list)
-        inef_key_index = keys.index(self.ineffective_value_space)
-        inef_value = values[inef_key_index]
-        del keys[inef_key_index], values[inef_key_index]
-        keys.insert(inef_key_index + 1, self.ineffective_value_space)
-        values.insert(inef_key_index + 1, inef_value)
+        keys, values = keysdict(self.search_indicators, rtype=list), valuesdict(self.search_indicators, rtype=list)
+        ineffective_key_index = keys.index(self.ineffective)
+        ineffective_value = values[ineffective_key_index]
+        del keys[ineffective_key_index], values[ineffective_key_index]
+        keys.insert(ineffective_key_index + 1, self.ineffective)
+        values.insert(ineffective_key_index + 1, ineffective_value)
         self.search_indicators = dict(zip(keys, values))
         return self.search_indicators
 
-    def _search(self, search_indicators):
+    def _search(self, search_indicators) -> "pandas.DataFrame":
+        """
+        Search the field.
+
+        Parameters
+        ----------
+        search_indicators : dict
+
+        Returns
+        -------
+        pandas.DataFrame
+            Results of the search in a DataFrame.
+
+        """
         self.candidate = self.dataframe.copy()
         self.search_indicators = search_indicators
         value_spaces = self.value_spaces
         self.frames = [self.candidate]
 
-        def initial_search():
-            self.candidate = getattr(_Loc, self.search_mode)(
+        def locname_search():
+            """
+            Search for locality name.
+            """
+            self.candidate = getattr(_Locate, self.search_mode)(
                 df=self.candidate,
                 col=value_spaces['name'],
-                value=self.name_space_value,
+                value=self.locname,
                 case=self.case
             )
 
             self.frames.append(self.candidate)
 
-        if self.search_mode != 'no_name_col':
-            initial_search()
+        if self.search_mode != 'no_locname':
+            locname_search()
             if self.failure():
                 return pandas.DataFrame()
 
@@ -410,6 +439,11 @@ class _Search(_TERYTAssociated):
         done = False
 
         def search_loop():
+            """
+            Search loop.
+            Performs searching until attempts equal max_attempts.
+            Each subsequent attempt is preceded by shuffling the search indicators.
+            """
             nonlocal self, attempts, done
             for value_space, query in self.search_indicators.items():
                 attempts += 1
@@ -418,17 +452,17 @@ class _Search(_TERYTAssociated):
                 col = self.value_spaces[value_space]
                 stuff = dict(df=self.candidate, col=col, value=str(query), case=self.case)
                 self.candidate = \
-                    _Loc.contains(**stuff) if value_space in self.container_values else \
-                    _Loc.startswith(**stuff) if value_space in self.startswith_values else \
-                    _Loc.name(**stuff)
+                    _Locate.contains(**stuff) if value_space in self.containers else \
+                    _Locate.startswith(**stuff) if value_space in self.startswiths else \
+                    _Locate.name(**stuff)
 
                 if self.failure():
                     if self.candidate.equals(self.dataframe):
                         warn(f'It seems that all values in {value_space!r} value space are equal to '
-                                          f'{query!r}. Try using more unique key words.')
+                             f'{query!r}. Try using more unique key words.')
                     self.candidate = self.frames[-1]
                     if attempts <= max_attempts:
-                        self.ineffective_value_space = value_space
+                        self.ineffective = value_space
                         self.shuffle()
                         search_loop()
                     else:
@@ -445,11 +479,9 @@ class _Search(_TERYTAssociated):
         return self._search(search_indicators=search_indicators)
 
 
-class TERYTRegister(ABC, __CTRP, metaclass=bABCMeta):
+class TERYTRegister(ABC, __TERYTRegisterProps, metaclass=bABCMeta):
     """
     TERYT register, _Search broker.
-    If self.search() is allowed to parse, this class contains single TERYT entry properties defined in _CTP after
-    getting 1 result from self.search().
     """
     TERCNIM = None  # parallel object binding identifiers to linked to them names in the background
     NTSNIM = None  # parallel object binding identifiers to linked to them names in the background
@@ -463,9 +495,24 @@ class TERYTRegister(ABC, __CTRP, metaclass=bABCMeta):
             terc_resource=resources.cached_teryt.terc,
             nts_resource=resources.cached_teryt.nts
     ):
+        """
+        Construct the TERYTRegister's subsystem object.
+
+        Parameters
+        ----------
+        field_name : str
+            Name of the subsystem (furtherly also called field), e.g. 'TERC'.
+        sub : TERYTRegister
+            Subclass object of TERYTRegister.
+        simc_resource : pandas.DataFrame
+            DataFrame resource of SIMC subsystem.
+        terc_resource
+            DataFrame resource of TERC subsystem.
+        nts_resource
+            DataFrame resource of NTS subsystem.
+        """
         super(TERYTRegister, self).__init__()
-        if not _NIM_initialized:
-            load_nim()
+        _get_nims()
         self._invalid_kwd_msg = \
             f'%s() got an unexpected keyword argument %r. Try looking for the proper argument name ' \
             f'in the following list:\n{" " * 12}%s.'
@@ -474,61 +521,78 @@ class TERYTRegister(ABC, __CTRP, metaclass=bABCMeta):
         self._field_name = field_name.replace(' ', '_').upper()
         self.field: pandas.DataFrame = getattr(self, self._field_name.lower(), None)
         require(self.field is not None, f'couldn\'t fetch searching.teryt.{self._field_name.lower()}')
-        require(not self.field.empty, 'cannot instantiate _TFSearch with an empty field')
+        require(not self.field.empty, 'cannot instantiate _Search with an empty field')
         self._candidate = None  # auxiliary
-        self._container_values = ('function',)  # auxiliary
-        self._name_value_space_kwds = ('name', 'match', 'startswith', 'endswith', 'contains')  # auxiliary
-        self._bool_optional = ('veinf', 'force_dispatch', 'dispatch', 'parse', 'by_IDs', 'match_case')  # auxiliary
+        self._containers = ('function',)  # auxiliary
+        self._locname_kwds = ('name', 'match', 'startswith', 'endswith', 'contains')  # auxiliary
+        self._bool_optional = ('veinf', 'force_unpack', 'unpack', 'usenim', 'unfolded', 'match_case')  # auxiliary
         self._str_optional = ('terid',)  # auxiliary
         self._other_kwds = self._bool_optional + self._str_optional  # auxiliary
-        self._derr = geolocbot.exceptions.DispatcherError  # auxiliary
-        self._startswith_values = ('date',)  # auxiliary
+        self._uerr = geolocbot.exceptions.UnpackError  # auxiliary
+        self._startswiths = ('date',)  # auxiliary
         self.case = None
         self.cols, self.len = [col for col in self.field.columns], len(self.field)
         self.columns = self.cols
-        self.conflicts = (self._name_value_space_kwds, ('force_dispatch', 'dispatch'))
-        self.fdispatch, self._valid_kwds, self.name_value_space, self.dispatch = None, None, None, None
+        self.conflicts = (self._locname_kwds, ('force_unpack', 'unpack'))
+        self.funpack, self._valid_kwds, self.locname_value_space, self.unpack = None, None, None, None
         self.search_indicators, self._search_only_kwds, self.search_mode, self.veinf = None, None, None, None
-        self.parse = None
+        self.usenim = None
         self.results_found = False
-        self.dispatched = False
-        self.parsed = False
+        self.unpacked = False
+        self.usednim = False
         self._argid = {}  # auxiliary
         self._argshed = {}  # auxiliary
-        self._sfo: TERYTRegister = sub  # subclass field object
+        self._sub: TERYTRegister = sub  # subclass field object
         self._transfer_target = None  # subclass field object used for getting search indicators from local properties
         self._cached_nims = {}
 
         # Single entry values
-        self._terid = None  # (!) real value is assigned by parser(s)
-        self._id = None  # (!) real value is assigned by parser(s)
-        self._integral_id = None  # (!) real value is assigned by parser(s)
-        self._region = None  # (!) real value is assigned by parser(s)
-        self._subregion = None  # (!) real value is assigned by parser(s)
-        self._level = None  # (!) real value is assigned by parser(s)
-        self._function = None  # (!) real value is assigned by parser(s)
-        self._index = None  # (!) real value is assigned by parser(s)
-        self._voivodship = None  # (!) real value is assigned by parser(s)
-        self._powiat = None  # (!) real value is assigned by parser(s)
-        self._gmina = None  # (!) real value is assigned by parser(s)
-        self._gmitype = None  # (!) real value is assigned by parser(s)
-        self._loctype = None  # (!) real value is assigned by parser(s)
-        self._has_common_name = None  # (!) real value is assigned by parser(s)
-        self._name = None  # (!) real value is assigned by parser(s)
-        self._date = None  # (!) real value is assigned by parser(s)
-        self._entry_frame = None  # (!) real value is assigned by parser(s)
-        self._results = None  # (!) real value is assigned by parser(s)
+        self._terid = None  # (!) real value is assigned on unpack
+        self._id = None  # (!) real value is assigned on unpack
+        self._integral_id = None  # (!) real value is assigned on unpack
+        self._region = None  # (!) real value is assigned on unpack
+        self._subregion = None  # (!) real value is assigned on unpack
+        self._level = None  # (!) real value is assigned on unpack
+        self._function = None  # (!) real value is assigned on unpack
+        self._index = None  # (!) real value is assigned on unpack
+        self._voivodship = None  # (!) real value is assigned on unpack
+        self._powiat = None  # (!) real value is assigned on unpack
+        self._gmina = None  # (!) real value is assigned on unpack
+        self._gmitype = None  # (!) real value is assigned on unpack
+        self._loctype = None  # (!) real value is assigned on unpack
+        self._has_common_name = None  # (!) real value is assigned on unpack
+        self._name = None  # (!) real value is assigned on unpack
+        self._date = None  # (!) real value is assigned on unpack
+        self._entry_frame = None  # (!) real value is assigned on unpack
+        self._results = None  # (!) real value is assigned on unpack
         # End of single entry values
 
     def __repr__(self):
+        """
+        Represent TERYTRegister object; dynamic, depends on current attributes.
+
+        Returns
+        -------
+        str
+        """
         fn = self._field_name.upper()
         return representation(
-            fn if not self.dispatched and not self.results_found
+            fn if not self.unpacked and not self.results_found
             else fn + '\n(*.results – accessor for results in a DataFrame)'
-            if self.results_found and not self.dispatched else fn + 'Entry', **dict(self)
+            if len(self.results) != 1 and not self.unpacked else
+            fn + 'EntryUnpacked' if not self.unpacked and len(self.results) == 1 else
+            fn + 'Entry', **dict(self)
         )
 
     def __iter__(self):
+        """
+        Implement TERYTRegister as an Iterable.
+
+        Returns
+        -------
+        iterator
+            Value spaces and teritorial ID of a processed locality.
+        """
         if getattr(self, 'terid'):
             yield 'terid', getattr(self, 'terid')
         for value_space in self.value_spaces:
@@ -536,9 +600,11 @@ class TERYTRegister(ABC, __CTRP, metaclass=bABCMeta):
                 yield value_space, getattr(self, value_space)
 
     def __getitem__(self, item):
+        """ Get item of TERYTRegister as an iterator. """
         return dict(self)[item]
 
     def __del__(self):
+        """ Clean-up data by initializing self. """
         self.__init__(
             **{self._field_name.lower() + '_resource': self.field},
             field_name=self._field_name,
@@ -563,7 +629,7 @@ class TERYTRegister(ABC, __CTRP, metaclass=bABCMeta):
     @typecheck
     def _has_df_nim(self, value_space: str) -> "bool":
         """ Check if *self* has DataFrame-type attribute standing for value space's NIM. """
-        return hasattr(NameIDMaps, value_space + 's')
+        return hasattr(nims, value_space + 's')
 
     @typecheck
     def _has_nim(self, value_space: str) -> "bool":
@@ -571,26 +637,26 @@ class TERYTRegister(ABC, __CTRP, metaclass=bABCMeta):
         return self._has_dict_nim(value_space) or self._has_df_nim(value_space)
 
     # ---- Preceding methods
-    def __generate_indicators(self, _args, _kwargs):
-        """ Precede self.generate_indicators(). """
-        require(_args, 'generate_indicators(): no arguments')
+    def __indicators(self, _args, _kwargs):
+        """ Precede self._indicators(). """
+        require(_args, '_indicators(): no arguments')
         target_name = _args[0]
-        require(target_name in subsystems, f'cannot evalue transfer target using name {target_name!r}')
+        require(target_name in subsystems, f'cannot evaluate transfer target using name {target_name!r}')
         self._transfer_target = \
             eval(f'{target_name!s}')
         self._transfer_target = self._transfer_target()
         require(
-            self.dispatched,
-            'cannot perform generating indicators from properties if search results were not parsed'
+            self.unpacked,
+            'cannot perform generating indicators from properties if search results were not unpacked'
         )
 
-    def __get_ids_by_names(self, _args, _kwargs):
-        """ Precede self._get_ids_by_names(). """
-        valid_kwds = keys_(self.value_spaces, sort=True)
+    def __ident_names(self, _args, _kwargs):
+        """ Precede self._ident_names(). """
+        valid_kwds = keysdict(self.value_spaces, sort=True)
         # 1. Check if all keyword arguments are expected
         [require(
             kwd in valid_kwds, 
-            TypeError(self._invalid_kwd_msg % ('_get_ids_by_names', kwd, ', '.join(valid_kwds)))
+            TypeError(self._invalid_kwd_msg % ('_ident_names', kwd, ', '.join(valid_kwds)))
         ) for kwd in list(set(_kwargs))]
         
         # 2. Separate arguments for ID getting and arguments for direct search
@@ -604,27 +670,27 @@ class TERYTRegister(ABC, __CTRP, metaclass=bABCMeta):
                 value = nim[value]
             self._argshed |= {name: value}  # don't lose the other arguments
 
-    def __get_name_by_id(self, _args, _kwargs):
-        """ Precede self._get_name_by_id(). """
+    def __name_id(self, _args, _kwargs):
+        """ Precede self._name_id(). """
         if _args:
             value_space = _args[0]
             require(self._has_nim(value_space), f'value space {value_space!r} does not have a name-ID map')
 
-    def __dispatch_entry(self, _args, _kwargs):
-        """ Precede self.dispatch_entry(). """
+    def __unpack_entry(self, _args, _kwargs):
+        """ Precede self.unpack_entry(). """
         dataframe, value_spaces = _kwargs.pop('dataframe', self.results), self.value_spaces
-        require(not dataframe.empty, self._derr('dispatcher failed: nothing to dispatch from'))
+        require(not dataframe.empty, self._uerr('unpacker failed: nothing to unpack from'))
         require(
             len(dataframe) == 1,
-            self._derr(
-                f'dispatcher failed: cannot dispatch from more than one TERYT entry (got {len(dataframe)} entries)'
+            self._uerr(
+                f'unpacker failed: cannot unpack from more than one TERYT entry (got {len(dataframe)} entries)'
             )
         )
         for value_space in value_spaces:
             require(
                 value_spaces[value_space] in dataframe,
-                self._derr(
-                    f'dispatcher failed: value space {value_space.replace("_", " ")} '
+                self._uerr(
+                    f'unpacker failed: value space {value_space.replace("_", " ")} '
                     f'(the real column is named {value_spaces[value_space]!r}) not in source DataFrame'
                 )
             )
@@ -646,7 +712,7 @@ class TERYTRegister(ABC, __CTRP, metaclass=bABCMeta):
 
         # 2. Check if arguments and their types are expected
         self._search_only_kwds = tuple(
-            set(self._name_value_space_kwds + keys_(self.value_spaces))
+            set(self._locname_kwds + keysdict(self.value_spaces))
         ) + self._str_optional
         self._valid_kwds = self._search_only_kwds + self._other_kwds
         for keyword, value in keywords.items():
@@ -656,7 +722,8 @@ class TERYTRegister(ABC, __CTRP, metaclass=bABCMeta):
                     'search', keyword, ', '.join(sorted(set(self._valid_kwds)))
                 ))
             )
-            valid_type = (bool,) if keyword in self._bool_optional or keyword.startswith('has') \
+            self.unfolded = keywords.copy().pop('unfolded', False)  # TODO: fix this
+            valid_type = (bool,) if keyword in self._bool_optional or (keyword.startswith('has') and not self.unfolded)\
                 else (str, _BoundNameAndID)
             str_valid_types = (', '.join([repr(_type.__name__) for _type in valid_type])
                                if isinstance(valid_type, typing.Iterable) else type(valid_type).__name__)
@@ -667,10 +734,13 @@ class TERYTRegister(ABC, __CTRP, metaclass=bABCMeta):
             require(isinstance(value, valid_type), TypeError(invalid_type_msg))
 
         # 3. Check if any search keyword argument has been provided
-        require(any(xcl(x=keywords, seq=self._search_only_kwds)), ValueError(
-                f'no keyword arguments for searching (expected minimally 1 from: '
-                f'{", ".join(sorted(self._search_only_kwds))})')
-                )
+        require(
+            any(eleminx(x=keywords, seq=self._search_only_kwds)),
+            ValueError(
+                f'no keyword arguments for searching (expected at least one from: '
+                f'{", ".join(sorted(self._search_only_kwds))})'
+            )
+        )
 
         self.conflicts += tuple(('terid', nim_value_space) for nim_value_space in self.nim_value_spaces)
 
@@ -686,31 +756,32 @@ class TERYTRegister(ABC, __CTRP, metaclass=bABCMeta):
                     )
                     conflict.append(argument)
 
-        self.name_value_space, self.fdispatch = None, True
-        modes = self._name_value_space_kwds + ('no_name_col',)
+        self.locname_value_space, self.funpack = None, True
+        modes = self._locname_kwds + ('no_locname',)
         self.search_mode = modes[-1]
 
         # 5. Get the search mode and 'name' value space value
         for keyword in keywords.copy():
-            for mode in self._name_value_space_kwds:
+            for mode in self._locname_kwds:
                 if keyword == mode:
-                    self.search_mode, self.name_value_space = mode, keywords[mode]
+                    self.search_mode, self.locname_value_space = mode, keywords[mode]
                     del keywords[mode]
 
         # 6. Pop stuff
         self.veinf = keywords.pop('veinf', False)
-        self.dispatch = keywords.pop('dispatch', True)
-        self.parse = keywords.pop('parse', True)
-        self.fdispatch, self.case = keywords.pop('force_dispatch', False), keywords.pop('match_case', False)
-        self.by_IDs = keywords.pop('by_IDs', False)
+        self.unpack = keywords.pop('unpack', True)
+        self.usenim = keywords.pop('usenim', True)
+        self.funpack = keywords.pop('force_unpack', False)
+        self.unfolded = keywords.pop('unfolded', False)
+        self.case = keywords.pop('match_case', False)
         terid = keywords.pop('terid', '')
 
         # 7. Set the search indicators
-        if not self.by_IDs:
-            keywords = self._get_ids_by_names(**keywords)
+        if not self.unfolded:
+            keywords = self._ident_names(**keywords)
         if terid:
-            parsed_terid = self.parse_terid(terid)
-            [keywords.__setitem__(n, v) for n, v in parsed_terid.items() if v]
+            unfolded = self.unfold_terid(terid)
+            [keywords.__setitem__(n, v) for n, v in unfolded.items() if v]
 
         self.search_indicators = keywords
         self._candidate, frames = self.field.copy(), [self.field.copy()]
@@ -721,23 +792,21 @@ class TERYTRegister(ABC, __CTRP, metaclass=bABCMeta):
 
         return True
 
-    # ----------
-
-    @called_after(__get_ids_by_names)
-    def _get_ids_by_names(self, **_kwargs):
+    @beforehand(__ident_names)
+    def _ident_names(self, **_kwargs):
         id_indicators = self._argshed.copy()
-        for value_space in keys_(self._argshed):
+        for value_space in keysdict(self._argshed):
             if value_space not in self.TERCNIM.columns:
                 id_indicators.pop(value_space)
 
-        spaces = keys_(self.value_spaces)
+        spaces = keysdict(self.value_spaces)
         for value_space, value in self._argid.items():
-            pvalue_space = value_space + 's'
-            id_dataframe = getattr(NameIDMaps, pvalue_space)
+            space_nim = value_space + 's'
+            id_dataframe = getattr(nims, space_nim)
 
             if id_dataframe.empty:
                 warn(
-                    f'no name-ID map available for {pvalue_space}. Updating search indicators with the provided value, '
+                    f'no name-ID map available for {space_nim}. Updating search indicators with the provided value, '
                     f'however results are possible not to be found if it is not a valid ID.'
                 )
                 id_indicators |= {value_space: value}
@@ -749,9 +818,9 @@ class TERYTRegister(ABC, __CTRP, metaclass=bABCMeta):
                 search_mode='equal',
                 value_spaces=self.value_spaces,
                 case=False,
-                container_values=self._container_values,
-                startswith_values=self._startswith_values,
-                name_space_value=value
+                containers=self._containers,
+                startswiths=self._startswiths,
+                locname=value
             )(search_indicators=id_indicators)
 
             require(not entry.empty, self._repr_not_str % (value, value_space))
@@ -770,22 +839,22 @@ class TERYTRegister(ABC, __CTRP, metaclass=bABCMeta):
         if self._failure():
             def _hf():
                 """ Handle failure. """
-                self.__del__()
                 require(not self.veinf, ValueError('no results found'))
-                return self._sfo
+                self.__del__()
+                return self._sub
             return _hf()
         else:
             self.results_found = True
             self._results = self._candidate.reset_index()
-            if (len(self._candidate) == 1 or self.fdispatch) and self.dispatch:
-                self.dispatch_entry()
-            return self._sfo
+            if (len(self._candidate) == 1 or self.funpack) and self.unpack:
+                self.unpack_entry()
+            return self._sub
 
-    @called_after(__get_name_by_id)
+    @beforehand(__name_id)
     @typecheck
-    def _get_name_by_id(self, value_space: str, value: str):
+    def _name_id(self, value_space: str, value: str):
         if self._has_dict_nim(value_space):
-            return reverse_(getattr(self, value_space + '_nim'))[value]
+            return revdict(getattr(self, value_space + '_nim'))[value]
 
         tfnim = self.TERCNIM \
             if value_space in self.TERCNIM.value_spaces \
@@ -797,7 +866,7 @@ class TERYTRegister(ABC, __CTRP, metaclass=bABCMeta):
             return ''
 
         indicators = {'function': self.value_spaces[value_space]}  # e.g. 'woj' will match 'województwo' etc.
-        spaces = keys_(self.value_spaces, rtype=list)
+        spaces = keysdict(self.value_spaces, rtype=list)
 
         if value_space != spaces[0]:
             quantum = spaces.index(value_space) - 1
@@ -817,11 +886,11 @@ class TERYTRegister(ABC, __CTRP, metaclass=bABCMeta):
         nim_df = _Search(
             dataframe=tfnim.field,
             field_name=getattr(tfnim, '_field_name'),
-            search_mode='no_name_col',
+            search_mode='no_locname',
             value_spaces=tfnim.value_spaces,
             case=False,
-            container_values=getattr(tfnim, '_container_values'),
-            startswith_values=getattr(tfnim, '_startswith_values'),
+            containers=getattr(tfnim, '_containers'),
+            startswiths=getattr(tfnim, '_startswiths'),
         )(search_indicators=indicators)
 
         ni = nim_df.iat[0, nim_df.columns.get_loc(tfnim.value_spaces['name'])]
@@ -832,9 +901,9 @@ class TERYTRegister(ABC, __CTRP, metaclass=bABCMeta):
         """ Internal method, returns True if there were no search results. """
         return self._candidate.empty or self._candidate.equals(self.field)
 
-    @called_after(__generate_indicators)
+    @beforehand(__indicators)
     @typecheck
-    def _generate_indicators(self, _transfer_target_name: str):
+    def _indicators(self, _transfer_target_name: str):
         transfer_target = self._transfer_target
         properties = dict(self)
         name_space_value = properties.pop('name')
@@ -845,8 +914,8 @@ class TERYTRegister(ABC, __CTRP, metaclass=bABCMeta):
             else properties.__delitem__(k)
             for k, v in prop_copy.items()
         ]
-        indicators = {**properties, 'by_IDs': True, 'name': name_space_value, 'veinf': self.veinf,
-                      'force_dispatch': self.fdispatch, 'match_case': self.case}
+        indicators = {**properties, 'unfolded': True, 'name': name_space_value, 'veinf': self.veinf,
+                      'match_case': self.case}
         yield indicators
         yield transfer_target
 
@@ -865,28 +934,28 @@ class TERYTRegister(ABC, __CTRP, metaclass=bABCMeta):
         return self
 
     @typecheck
-    def parse_terid(self, teritorial_id: str, errors: bool = True):
+    def unfold_terid(self, teritorial_id: str, errors: bool = True):
         """
-        Parse a teritorial ID.
+        Unfold and usenim a teritorial ID.
 
         Examples
         --------
         >>> my_search = SIMC()
-        >>> my_search.parse_terid('241003')
+        >>> my_search.unfold_terid('241003')
         {'voivodship': '24', 'powiat': '10', 'gmina': '03'}
 
-        >>> my_search.parse_terid('249903')
-        geolocbot.exceptions.BotError: parse_terid(…, errors=True, …):
+        >>> my_search.unfold_terid('249903')
+        geolocbot.exceptions.BotError: unfold_terid(…, errors=True, …):
             '…99' is not a valid teritorial ID part (error at 'powiat' value space, col 'POW')
 
-        >>> my_search.parse_terid('249903', errors=False)
+        >>> my_search.unfold_terid('249903', errors=False)
         {'voivodship': '24', 'powiat': '99', 'gmina': '03'}
 
 
         Parameters
         ----------
         teritorial_id
-            Teritorial ID to be parsed.
+            Teritorial ID to be unfolded.
         errors
             Whether to check if the given ID exists in the subsystem's database. Defaults to True.
 
@@ -895,10 +964,10 @@ class TERYTRegister(ABC, __CTRP, metaclass=bABCMeta):
         dict
             Dictionary containing value spaces and ID parts linked to them.
         """
-        require(teritorial_id, 'teritorial ID to be parsed cannot be an empty string')
+        require(teritorial_id, 'teritorial ID to be unfolded cannot be an empty string')
         code_indicators = {}
         frames = {}
-        max_len = sum(values_(self.nim_value_spaces))
+        max_len = sum(valuesdict(self.nim_value_spaces))
         require(
             len(teritorial_id) <= max_len,
             f'{self._field_name.upper()} teritorial ID length is expected to be maximally {max_len}'
@@ -908,34 +977,34 @@ class TERYTRegister(ABC, __CTRP, metaclass=bABCMeta):
         for dfnim_value_space, valid_length in self.nim_value_spaces.items():
             if index >= len(teritorial_id) - 1:
                 break
-            frames |= {dfnim_value_space: getattr(NameIDMaps, dfnim_value_space + 's')}
+            frames |= {dfnim_value_space: getattr(nims, dfnim_value_space + 's')}
             partial = teritorial_id[index:index + valid_length]
-            dispatch = self.dispatch
+            unpack = self.unpack
             if errors:
                 require(
-                    not self.search(by_IDs=True, dispatch=False, **{dfnim_value_space: partial}).results.empty,
-                    'parse_terid(…, errors=True, …): ' + self._repr_not_str % (
+                    not self.search(unfolded=True, unpack=False, **{dfnim_value_space: partial}).results.empty,
+                    'unfold_terid(…, errors=True, …): ' + self._repr_not_str % (
                         '…' + partial,
                         f'valid teritorial ID part '
                         f'(error at {dfnim_value_space!r} value space, col {self.value_spaces[dfnim_value_space]!r})'
                     )
                 )
-            self.dispatch = dispatch
+            self.unpack = unpack
             code_indicators |= {dfnim_value_space: partial}
             index += valid_length
 
         return code_indicators
 
-    @called_after(__dispatch_entry)
+    @beforehand(__unpack_entry)
     @typecheck
-    def dispatch_entry(self, *, _dataframe: pandas.DataFrame = None):
+    def unpack_entry(self, *, _dataframe: pandas.DataFrame = None):
         """
-        Dispatch TERYT entry values to local properties.
+        Unpack TERYT entry values to local properties.
 
         Parameters
         ----------
         _dataframe
-            Source of the data to be parsed.
+            Source of the data to be unpacked.
 
         Returns
         -------
@@ -947,15 +1016,15 @@ class TERYTRegister(ABC, __CTRP, metaclass=bABCMeta):
             if notna(value):
                 setattr(
                     self, '_' + value_space,
-                    _BoundNameAndID(identificator=value, name=self._get_name_by_id(value_space, value))
-                    if self._has_nim(value_space) and self.parse
+                    _BoundNameAndID(identificator=value, name=self._name_id(value_space, value))
+                    if self._has_nim(value_space) and self.usenim
                     else value
                 )
         self.set_terid()
-        self.dispatched = True
-        return self._sfo
+        self.unpacked = True
+        return self._sub
 
-    @called_after(__search)
+    @beforehand(__search)
     def search(self, *_args, **_kwargs) -> "TERYTRegister":
         """
         Search TERYT subsystem.
@@ -973,20 +1042,46 @@ class TERYTRegister(ABC, __CTRP, metaclass=bABCMeta):
         1  75791  24  10  03        2  00  1  Poznań  0217047  0216993  2020-01-01
         2  95742  30  64  01        1  96  1  Poznań  0969400  0969400  2020-01-01
 
-        >>> my_search.search(name='Poznań', voivodship='śląskie')  # 1 entry, properties (e.g. self.terid) are available
+        >>> my_search.search(name='Poznań', voivodship='śląskie')
         SIMCEntry(
             terid            =  '2410032',
-            voivodship       =  ('ŚLĄSKIE', '24'),
-            powiat           =  ('pszczyński', '10'),
-            gmina            =  ('Miedźna', '03'),
-            gmitype          =  ('gmina wiejska', '2'),
-            loctype          =  ('część miejscowości', '00'),
-            has_common_name  =  (True, '1'),
+            voivodship       =  'ŚLĄSKIE' ↔ '24',
+            powiat           =  'pszczyński' ↔ '10',
+            gmina            =  'Miedźna' ↔ '03',
+            gmitype          =  'gmina wiejska' ↔ '2',
+            loctype          =  'część miejscowości' ↔ '00',
+            has_common_name  =  True ↔ '1',
             name             =  'Poznań',
             id               =  '0217047',
             integral_id      =  '0216993',
             date             =  '2020-01-01'
         )
+
+        It's possible to cancel unpacking found entry if no necessary.
+
+        >>> my_search.search(name='Poznań', voivodship='śląskie', unpack=False)
+        SIMCEntryUnpacked
+
+        You can also cancel using Name-IDs map if unpacking.
+
+        >>> my_search.search(name='Poznań', voivodship='śląskie', usenim=False)
+        SIMCEntry(
+            terid            =  '2410032',
+            voivodship       =  '24',
+            powiat           =  '10',
+            gmina            =  '03',
+            gmitype          =  '2',
+            loctype          =  '00',
+            has_common_name  =  '1',
+            name             =  'Poznań',
+            id               =  '0217047',
+            integral_id      =  '0216993',
+            date             =  '2020-01-01'
+        )
+
+        See Also
+        --------
+        TERYTRegister.transfer()
 
         Returns
         -------
@@ -998,9 +1093,9 @@ class TERYTRegister(ABC, __CTRP, metaclass=bABCMeta):
             search_mode=self.search_mode,
             value_spaces=self.value_spaces,
             case=self.case,
-            name_space_value=self.name_value_space,
-            container_values=self._container_values,
-            startswith_values=self._startswith_values
+            locname=self.locname_value_space,
+            containers=self._containers,
+            startswiths=self._startswiths
         )(search_indicators=self.search_indicators)
         return self.__handle_results()
 
@@ -1024,16 +1119,16 @@ class TERYTRegister(ABC, __CTRP, metaclass=bABCMeta):
         require(
             value_space in self.value_spaces,
             f'{value_space!r} is not a valid value space name. Available value spaces: '
-            f'{", ".join(keys_(self.value_spaces, sort=True))}'
+            f'{", ".join(keysdict(self.value_spaces, sort=True))}'
         )
         lst = getattr(dataframe, self.value_spaces[value_space]).tolist()
         if usenim and self._has_nim(value_space):
             for key_index in range(len(lst)):
-                self.dispatch_entry(dataframe=pandas.DataFrame([dataframe.loc[dataframe.index[key_index]]]))
-                # TODO: cleaning after parsing (which is in fact auxiliary)
+                self.unpack_entry(dataframe=pandas.DataFrame([dataframe.loc[dataframe.index[key_index]]]))
+                # TODO: cleaning after unpacking
                 lst[key_index] = _BoundNameAndID(
                     identificator=lst[key_index],
-                    name=self._get_name_by_id(value_space=value_space, value=lst[key_index])
+                    name=self._name_id(value_space=value_space, value=lst[key_index])
                 )
         return lst
 
@@ -1065,17 +1160,126 @@ class TERYTRegister(ABC, __CTRP, metaclass=bABCMeta):
         """
         Search another TERYT subsystem using currently available properties (e.g. self.name, self.voivodship).
 
+        Examples
+        --------
+        >>> my_search = SIMC()
+        >>> my_search.search(name='Pszczyna')  # do the first search
+        SIMCEntry(
+            terid            =  '2410054',
+            voivodship       =  'ŚLĄSKIE' ↔ '24',
+            powiat           =  'pszczyński' ↔ '10',
+            gmina            =  'Pszczyna' ↔ '05',
+            gmitype          =  'miasto w gminie miejsko-wiejskiej' ↔ '4',
+            loctype          =  'miasto' ↔ '96',
+            has_common_name  =  True ↔ '1',
+            name             =  'Pszczyna',
+            id               =  '0942222',
+            integral_id      =  '0942222',
+            date             =  '2020-01-01'
+        )
+
+        Perhaps you would also like to look for "Pszczyna" in TERC or NTS.
+        You don't need to process the results of search to adjust them for another subsystem, simply use:
+
+        >>> my_search.transfer('terc').transfer('nts')
+        NTSEntry(
+            terid       =  '2243310054',
+            region      =  'POŁUDNIOWY' ↔ '2',
+            voivodship  =  'ŚLĄSKIE' ↔ '24',
+            subregion   =  'CENTRALNY ŚLĄSKI' ↔ '33',
+            powiat      =  'pszczyński' ↔ '10',
+            gmina       =  'Pszczyna' ↔ '05',
+            gmitype     =  'miasto w gminie miejsko-wiejskiej' ↔ '4',
+            name        =  'Pszczyna',
+            function    =  'miasto w gminie miejsko-wiejskiej',
+            date        =  '2005-01-01'
+        )
+
+        The above returns the last transferred search.
+        However, you can get all of the searches in a dictionary:
+
+        >>> transfers = dict(transferred_searches('Pszczyna'))  # transferred_searches is a generator
+        >>> transfers
+        {'SIMC': SIMCEntry(
+            terid            =  '2410054',
+            voivodship       =  'ŚLĄSKIE' ↔ '24',
+            powiat           =  'pszczyński' ↔ '10',
+            gmina            =  'Pszczyna' ↔ '05',
+            gmitype          =  'miasto w gminie miejsko-wiejskiej' ↔ '4',
+            loctype          =  'miasto' ↔ '96',
+            has_common_name  =  True ↔ '1',
+            name             =  'Pszczyna',
+            id               =  '0942222',
+            integral_id      =  '0942222',
+            date             =  '2020-01-01'
+        ), 'TERC': TERCEntry(
+            terid       =  '2410054',
+            voivodship  =  'ŚLĄSKIE' ↔ '24',
+            powiat      =  'pszczyński' ↔ '10',
+            gmina       =  'Pszczyna' ↔ '05',
+            gmitype     =  'miasto w gminie miejsko-wiejskiej' ↔ '4',
+            name        =  'Pszczyna',
+            function    =  'miasto',
+            date        =  '2020-01-01'
+        ), 'NTS': NTSEntry(
+            terid       =  '2243310054',
+            region      =  'POŁUDNIOWY' ↔ '2',
+            voivodship  =  'ŚLĄSKIE' ↔ '24',
+            subregion   =  'CENTRALNY ŚLĄSKI' ↔ '33',
+            powiat      =  'pszczyński' ↔ '10',
+            gmina       =  'Pszczyna' ↔ '05',
+            gmitype     =  'miasto w gminie miejsko-wiejskiej' ↔ '4',
+            name        =  'Pszczyna',
+            function    =  'miasto w gminie miejsko-wiejskiej',
+            date        =  '2005-01-01'
+        )}
+
+        And then – easily iterate over the transferred searches.
+
+        >>> terc_t = transfers['TERC']
+        >>> terc_t
+        TERCEntry(
+            terid       =  '2410054',
+            voivodship  =  'ŚLĄSKIE' ↔ '24',
+            powiat      =  'pszczyński' ↔ '10',
+            gmina       =  'Pszczyna' ↔ '05',
+            gmitype     =  'miasto w gminie miejsko-wiejskiej' ↔ '4',
+            name        =  'Pszczyna',
+            function    =  'miasto',
+            date        =  '2020-01-01'
+        )
+
+        You can change some options and add keyword arguments for transferring.
+
+        >>> terc_t.transfer('simc', unpack=False)
+        SIMCEntryUnpacked
+
+        >>> terc_t.transfer('simc', usenim=False)
+        SIMCEntry(
+            terid            =  '2410054',
+            voivodship       =  '24',
+            powiat           =  '10',
+            gmina            =  '05',
+            gmitype          =  '4',
+            loctype          =  '96',
+            has_common_name  =  '1',
+            name             =  'Pszczyna',
+            id               =  '0942222',
+            integral_id      =  '0942222',
+            date             =  '2020-01-01'
+        )
+
         Parameters
         ----------
         transfer_target_name : str
             Name of the subsystem, e.g. 'SIMC'.
         """
-        indicators, transfer_target = self._generate_indicators(transfer_target_name)
+        indicators, transfer_target = self._indicators(transfer_target_name)
         global _tsearches
         name = indicators['name']
         _tsearches[name] = _tsearches.pop(name, ()) + (self, transfer_target.search(
-            **{vs: v for vs, v in other.items() if vs in transfer_target.value_spaces},
-            **indicators)
+            **{**{vs: v for vs, v in other.items() if vs in transfer_target.value_spaces or vs in getattr(
+                transfer_target, '_other_kwds')}, **indicators})
         )
         return _tsearches[name][-1]
 
@@ -1134,42 +1338,55 @@ class NTS(TERYTRegister):
         }
 
     @typecheck
-    def parse_terid(self, teritorial_id: str, errors: bool = True):
-        require(teritorial_id, 'teritorial ID to be parsed cannot be an empty string')
+    def unfold_terid(self, teritorial_id: str, errors: bool = True):
+        require(teritorial_id, 'teritorial ID to be unfolded cannot be an empty string')
         level = teritorial_id[0]
         if errors:
             require(
-                not self.search(by_IDs=True, dispatch=False, **{'level': level}).results.empty,
-                'dispatch_terid(…, errors=True, …): ' + self._repr_not_str % (
+                not self.search(unfolded=True, unpack=False, **{'level': level}).results.empty,
+                'unfold_terid(…, errors=True, …): ' + self._repr_not_str % (
                     level,
                     f'valid teritorial ID part (error at \'level\' value space, col {self.value_spaces["level"]!r})'
                 )
             )
         other = {}
         if len(teritorial_id) > 1:
-            other = super(NTS, self).parse_terid(teritorial_id=teritorial_id[1:], errors=errors)
+            other = super(NTS, self).unfold_terid(teritorial_id=teritorial_id[1:], errors=errors)
 
         return {**{'level': level}, **other}
 
 
-class GetNIMs(_TERYTAssociated):
+class GetNims(_TERYTAssociated):
     """ Get Name-ID maps. """
+    initialized = False
+
     def __init__(self):
-        global _NIM_initialized
-        _NIM_initialized = True
-        for subsystem in subsystems:
-            eval(subsystem)()  # initialize all subsystems classes to set NIMs
-        self.levels = pandas.DataFrame()  # just a placeholder
-        self.regions = TERYTRegister.NTSNIM.search(function='^region', dispatch=False, by_IDs=True).results
-        self.subregions = TERYTRegister.NTSNIM.search(function='podregion', dispatch=False, by_IDs=True).results
-        self.voivodships = TERYTRegister.TERCNIM.search(function='województwo', dispatch=False, by_IDs=True).results
-        self.powiats = TERYTRegister.TERCNIM.search(function='powiat', dispatch=False, by_IDs=True).results
-        self.gminas = TERYTRegister.TERCNIM.search(function='gmina', dispatch=False, by_IDs=True).results
-        TERYTRegister.NTSNIM.clear()
-        TERYTRegister.TERCNIM.clear()
+        if not GetNims.initialized:
+            GetNims.initialized = True
+            for subsystem in subsystems:
+                eval(subsystem)()  # initialize all subsystems classes to set NIMs
+
+            self.levels = pandas.DataFrame()  # just a placeholder
+            self.regions = \
+                TERYTRegister.NTSNIM.search(function='^region', unpack=False, unfolded=True).results
+            self.subregions = \
+                TERYTRegister.NTSNIM.search(function='podregion', unpack=False, unfolded=True).results
+            self.voivodships = \
+                TERYTRegister.TERCNIM.search(function='województwo', unpack=False, unfolded=True).results
+            self.powiats = \
+                TERYTRegister.TERCNIM.search(function='powiat', unpack=False, unfolded=True).results
+            self.gminas = \
+                TERYTRegister.TERCNIM.search(function='gmina', unpack=False, unfolded=True).results
+
+            TERYTRegister.NTSNIM.clear()
+            TERYTRegister.TERCNIM.clear()
+            global nims
+            nims = self
 
 
-NameIDMaps = _TERYTAssociated  # (!) shortcut: NIM, real value is an instantiated GetNIM class
+_get_nims = GetNims
+
+nims = _TERYTAssociated  # (!) real value is an instantiated GetNims class
 simc = Simc = SIMC
 terc = Terc = TERC
 nts = Nts = NTS

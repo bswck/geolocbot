@@ -1,8 +1,8 @@
+""" Libraries and modules for Geoloc-Bot in one place. """
+
 # This is the part of Geoloc-Bot for Nonsensopedia wiki (https://nonsa.pl/wiki/Main_Page).
 # Stim, 2020
 # GNU GPLv3 license
-
-""" Libraries and modules for Geoloc-Bot in one place. """
 
 import abc
 import os
@@ -17,6 +17,7 @@ except ImportError:
 try:
     import pywikibot.pagegenerators as pagegenerators
 except ImportError:
+    # noinspection PyUnresolvedReferences
     from pywikibot import pagegenerators
 import logging
 import warnings

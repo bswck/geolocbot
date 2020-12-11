@@ -1,8 +1,9 @@
+""" Geoloc-Bot. """
+
 # This is the part of Geoloc-Bot for Nonsensopedia wiki (https://nonsa.pl/wiki/Main_Page).
 # Stim, 2020
 # GNU GPLv3 license
 
-""" Geoloc-Bot. """
 import os
 
 if not os.path.isfile('geolocbot.conf'):
@@ -15,11 +16,9 @@ if not os.path.isfile('geolocbot.conf'):
 
 
 if __name__ == '__main__':
-    # noinspection PyUnresolvedReferences
-    from bot import *
+    raise RuntimeError('run ./geolocbot/bot.py, not ./geolocbot/__init__.py')
 else:
     # noinspection PyUnresolvedReferences
     from .bot import *
-
 
 del os

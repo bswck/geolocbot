@@ -1,8 +1,8 @@
+""" The bot. """
+
 # This is the part of Geoloc-Bot for Nonsensopedia wiki (https://nonsa.pl/wiki/Main_Page).
 # Stim, 2020
 # GNU GPLv3 license
-
-""" The bot. """
 
 if __name__ == '__main__':
     from geolocbot import *
@@ -12,10 +12,8 @@ else:
     from .geolocbot.utils import getpagebyname, typecheck
 
 
-args = prepare.argparser().parse_args()
-
-
 class Bot(wiki.WikiWrapper):
+    """ Geolocbot. """
     def __init__(
             self,
             fallback=None,
@@ -27,6 +25,7 @@ class Bot(wiki.WikiWrapper):
             deferpage='User:Stim/geolocbot/przejrzeć',
             sleepless=False
     ):
+        """ Initialize the bot. """
         super().__init__()
         if login:
             connecting.login()
@@ -96,12 +95,42 @@ class Bot(wiki.WikiWrapper):
 
     @typecheck
     def template(self, lat: float, lon: float, simc: str, wikidata: str, terc: str = ''):
+        """
+        Construct geolocation template.
+        See:
+            (pl) https://nonsa.pl/wiki/Szablon:Lokalizacja
+
+        Parameters
+        ----------
+        lat : float
+            Latitude.
+        lon : float
+            Longitude.
+        simc: str
+            SIMC identificator.
+        wikidata
+            Wikidata ItemPage title, e.g. 'Q270'.
+        terc: str
+            TERC identificator.
+
+        Returns
+        -------
+
+        """
         terc = f'terc={terc}|' if terc else ''
         return self._template_pat % dict(
             template_name=self._template_name, lat=lat, lon=lon, simc=simc, terc=terc, wikidata=wikidata
         )
 
     def run_on_category(self, category):
+        """
+        Run the bot on a given category.
+
+        Parameters
+        ----------
+        category : str
+            Name of the category.
+        """
         cat_prefixes = ['kategoria:', 'category:']
         if not any([category.lower().startswith(pref) for pref in cat_prefixes]):
             category = cat_prefixes[0].capitalize() + category
@@ -113,6 +142,14 @@ class Bot(wiki.WikiWrapper):
 
     @getpagebyname
     def proceed(self, _pagename):
+        """
+        Adapt to certain factors; indicate further behavior of bot.
+
+        Parameters
+        ----------
+        _pagename: str
+            Name of the page to be processed.
+        """
         locpage = self.instantiate_page(self._loc_pagename)
         locpage_text = locpage.text
         breakline = '\n'
@@ -134,6 +171,14 @@ class Bot(wiki.WikiWrapper):
 
     @typecheck
     def run_on_page(self, pagename: str):
+        """
+        Run the bot on a given page.
+
+        Parameters
+        ----------
+        pagename : str
+            Name of the page.
+        """
         self.instantiate_page(pagename)  # checkpoint
         output(f'Mlem: [[{pagename}]]')
         self._data = self.geolocate(pagename)
@@ -158,6 +203,14 @@ class Bot(wiki.WikiWrapper):
         return self.proceed(pagename)
 
     def run(self, arguments):
+        """
+        Run Geolocbot.
+
+        Parameters
+        ----------
+        arguments : Namespace
+            Arguments.
+        """
         try:
             output('Geolocbot v2.0™ by Błagamdziałaj®')
             awaiting_category = 'Kategoria:Strony z niewypełnionym szablonem lokalizacji'
@@ -167,7 +220,7 @@ class Bot(wiki.WikiWrapper):
             if self.sleepless:
                 while True:
                     self.run_on_category(category=category)
-                    libs.time.sleep(30)
+                    libs.time.sleep(30)  # but the bot was supposed to be sleepless…
             return self.run_on_category(category=category)
         except SystemExit as sysexit:
             raise SystemExit from sysexit
@@ -178,6 +231,7 @@ class Bot(wiki.WikiWrapper):
             self.fallback(traceback=traceback)
 
     def fallback(self, traceback):
+        """ Report an error on a specified page. """
         pagename = self.errpage
         page = self.instantiate_page(pagename)
         fmt = {'name': self._loc_pagename or '(Nie podczas przetwarzania miejscowości)', 'traceback': traceback,
@@ -186,6 +240,7 @@ class Bot(wiki.WikiWrapper):
         page.save(self._comment_error_report, quiet=True)
 
     def defer(self):
+        """ Defer supplying geolocation template to a page, reporting the deferment on a specified page. """
         pagename = self.deferpage
         page = self.instantiate_page(pagename)
         fmt = {'name': self.processed_page.title(), 'simc': self._simc, 'terc': self._terc or '/',
@@ -195,6 +250,7 @@ class Bot(wiki.WikiWrapper):
 
 
 if __name__ == '__main__':
+    args = prepare.argparser().parse_args()
     if not args.debug:
         bot = Bot(
             login=not args.no_wiki_login,

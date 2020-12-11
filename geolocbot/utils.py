@@ -1,3 +1,5 @@
+""" Geolocbot's utilities. """
+
 # This is the part of Geoloc-Bot for Nonsensopedia wiki (https://nonsa.pl/wiki/Main_Page).
 # Stim, 2020
 # GNU GPLv3 license
@@ -44,7 +46,7 @@ require = __assert
 
 def typecheck(callable_: typing.Callable):
     """
-    Decorator for checking if types of passed towards callable arguments are valid (matching callable's annotation).
+    Check if types of passed arguments are valid (matching callable's annotation).
 
     Parameters
     ----------
@@ -106,7 +108,7 @@ def typecheck(callable_: typing.Callable):
 
 
 def do_nothing(*__args, **__kwargs):
-    pass
+    """ Do exactly nothing. """
 
 
 class get_logger(object):
@@ -118,6 +120,14 @@ class get_logger(object):
 
 @typecheck
 def representation(cls_name: str, **kwargs):
+    """
+    Produce a nice representation.
+
+    Parameters
+    ----------
+    cls_name : str
+        Name of the class.
+    """
     max_l = max([len(s) for s in kwargs], default=4)
     indented = f'\n    %-{max_l}s  =  %r'
     kwargs = '(' + ', '.join([indented % (k, v) for k, v in kwargs.items()]) + '\n)' if kwargs else ''
@@ -165,6 +175,7 @@ def setordefault(meth: typing.Callable):
 
 
 def getpagebyname(callable_: typing.Callable):
+    """ Set class' attribute *processed_page* from its 2nd positional argument. """
     def wrapper(self, pagename: str, *arguments_, **keyword_arguments):
         self.processed_page, arguments = pywikibot.Page(self.site, pagename), (self, pagename, *arguments_)
         return callable_(*arguments, **keyword_arguments)
@@ -178,8 +189,9 @@ def deleter(meth: typing.Callable):
     return wrapper
 
 
-def called_after(precedent: typing.Callable):
-    def _w(callable_: typing.Callable):
+def beforehand(precedent: typing.Callable):
+    """ Internal function that calls *precedent* before calling decorated callable. """
+    def _sequence_wrapper(callable_: typing.Callable):
         def _sequence(*arguments, **keyword_arguments):
             self, _args, _kwargs = (), list(arguments), keyword_arguments
             if _args:
@@ -189,17 +201,51 @@ def called_after(precedent: typing.Callable):
             return \
                 callable_(*arguments, **keyword_arguments)
         return _sequence
-    return _w
+    return _sequence_wrapper
 
 
 @typecheck
-def reverse_(dct: dict):
+def revdict(dct: dict):
+    """
+    Reverse a dictionary.
+
+    Examples
+    --------
+    >>> revdict({1: 2, 3: 4})
+    {2: 1, 4: 3}
+
+    >>> revdict({1: 2, 3: 2})
+    {2: 3}
+
+    Parameters
+    ----------
+    dct : dict
+        Dictionary to be reversed.
+
+    Returns
+    -------
+    dict
+        Reversed dictionary.
+    """
     return {v: k for k, v in dct.items()}
 
 
 # noinspection PyArgumentList
 @typecheck
-def keys_(dct: dict, rtype=tuple, sort: bool = False, key=None):
+def keysdict(dct: dict, rtype=tuple, sort: bool = False, key=None):
+    """
+    Return rtype(dictionary.keys()).
+
+    Parameters
+    ----------
+    dct : dict
+    rtype : type
+        Returned type, e.g. list. Defaults to tuple.
+    sort : bool
+        Whether to sort the values.
+    key
+        Key of sorting.
+    """
     if sort:
         return sorted(rtype(dct.keys()), **({'key': key} if key else {}))
     return rtype(dct.keys())
@@ -207,13 +253,26 @@ def keys_(dct: dict, rtype=tuple, sort: bool = False, key=None):
 
 # noinspection PyArgumentList
 @typecheck
-def values_(dct: dict, rtype=tuple, sort: bool = False, key=None):
+def valuesdict(dct: dict, rtype=tuple, sort: bool = False, key=None):
+    """
+    Return rtype(dictionary.values()).
+
+    Parameters
+    ----------
+    dct : dict
+    rtype : type
+        Returned type, e.g. list. Defaults to tuple.
+    sort : bool
+        Whether to sort the values.
+    key
+        Key of sorting.
+    """
     if sort:
         return sorted(rtype(dct.values()), **({'key': key} if key else {}))
     return rtype(dct.values())
 
 
-def lcx(x: typing.Any, seq: typing.Iterable, boolean=True):
+def xinelem(x: typing.Any, seq: typing.Iterable, boolean=True):
     """
     Check if *x* is (or is not) in each sequence element.
 
@@ -229,13 +288,13 @@ def lcx(x: typing.Any, seq: typing.Iterable, boolean=True):
     Returns
     -------
     list
-        List with boolean values only.
+        List with bool values only.
 
     """
     return [x in elem for elem in seq] if boolean else [x not in elem for elem in seq]
 
 
-def xcl(seq: typing.Iterable, x: typing.Any, boolean=True):
+def eleminx(seq: typing.Iterable, x: typing.Any, boolean=True):
     """
     Check if each sequence element is (or is not) in x.
 
@@ -251,15 +310,34 @@ def xcl(seq: typing.Iterable, x: typing.Any, boolean=True):
     Returns
     -------
     list
-        List with boolean values only.
+        List with bool values only.
 
     """
     return [elem in x for elem in seq] if boolean else [elem not in x for elem in seq]
 
 
 def warn(_warning, _category=FutureWarning):
+    """
+    Warn anonymously.
+
+    Parameters
+    ----------
+    _warning
+    _category
+    """
     exec(compile(source='warnings.warn(_warning, category=_category)', filename='bot', mode='eval', flags=0))
 
 
 def notna(value) -> "bool":
+    """
+    Check if value != 'nan' and is not nan.
+
+    Parameters
+    ----------
+    value : Any
+
+    Returns
+    -------
+    bool
+    """
     return value != 'nan' and value is not nan

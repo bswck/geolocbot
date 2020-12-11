@@ -2,6 +2,7 @@
 # Stim, 2020
 # GNU GPLv3 license
 
-# (!) the order of imports is not accidental
+# PyCharm, you bugged baby!
+# noinspection PyCompatibility
 from . import exceptions, libs, _resources as resources, prepare, utils, teryt, wiki, connecting
 from .utils import output

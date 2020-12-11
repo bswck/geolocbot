@@ -133,9 +133,9 @@ class WikidataWrapper(BotSite):
     @typecheck
     def _get_wdtitem_property(self, item: pywikibot.ItemPage, _property):
         source = self._get_wdtitem_source(item)
-        labels = values_(dict(source['labels']))
+        labels = valuesdict(dict(source['labels']))
         name = _clear_title(self.processed_page)
-        require(any(xcl(x=name, seq=labels)) or any(lcx(x=name, seq=labels))
+        require(any(eleminx(x=name, seq=labels)) or any(xinelem(x=name, seq=labels))
                 , f'no item label {item} matches pagename {self.processed_page.title()}')
         if _property not in item.claims:
             return ()
@@ -211,7 +211,7 @@ class WikiWrapper(BotSite):
             return self.page_terinfo
 
         def find(master: str, subcategories: list):
-            if master in self.trace and all(xcl(seq=self.indirect_ter_cat_prefixes, x=master, boolean=False)):
+            if master in self.trace and all(eleminx(seq=self.indirect_ter_cat_prefixes, x=master, boolean=False)):
                 self.doubling.append(master)
             [pull_data(sub) if ter_prefix(sub) else look_up(sub) for sub in subcategories]
 

@@ -58,14 +58,14 @@ def logger():
         'encoding': cfparser.get('logging', 'encoding'),
         'format': cfparser.get('logging', 'format'),
         'datefmt': cfparser.get('logging', 'datefmt'),
-        'level': eval('utils.' + cfparser.get('logging', 'level'))
+        'level': getattr(utils, cfparser.get('logging', 'level'))
     }
     logging = utils.logging
     logging.disable(level=utils.pywikibot.logging.VERBOSE)
     with utils.get_logger('requests') as req:
         req.setLevel(logging.CRITICAL)
     logging.basicConfig(**logging_basic_config)
-    with utils.get_logger('geolocbot') as geolocbot_logger:
+    with utils.get_logger() as geolocbot_logger:
         return geolocbot_logger
 
 
@@ -94,6 +94,7 @@ def bot_config():
 
 
 def argparser():
+    """ Prepare command-line arguments parser. """
     import argparse
     errpage = {'default': 'User:Stim/geolocbot/błędy', 'help': 'name of the page for error reporting'}
     deferpage = {'default': 'User:Stim/geolocbot/przejrzeć', 'help': 'name of the page for deferred pages reporting'}
@@ -107,7 +108,7 @@ def argparser():
     arg('--no_wiki_login', default=False, help='do not log in to wiki before performing tasks', action='store_true')
     arg('--dont_log', default=False, help='do not log messages from Geolocbot', action='store_true')
     arg('--debug', default=False, help='turn on debugging mode', action='store_true')
-    arg('--sleepless', default=False, help='process CAT forever every 30 seconds', action='store_true')
+    arg('--sleepless', default=False, help='process CAT forever; 30 seconds between loops', action='store_true')
     return parser
 
 
