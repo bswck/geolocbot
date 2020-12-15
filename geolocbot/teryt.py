@@ -10,7 +10,6 @@ from .prepare import *
 sys.path.extend(str(pathlib.Path(os.getcwd()).parent))
 
 subsystems = ('simc', 'terc', 'nts')
-_got_nims = False
 __all__ = ('transferred_searches', *subsystems)
 
 
@@ -512,7 +511,7 @@ class TERYTRegister(ABC, __TERYTRegisterProps, metaclass=bABCMeta):
             DataFrame resource of NTS subsystem.
         """
         super(TERYTRegister, self).__init__()
-        _get_nims()
+        _GetNims()
         self._invalid_kwd_msg = \
             f'%s() got an unexpected keyword argument %r. Try looking for the proper argument name ' \
             f'in the following list:\n{" " * 12}%s.'
@@ -544,7 +543,7 @@ class TERYTRegister(ABC, __TERYTRegisterProps, metaclass=bABCMeta):
         self._argshed = {}  # auxiliary
         self._sub: TERYTRegister = sub  # subclass field object
         self._transfer_target = None  # subclass field object used for getting search indicators from local properties
-        self._cached_nims = {}
+        self.cache = {}
 
         # Single entry values
         self._terid = None  # (!) real value is assigned on unpack
@@ -605,11 +604,13 @@ class TERYTRegister(ABC, __TERYTRegisterProps, metaclass=bABCMeta):
 
     def __del__(self):
         """ Clean-up data by initializing self. """
+        cache = self.cache
         self.__init__(
             **{self._field_name.lower() + '_resource': self.field},
             field_name=self._field_name,
             sub=self
         )
+        self.cache = cache
 
     clear = __del__
 
@@ -880,8 +881,8 @@ class TERYTRegister(ABC, __TERYTRegisterProps, metaclass=bABCMeta):
             next_ = spaces[spaces.index(value_space) + 1]
             indicators[next_] = 'nan'
 
-        if tuple(indicators.items()) in self._cached_nims:
-            return self._cached_nims[tuple(indicators.items())]
+        if tuple(indicators.items()) in self.cache:
+            return self.cache[tuple(indicators.items())]
 
         nim_df = _Search(
             dataframe=tfnim.field,
@@ -894,7 +895,7 @@ class TERYTRegister(ABC, __TERYTRegisterProps, metaclass=bABCMeta):
         )(search_indicators=indicators)
 
         ni = nim_df.iat[0, nim_df.columns.get_loc(tfnim.value_spaces['name'])]
-        self._cached_nims |= {tuple(indicators.items()): ni}
+        self.cache |= {tuple(indicators.items()): ni}
         return ni
 
     def _failure(self):
@@ -1356,13 +1357,13 @@ class NTS(TERYTRegister):
         return {**{'level': level}, **other}
 
 
-class GetNims(_TERYTAssociated):
+class _GetNims(_TERYTAssociated):
     """ Get Name-ID maps. """
     initialized = False
 
     def __init__(self):
-        if not GetNims.initialized:
-            GetNims.initialized = True
+        if not _GetNims.initialized:
+            _GetNims.initialized = True
             for subsystem in subsystems:
                 eval(subsystem)()  # initialize all subsystems classes to set NIMs
 
@@ -1384,9 +1385,9 @@ class GetNims(_TERYTAssociated):
             nims = self
 
 
-_get_nims = GetNims
+_GetNims = _GetNims
 
-nims = _TERYTAssociated  # (!) real value is an instantiated GetNims class
+nims = _TERYTAssociated  # (!) real value is an instantiated _GetNims class
 simc = Simc = SIMC
 terc = Terc = TERC
 nts = Nts = NTS
