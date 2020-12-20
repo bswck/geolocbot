@@ -98,7 +98,9 @@ class WikidataWrapper(BotSite):
         results = {}
         for subsystem in teryt.subsystems:
             if eval(subsystem):
-                results |= {subsystem: self.query(query=geolocqueries.construct_query(subsystem=subsystem), index=0)}
+                results.update(
+                    {subsystem: self.query(query=geolocqueries.construct_query(subsystem=subsystem), index=0)}
+                )
         for result in results.values():
             if result:
                 self.processed_wdt_item = result
@@ -202,7 +204,7 @@ class WikiWrapper(BotSite):
     @getpagebyname
     @typecheck
     def loc_terinfo(self, _pagename: str, nil=None):
-        def look_up(master: str) -> "dict":
+        def lookup(master: str) -> "dict":
             self.trace.append(master)
             if master not in self.doubling:
                 subcategories = \
@@ -213,12 +215,12 @@ class WikiWrapper(BotSite):
         def find(master: str, subcategories: list):
             if master in self.trace and all(eleminx(seq=self.indirect_ter_cat_prefixes, x=master, boolean=False)):
                 self.doubling.append(master)
-            [pull_data(sub) if ter_prefix(sub) else look_up(sub) for sub in subcategories]
+            [fetchdata(sub) if terprefixed(sub) else lookup(sub) for sub in subcategories]
 
-        def pull_data(subcat: str):
-            self.page_terinfo[self.ter_cat_prefixes[ter_prefix(subcat)]] = subcat.split(ter_prefix(subcat))[1]
+        def fetchdata(subcat: str):
+            self.page_terinfo[self.ter_cat_prefixes[terprefixed(subcat)]] = subcat.split(terprefixed(subcat))[1]
 
-        def ter_prefix(subcat: str):
+        def terprefixed(subcat: str):
             return next(iter([cat_prefix for cat_prefix in self.ter_cat_prefixes if cat_prefix in subcat]), False)
 
         def fillempty(data: dict):
@@ -226,15 +228,18 @@ class WikiWrapper(BotSite):
             hierarchy = tuple(simc.loctype_nim.keys())
             for loctype in hierarchy:
                 origin = simc.search(**data, loctype=loctype)
-                if origin.dispatched:
-                    origin.transfer('nts') if \
-                        origin.transfer('terc', function='powiat').dispatched else do_nothing()
-                    return origin
+                if origin.unpacked:
+                    try:
+                        origin.transfer('nts') if \
+                            origin.transfer('terc', function='powiat').unpacked else do_nothing()
+                        return origin
+                    except any_exception:
+                        self._fallback_frame = origin
             require(not isinstance(nil, type(None)), 'Item not found in TERYT register')
             return nil
 
         self.page_terinfo['match'] = f'.*{_clear_title(self.processed_page)}$'
-        return fillempty(look_up(self.processed_page.title()))
+        return fillempty(lookup(self.processed_page.title()))
 
     @staticmethod
     def date_time():

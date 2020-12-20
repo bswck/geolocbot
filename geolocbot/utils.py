@@ -71,10 +71,10 @@ def typecheck(callable_: typing.Callable):
                     prev = (args_dict.get(key),) if not isinstance(args_dict[key], tuple) else args_dict[key]
                     args_dict[key] = prev + (current_arg,)
                 else:
-                    args_dict |= {key: current_arg}
+                    args_dict.update({key: current_arg})
                 hold = True
             else:
-                args_dict |= {key: current_arg}
+                args_dict.update({key: current_arg})
                 hold = False
 
         _args = dict(**args_dict, **keyword_arguments)

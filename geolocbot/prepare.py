@@ -55,10 +55,10 @@ def logger():
     # Could use logging.config.fileConfig() but pointless for further use
     logging_basic_config = {
         'filename': utils.os.path.join(abscd, cfparser.get('logging', 'filename')),
-        'encoding': cfparser.get('logging', 'encoding'),
+         # Python 3.9: 'encoding': cfparser.get('logging', 'encoding'),
         'format': cfparser.get('logging', 'format'),
         'datefmt': cfparser.get('logging', 'datefmt'),
-        'level': getattr(utils, cfparser.get('logging', 'level'))
+        'level': getattr(utils, cfparser.get('logging', 'level'), utils.logging.DEBUG)
     }
     logging = utils.logging
     logging.disable(level=utils.pywikibot.logging.VERBOSE)
@@ -96,13 +96,11 @@ def bot_config():
 def argparser():
     """ Prepare command-line arguments parser. """
     import argparse
-    errpage = {'default': 'User:Stim/geolocbot/błędy', 'help': 'name of the page for error reporting'}
     deferpage = {'default': 'User:Stim/geolocbot/przejrzeć', 'help': 'name of the page for deferred pages reporting'}
     parser = argparse.ArgumentParser()
     arg = parser.add_argument
     arg('--page', nargs='?', const='', default='', help='name of the page to be geolocated')
     arg('--cat', nargs='?', const='', default='', help='name of the category with pages to be geolocated')
-    arg('--errpage', nargs='?', const='', **errpage)
     arg('--deferpage', nargs='?', const='', **deferpage)
     arg('--shut_up', help='mute the bot', action='store_true')
     arg('--no_wiki_login', default=False, help='do not log in to wiki before performing tasks', action='store_true')

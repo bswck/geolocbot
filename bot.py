@@ -21,7 +21,6 @@ class Bot(wiki.WikiWrapper):
             log=True,
             template_name='lokalizacja',
             quiet=False,
-            errpage='User:Stim/geolocbot/błędy',
             deferpage='User:Stim/geolocbot/przejrzeć',
             sleepless=False
     ):
@@ -35,10 +34,10 @@ class Bot(wiki.WikiWrapper):
             utils.log = False
         self.args = None
 
-        self.errpage = errpage
         self.deferpage = deferpage
         self.sleepless = sleepless
         self._fallback = fallback or self.fallback
+        self._fallback_frame = None
         self.nil = self.Nil()
         self.site = self.site
         self._template_name = template_name
@@ -46,7 +45,7 @@ class Bot(wiki.WikiWrapper):
             f'{"{{"}%(template_name)s|%(lat).6f, %(lon).6f|simc=%(simc)s|%(terc)swikidata=%(' \
             f'wikidata)s{"}}"}'
         self._defer_pat = f'* {"{{/co|%(name)s|%(simc)s|%(terc)s|%(nts)s|%(date)s|}}"}'
-        self._error_pat = '\n%(name)s\n----\n<pre>\n%(traceback)s\n</pre>\n%(date)s\n'
+        self._error_pat = '\n%(name)s\n%(frame)s\n\n~~~~~~~~~~~~\n%(traceback)s\n~~~~~~~~~~~~\n%(date)s\n'
         self._data = {}
         self._comment_added = 'dodano lokalizację (%(name)s: %(lat).4f, %(lon).4f)'
         self._comment_replaced = 'zastąpiono lokalizację (%(name)s: %(lat).4f, %(lon).4f)'
@@ -66,7 +65,8 @@ class Bot(wiki.WikiWrapper):
 
     class Nil:
         """ Marker for not found data. """
-        def __repr__(self): return f'<not found>'
+        def __repr__(self): return '<not found>'
+        def __getitem__(self, item): return self
         def __bool__(self): return False
 
     @getpagebyname
@@ -82,6 +82,7 @@ class Bot(wiki.WikiWrapper):
             IDs in TERYT subsystems (SIMC ID – obligatory, TERC ID – if possible, NTS (2005) ID – if possible).
         """
         pagename = self.processed_page.title()
+        self._loc_pagename = pagename
         geoloc = self.loc_terinfo(pagename, nil=self.nil)
         if geoloc:
             transferred = dict(teryt.transferred_searches(geoloc.name))
@@ -152,7 +153,6 @@ class Bot(wiki.WikiWrapper):
         """
         locpage = self.instantiate_page(self._loc_pagename)
         locpage_text = locpage.text
-        breakline = '\n'
         prev_template: str = self.search_for_template(self._loc_pagename, 'lokalizacja')
         fmt = {'name': self._locname, 'lat': self._lat, 'lon': self._lon}
         if self._defer:
@@ -162,7 +162,7 @@ class Bot(wiki.WikiWrapper):
             return locpage.save(self._comment_deferred, quiet=True)
         elif prev_template:
             output(f'Riplejs, {self._template!r} do [[{self._loc_pagename}]] zamiast '
-                   f'{prev_template.removesuffix(breakline).removesuffix(" ")!r}')
+                   f'{prev_template!r}')
             locpage.text = locpage_text.replace(prev_template, self._template + '\n')
             return locpage.save(self._comment_replaced % fmt, quiet=True)
         locpage.text = self.insert(self._loc_pagename, text=self._template)
@@ -182,7 +182,13 @@ class Bot(wiki.WikiWrapper):
         self.instantiate_page(pagename)  # checkpoint
         output(f'Mlem: [[{pagename}]]')
         self._data = self.geolocate(pagename)
-        self._loc_pagename = pagename
+        if isinstance(self._data, self.Nil):
+            self._simc = None
+            self._terc = None
+            self._nts = None
+            self._locname = None
+            self._defer = True
+            return self.proceed(pagename)
         self._simc = self._data['simc']
         self._terc = self._data['terc']
         self._nts = self._data['nts']
@@ -224,29 +230,33 @@ class Bot(wiki.WikiWrapper):
             return self.run_on_category(category=category)
         except SystemExit as sysexit:
             raise SystemExit from sysexit
+        except KeyboardInterrupt:
+            raise KeyboardInterrupt
         except utils.any_exception as exception:
             import traceback
             output(f'{utils.tc.red}ERROR{utils.tc.r}: {exception}')
             traceback = traceback.format_exc()
             self.fallback(traceback=traceback)
+        finally:
+            self.defer()
+            self.run(arguments=arguments)
 
     def fallback(self, traceback):
         """ Report an error on a specified page. """
-        pagename = self.errpage
-        page = self.instantiate_page(pagename)
         fmt = {'name': self._loc_pagename or '(Nie podczas przetwarzania miejscowości)', 'traceback': traceback,
+               'frame': self._fallback_frame or '(reprezentacja obiektu podsystemu niedostępna)',
                'date': self.date_time()}
-        page.text = self.insert(pagename, text=self._error_pat % fmt, prefixes=('\n',))
-        page.save(self._comment_error_report, quiet=True)
+        output(self._error_pat % fmt, file='stderr')
 
     def defer(self):
         """ Defer supplying geolocation template to a page, reporting the deferment on a specified page. """
         pagename = self.deferpage
         page = self.instantiate_page(pagename)
-        fmt = {'name': self.processed_page.title(), 'simc': self._simc, 'terc': self._terc or '/',
+        fmt = {'name': self._loc_pagename, 'simc': self._simc or '/', 'terc': self._terc or '/',
                'nts': self._nts or '/', 'date': self.date_time()}
-        page.text = self.insert(pagename, text=self._defer_pat % fmt, prefixes=('\n *',))
-        page.save(self._comment_deferred_report, quiet=True)
+        if f'{self._loc_pagename}' not in page.text:
+            page.text = self.insert(pagename, text=self._defer_pat % fmt, prefixes=('\n *',))
+            page.save(self._comment_deferred_report, quiet=True)
 
 
 if __name__ == '__main__':
@@ -256,7 +266,6 @@ if __name__ == '__main__':
             login=not args.no_wiki_login,
             quiet=args.shut_up,
             log=not args.dont_log,
-            errpage=args.errpage,
             deferpage=args.deferpage,
             sleepless=args.sleepless
         )

@@ -663,13 +663,13 @@ class TERYTRegister(ABC, __TERYTRegisterProps, metaclass=bABCMeta):
         # 2. Separate arguments for ID getting and arguments for direct search
         for name, value in _kwargs.items():
             if self._has_df_nim(name):
-                self._argid |= {name: value}
+                self._argid.update({name: value})
                 continue
             elif self._has_dict_nim(name):
                 nim = getattr(self, name + '_nim')
                 require(value in nim, self._repr_not_str % (value, f'valid \'{name.replace("_", " ")}\' non-ID value'))
                 value = nim[value]
-            self._argshed |= {name: value}  # don't lose the other arguments
+            self._argshed.update({name: value})  # don't lose the other arguments
 
     def __name_id(self, _args, _kwargs):
         """ Precede self._name_id(). """
@@ -810,7 +810,7 @@ class TERYTRegister(ABC, __TERYTRegisterProps, metaclass=bABCMeta):
                     f'no name-ID map available for {space_nim}. Updating search indicators with the provided value, '
                     f'however results are possible not to be found if it is not a valid ID.'
                 )
-                id_indicators |= {value_space: value}
+                id_indicators.update({value_space: value})
                 continue
 
             entry = _Search(
@@ -825,7 +825,7 @@ class TERYTRegister(ABC, __TERYTRegisterProps, metaclass=bABCMeta):
             )(search_indicators=id_indicators)
 
             require(not entry.empty, self._repr_not_str % (value, value_space))
-            id_indicators |= {value_space: entry.iat[0, entry.columns.get_loc(self.value_spaces[value_space])]}
+            id_indicators.update({value_space: entry.iat[0, entry.columns.get_loc(self.value_spaces[value_space])]})
 
             if value_space != spaces[0]:
                 quantum = spaces.index(value_space) - 1
@@ -895,7 +895,7 @@ class TERYTRegister(ABC, __TERYTRegisterProps, metaclass=bABCMeta):
         )(search_indicators=indicators)
 
         ni = nim_df.iat[0, nim_df.columns.get_loc(tfnim.value_spaces['name'])]
-        self.cache |= {tuple(indicators.items()): ni}
+        self.cache.update({tuple(indicators.items()): ni})
         return ni
 
     def _failure(self):
@@ -978,7 +978,7 @@ class TERYTRegister(ABC, __TERYTRegisterProps, metaclass=bABCMeta):
         for dfnim_value_space, valid_length in self.nim_value_spaces.items():
             if index >= len(teritorial_id) - 1:
                 break
-            frames |= {dfnim_value_space: getattr(nims, dfnim_value_space + 's')}
+            frames.update({dfnim_value_space: getattr(nims, dfnim_value_space + 's')})
             partial = teritorial_id[index:index + valid_length]
             unpack = self.unpack
             if errors:
@@ -991,7 +991,7 @@ class TERYTRegister(ABC, __TERYTRegisterProps, metaclass=bABCMeta):
                     )
                 )
             self.unpack = unpack
-            code_indicators |= {dfnim_value_space: partial}
+            code_indicators.update({dfnim_value_space: partial})
             index += valid_length
 
         return code_indicators
@@ -1151,7 +1151,7 @@ class TERYTRegister(ABC, __TERYTRegisterProps, metaclass=bABCMeta):
         dictionary = {}
         for value_space in self.value_spaces:
             value = tuple(self.to_list(value_space, usenim=usenim))
-            dictionary |= {value_space: value[0] if len(value) == 1 else value}
+            dictionary.update({value_space: value[0] if len(value) == 1 else value})
         self.clear()
         self._results = results
         return dictionary
@@ -1384,8 +1384,6 @@ class _GetNims(_TERYTAssociated):
             global nims
             nims = self
 
-
-_GetNims = _GetNims
 
 nims = _TERYTAssociated  # (!) real value is an instantiated _GetNims class
 simc = Simc = SIMC

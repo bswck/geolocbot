@@ -2,7 +2,5 @@
 # Stim, 2020
 # GNU GPLv3 license
 
-# PyCharm, you bugged baby!
-# noinspection PyCompatibility
 from . import exceptions, libs, _resources as resources, prepare, utils, teryt, wiki, connecting
 from .utils import output
