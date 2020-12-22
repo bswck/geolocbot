@@ -20,12 +20,8 @@ class ConfigurationSetupError(BotError):
     """ Raised when *loaders* could not validate configuration file. """
 
 
-class SearchError(BotError):
-    """ Raised when search failed. """
-
-
 class TERYTError(BotError):
-    """ Exception class of *TerytField*. """
+    """ Exception class of TERYT. """
 
 
 class UnpackError(TERYTError):
@@ -33,4 +29,4 @@ class UnpackError(TERYTError):
 
 
 class ResourceError(TERYTError):
-    """ Raised e.g. if the field of *TerytEntry* is empty. """
+    """ Raised e.g. if the field of TERYT is empty. """
