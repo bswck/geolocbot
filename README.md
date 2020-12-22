@@ -32,7 +32,7 @@ You cannot run the bot on a single page forever.
 ## Error handling
 
 If an error occurs whilst running, its traceback is outputted in console. If it happens whilst processing
-a specified page, bot erases geolocation template from it and report it on deferment page you can set by
+a specified page, bot erases geolocation template from it and reports it on deferment page you can set by
 passing argument `--deferpage`.
 
 ## Author
