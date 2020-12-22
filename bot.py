@@ -123,28 +123,28 @@ class Bot(wiki.WikiWrapper):
             template_name=self._template_name, lat=lat, lon=lon, simc=simc, terc=terc, wikidata=wikidata
         )
 
-    def run_on_category(self, category):
+    def run_on_category(self, cat):
         """
         Run the bot on a given category.
 
         Parameters
         ----------
-        category : str
+        cat : str
             Name of the category.
         """
         cat_prefixes = ['kategoria:', 'category:']
-        if not any([category.lower().startswith(pref) for pref in cat_prefixes]):
-            category = cat_prefixes[0].capitalize() + category
+        if not any([cat.lower().startswith(pref) for pref in cat_prefixes]):
+            cat = cat_prefixes[0].capitalize() + cat
         if not self.sleepless:
-            output(f"Haps! [[{category}]]")
-        articles = tuple(libs.pywikibot.Category(source=self.site, title=category).articles())
+            output(f"Haps! [[{cat}]]")
+        articles = tuple(libs.pywikibot.Category(source=self.site, title=cat).articles())
         for page in articles:
             self.run_on_page(page.title())
 
     @getpagebyname
     def proceed(self, _pagename):
         """
-        Adapt to certain factors; indicate further behavior of bot.
+        Adapt to certain factors; indicate further behavior of bot in context of a page.
 
         Parameters
         ----------
@@ -219,15 +219,15 @@ class Bot(wiki.WikiWrapper):
         """
         try:
             output('Geolocbot v2.0™ by Błagamdziałaj®')
-            awaiting_category = 'Kategoria:Strony z niewypełnionym szablonem lokalizacji'
+            default_cat = 'Kategoria:Strony z niewypełnionym szablonem lokalizacji'
             if arguments.page:
                 return self.run_on_page(arguments.page)
-            category = arguments.cat or awaiting_category
+            cat = arguments.cat or default_cat
             if self.sleepless:
                 while True:
-                    self.run_on_category(category=category)
+                    self.run_on_category(cat=cat)
                     libs.time.sleep(30)  # but the bot was supposed to be sleepless…
-            return self.run_on_category(category=category)
+            return self.run_on_category(cat=cat)
         except SystemExit as sysexit:
             raise SystemExit from sysexit
         except KeyboardInterrupt:
