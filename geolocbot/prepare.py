@@ -102,9 +102,9 @@ def argparser():
     arg('--page', nargs='?', const='', default='', help='name of the page to be geolocated')
     arg('--cat', nargs='?', const='', default='', help='name of the category with pages to be geolocated')
     arg('--deferpage', nargs='?', const='', **deferpage)
-    arg('--shut_up', help='mute the bot', action='store_true')
-    arg('--no_wiki_login', default=False, help='do not log in to wiki before performing tasks', action='store_true')
-    arg('--dont_log', default=False, help='do not log messages from Geolocbot', action='store_true')
+    arg('--shut-up', help='mute the bot', action='store_true')
+    arg('--no-wiki-login', default=False, help='do not log in to wiki before performing tasks', action='store_true')
+    arg('--dont-log', default=False, help='do not log messages from Geolocbot', action='store_true')
     arg('--debug', default=False, help='turn on debugging mode', action='store_true')
     arg('--sleepless', default=False, help='process CAT forever; 30 seconds between loops', action='store_true')
     return parser
