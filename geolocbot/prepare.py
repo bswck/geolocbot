@@ -53,7 +53,7 @@ def logger():
     # Could use logging.config.fileConfig() but pointless for further use
     logging_basic_config = {
         'filename': os.path.join(abscd, cfparser.get('logging', 'filename')),
-         # Python 3.9: 'encoding': cfparser.get('logging', 'encoding'),
+        'encoding': cfparser.get('logging', 'encoding'),
         'format': cfparser.get('logging', 'format'),
         'datefmt': cfparser.get('logging', 'datefmt'),
         'level': getattr(utils, cfparser.get('logging', 'level'), utils.logging.DEBUG)

@@ -3,9 +3,10 @@
 # This is the part of Geoloc-Bot for Nonsensopedia wiki (https://nonsa.pl/wiki/Main_Page).
 # Stim, 2020
 # GNU GPLv3 license
-import time
+import os
 
 import pywikibot
+from pywikibot import config
 
 from geolocbot import wiki, connecting, prepare, utils, teryt
 from geolocbot.utils import output
@@ -18,7 +19,7 @@ class Bot(wiki.WikiWrapper):
             fallback=None,
             login=True,
             log=True,
-            template_name='lokalizacja',
+            template_name='stopka',
             quiet=False,
             deferpage='User:Stim/geolocbot/przejrzeć',
     ):
@@ -250,6 +251,10 @@ class Bot(wiki.WikiWrapper):
 
 if __name__ == '__main__':
     args = prepare.argparser().parse_args()
+    config.password_file = os.environ.get(
+        'GEOLOCBOT_PASSWORD_FILE',
+        os.path.join(os.path.dirname(__file__), 'user-password.py')
+    )
     if not args.debug:
         bot = Bot(
             login=not args.no_wiki_login,
