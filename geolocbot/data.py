@@ -22,7 +22,7 @@ class TerytData:
 
     @classmethod
     def get_nts(cls) -> pd.DataFrame:
-        if not cls._teryt_nts:
+        if cls._teryt_nts is None:
             cls._teryt_nts = pd.read_csv(
                 os.path.join(cls._dirname, '../data/nts.csv'),
                 **cls._pandas_args
@@ -31,7 +31,7 @@ class TerytData:
 
     @classmethod
     def get_simc(cls) -> pd.DataFrame:
-        if not cls._teryt_simc:
+        if cls._teryt_simc is None:
             cls._teryt_simc = pd.read_csv(
                 os.path.join(cls._dirname, '../data/simc.csv'),
                 **cls._pandas_args
@@ -40,9 +40,9 @@ class TerytData:
 
     @classmethod
     def get_terc(cls) -> pd.DataFrame:
-        if not cls._teryt_terc:
+        if cls._teryt_terc is None:
             cls._teryt_terc = pd.read_csv(
-                os.path.join(cls._dirname, '../data/terc.csv.csv'),
+                os.path.join(cls._dirname, '../data/terc.csv'),
                 **cls._pandas_args
             )
         return cls._teryt_terc

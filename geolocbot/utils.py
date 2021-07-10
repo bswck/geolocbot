@@ -18,8 +18,6 @@ from .exceptions import *
 quiet = False
 log = True
 
-any_exception = (BaseException, Exception)
-
 
 def __assert(logical_object, xm: (str, Exception)):
     """ Assert and raise custom exception. """

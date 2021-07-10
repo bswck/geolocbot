@@ -21,7 +21,6 @@ class Bot(wiki.WikiWrapper):
             template_name='lokalizacja',
             quiet=False,
             deferpage='User:Stim/geolocbot/przejrzeć',
-            sleepless=False
     ):
         """ Initialize the bot. """
         super().__init__()
@@ -34,7 +33,6 @@ class Bot(wiki.WikiWrapper):
         self.args = None
 
         self.deferpage = deferpage
-        self.sleepless = sleepless
         self._fallback = fallback or self.fallback
         self._fallback_frame = None
         self.nil = self.Nil()
@@ -132,8 +130,8 @@ class Bot(wiki.WikiWrapper):
         cat_prefixes = ['kategoria:', 'category:']
         if not any([cat.lower().startswith(pref) for pref in cat_prefixes]):
             cat = cat_prefixes[0].capitalize() + cat
-        if not self.sleepless:
-            output(f"Haps! [[{cat}]]")
+
+        output(f"Haps! [[{cat}]]")
         articles = tuple(pywikibot.Category(source=self.site, title=cat).articles())
         for page in articles:
             self.run_on_page(page.title())
@@ -219,23 +217,18 @@ class Bot(wiki.WikiWrapper):
             if arguments.page:
                 return self.run_on_page(arguments.page)
             cat = arguments.cat or default_cat
-            if self.sleepless:
-                while True:
-                    self.run_on_category(cat=cat)
-                    time.sleep(30)  # but the bot was supposed to be sleepless…
             return self.run_on_category(cat=cat)
         except SystemExit as sysexit:
             raise SystemExit from sysexit
         except KeyboardInterrupt:
             raise KeyboardInterrupt
-        except utils.any_exception as exception:
+        except BaseException as exception:
             import traceback
             output(f'ERROR: {exception}')
             traceback = traceback.format_exc()
             self.fallback(traceback=traceback)
         finally:
             self.defer()
-            self.run(arguments=arguments)
 
     def fallback(self, traceback):
         """ Report an error on a specified page. """
@@ -263,6 +256,5 @@ if __name__ == '__main__':
             quiet=args.shut_up,
             log=not args.dont_log,
             deferpage=args.deferpage,
-            sleepless=args.sleepless
         )
         bot.run(arguments=args)

@@ -233,7 +233,7 @@ class WikiWrapper(BotSite):
                         origin.transfer('nts') if \
                             origin.transfer('terc', function='powiat').unpacked else None
                         return origin
-                    except any_exception:
+                    except:
                         self._fallback_frame = origin
             require(not isinstance(nil, type(None)), 'Item not found in TERYT register')
             return nil

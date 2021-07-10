@@ -19,15 +19,9 @@ Run on "Kategoria:CustomCat" category:
 ``$ python pwb.py geolocbot/bot --cat CustomCat`` or  
 ``$ python pwb.py geolocbot/bot --cat Kategoria:CustomCat``
 
-Run on "Kategoria:CustomCat" category forever:
+Run on the default category:
 
-``$ python pwb.py geolocbot/bot --cat CustomCat --sleepless``
-
-Run on default category forever:
-
-``$ python pwb.py geolocbot/bot --sleepless``
-
-You cannot run the bot on a single page forever.
+``$ python pwb.py geolocbot/bot``
 
 ## Error handling
 

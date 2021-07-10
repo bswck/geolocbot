@@ -88,7 +88,6 @@ def argparser():
     arg('--no-wiki-login', default=False, help='do not log in to wiki before performing tasks', action='store_true')
     arg('--dont-log', default=False, help='do not log messages from Geolocbot', action='store_true')
     arg('--debug', default=False, help='turn on debugging mode', action='store_true')
-    arg('--sleepless', default=False, help='process CAT forever; 30 seconds between loops', action='store_true')
     return parser
 
 
