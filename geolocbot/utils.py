@@ -3,9 +3,17 @@
 # This is the part of Geoloc-Bot for Nonsensopedia wiki (https://nonsa.pl/wiki/Main_Page).
 # Stim, 2020
 # GNU GPLv3 license
+import datetime
+import inspect
+import logging
+import sys
+import typing
+
+import numpy as np
+import pandas as pd
+import pywikibot
 
 import geolocbot
-from .libs import *
 from .exceptions import *
 
 quiet = False
@@ -151,7 +159,7 @@ def output(*values,
     # 3. Log the values.
     if log:
         with get_logger(name=logger) as handler:
-            if isinstance(values, geolocbot.libs.pandas.DataFrame):
+            if isinstance(values, pd.DataFrame):
                 values = values.replace('\n', f'\n{" " * 46}')
             getattr(handler, level, handler.info)(values)
 
@@ -340,4 +348,4 @@ def notna(value) -> "bool":
     -------
     bool
     """
-    return value != 'nan' and value is not nan
+    return value != 'nan' and value is not np.nan

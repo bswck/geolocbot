@@ -3,13 +3,12 @@
 # This is the part of Geoloc-Bot for Nonsensopedia wiki (https://nonsa.pl/wiki/Main_Page).
 # Stim, 2020
 # GNU GPLv3 license
+import time
 
-if __name__ == '__main__':
-    from geolocbot import *
-    from geolocbot.utils import getpagebyname, typecheck
-else:
-    from .geolocbot import *
-    from .geolocbot.utils import getpagebyname, typecheck
+import pywikibot
+
+from geolocbot import wiki, connecting, prepare, utils, teryt
+from geolocbot.utils import output
 
 
 class Bot(wiki.WikiWrapper):
@@ -69,8 +68,8 @@ class Bot(wiki.WikiWrapper):
         def __getitem__(self, item): return self
         def __bool__(self): return False
 
-    @getpagebyname
-    @typecheck
+    @utils.getpagebyname
+    @utils.typecheck
     def geolocate(self, _pagename: str):
         """
         Find the geolocation of Polish locality by its name identical with *_pagename*.
@@ -94,7 +93,7 @@ class Bot(wiki.WikiWrapper):
             return result
         return geoloc  # <not found>
 
-    @typecheck
+    @utils.typecheck
     def template(self, lat: float, lon: float, simc: str, wikidata: str, terc: str = ''):
         """
         Construct geolocation template.
@@ -137,11 +136,11 @@ class Bot(wiki.WikiWrapper):
             cat = cat_prefixes[0].capitalize() + cat
         if not self.sleepless:
             output(f"Haps! [[{cat}]]")
-        articles = tuple(libs.pywikibot.Category(source=self.site, title=cat).articles())
+        articles = tuple(pywikibot.Category(source=self.site, title=cat).articles())
         for page in articles:
             self.run_on_page(page.title())
 
-    @getpagebyname
+    @utils.getpagebyname
     def proceed(self, _pagename):
         """
         Adapt to certain factors; indicate further behavior of bot in context of a page.
@@ -169,7 +168,7 @@ class Bot(wiki.WikiWrapper):
         output(f'Cyk, {self._template!r} do [[{self._loc_pagename}]]')
         return locpage.save(self._comment_added % fmt, quiet=True)
 
-    @typecheck
+    @utils.typecheck
     def run_on_page(self, pagename: str):
         """
         Run the bot on a given page.
@@ -226,7 +225,7 @@ class Bot(wiki.WikiWrapper):
             if self.sleepless:
                 while True:
                     self.run_on_category(cat=cat)
-                    libs.time.sleep(30)  # but the bot was supposed to be sleepless…
+                    time.sleep(30)  # but the bot was supposed to be sleepless…
             return self.run_on_category(cat=cat)
         except SystemExit as sysexit:
             raise SystemExit from sysexit

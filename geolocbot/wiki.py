@@ -1,10 +1,15 @@
 # This is the part of Geoloc-Bot for Nonsensopedia wiki (https://nonsa.pl/wiki/Main_Page).
 # Stim, 2020
 # GNU GPLv3 license
+import datetime
+import re
+
+import pywikibot
+from pywikibot import pagegenerators
 
 from .utils import *
-from .libs import *
 from .prepare import *
+from .family import Nonsensopedia
 from . import teryt
 
 
@@ -161,7 +166,11 @@ class WikidataWrapper(BotSite):
 # = WIKI ===============================================================================================================
 class WikiWrapper(BotSite):
     def __init__(self):
-        super(WikiWrapper, self).__init__(site=pywikibot.Site('pl', 'nonsensopedia', user=_botconf['user']))
+        super(WikiWrapper, self).__init__(site=pywikibot.Site(
+            code='pl',
+            fam=Nonsensopedia(),
+            user=_botconf['user']
+        ))
         self.base = WikidataWrapper()
         self.instantiate_page = _wpage
         self.page_terinfo = {}

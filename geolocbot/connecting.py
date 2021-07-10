@@ -3,10 +3,13 @@
 # This is the part of Geoloc-Bot for Nonsensopedia wiki (https://nonsa.pl/wiki/Main_Page).
 # Stim, 2020
 # GNU GPLv3 license
+import time
+
+import pywikibot
+import requests
 
 from geolocbot import *
 from .wiki import *
-from .libs import *
 
 
 def login(call=0):

@@ -6,6 +6,11 @@
 
 __all__ = ('bot_config', 'logger', 'resources')
 
+import configparser
+import os
+
+import pandas as pd
+
 import geolocbot
 try:
     from geolocbot import resources
@@ -13,14 +18,14 @@ except ImportError:
     from . import _resources as resources
 from . import utils
 
-abscd = utils.os.path.abspath(utils.os.path.curdir[0])
-cfparser = utils.configparser.ConfigParser()
+abscd = os.path.abspath(os.path.curdir[0])
+cfparser = configparser.ConfigParser()
 
 
 def _validate_configuration_file(fname='geolocbot.conf'):
     """ Checks whether the configuration file is valid to be evaluated. """
     dirpath, fname = abscd, fname
-    fpath = utils.os.path.join(dirpath, fname)
+    fpath = os.path.join(dirpath, fname)
     _msgs = {
         'missing-file': 'missing configuration file: {0} in {1}'.format(fname, dirpath),
         'missing-section': 'no section %r in configuration file: ' + fpath,
@@ -33,7 +38,7 @@ def _validate_configuration_file(fname='geolocbot.conf'):
         'wiki': ('target_wiki_login', 'wikidata_login')
     }
 
-    utils.require(utils.os.path.isfile(fpath), utils.ConfigurationSetupError(_msgs['missing-file']))
+    utils.require(os.path.isfile(fpath), utils.ConfigurationSetupError(_msgs['missing-file']))
     cfparser.read(fpath)
     for section in required_sections:
         utils.require(section in cfparser.sections(),
@@ -54,7 +59,7 @@ def logger():
     """ Fetches the Geoloc-Bot`s logger. """
     # Could use logging.config.fileConfig() but pointless for further use
     logging_basic_config = {
-        'filename': utils.os.path.join(abscd, cfparser.get('logging', 'filename')),
+        'filename': os.path.join(abscd, cfparser.get('logging', 'filename')),
          # Python 3.9: 'encoding': cfparser.get('logging', 'encoding'),
         'format': cfparser.get('logging', 'format'),
         'datefmt': cfparser.get('logging', 'datefmt'),
@@ -78,9 +83,9 @@ def teryt_resources(buffers: dict):
     }
 
     def assign():
-        resources.cached_teryt.simc = utils.pandas.read_csv(filepath_or_buffer=buffers['simc'], **pdconfkwds)
-        resources.cached_teryt.terc = utils.pandas.read_csv(filepath_or_buffer=buffers['terc'], **pdconfkwds)
-        resources.cached_teryt.nts = utils.pandas.read_csv(filepath_or_buffer=buffers['nts'], **pdconfkwds)
+        resources.cached_teryt.simc = pd.read_csv(filepath_or_buffer=buffers['simc'], **pdconfkwds)
+        resources.cached_teryt.terc = pd.read_csv(filepath_or_buffer=buffers['terc'], **pdconfkwds)
+        resources.cached_teryt.nts = pd.read_csv(filepath_or_buffer=buffers['nts'], **pdconfkwds)
 
     assign()
 
