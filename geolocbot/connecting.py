@@ -8,7 +8,7 @@ import time
 import pywikibot
 import requests
 
-from geolocbot import *
+from . import utils
 from .wiki import *
 
 

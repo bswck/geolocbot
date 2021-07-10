@@ -4,7 +4,6 @@
 # Stim, 2020
 # GNU GPLv3 license
 import datetime
-import inspect
 import logging
 import sys
 import typing
@@ -22,24 +21,6 @@ log = True
 any_exception = (BaseException, Exception)
 
 
-class TerminalColors:
-    def __init__(self):
-        self.white = u'\u001b[30m'
-        self.red = u'\u001b[31m'
-        self.green = u'\u001b[32m'
-        self.yellow = u'\u001b[33m'
-        self.blue = u'\u001b[34m'
-        self.magenta = u'\u001b[35m'
-        self.cyan = u'\u001b[36m'
-        self.grey = u'\u001b[37m'
-        self.r = u'\u001b[0m'
-        self.b = u'\033[1m'
-        self.br = u'\033[0m'
-
-
-tc = TerminalColors = TerminalColors()
-
-
 def __assert(logical_object, xm: (str, Exception)):
     """ Assert and raise custom exception. """
     dferr = BotError
@@ -52,73 +33,6 @@ def __assert(logical_object, xm: (str, Exception)):
 require = __assert
 
 
-def typecheck(callable_: typing.Callable):
-    """
-    Check if types of passed arguments are valid (matching callable's annotation).
-
-    Parameters
-    ----------
-    callable_ : callable
-        Function or method to be type-checked.
-    """
-    __assert(callable(callable_), TypeError('object %r is not callable' % callable_))
-    sign = inspect.signature(callable_)
-    params = sign.parameters
-
-    def __typecheck(*arguments, **keyword_arguments):
-        hold, key, arg_pos, arg, args_dict = False, 0, 0, '', {}
-
-        # 1. Establish args' keys.
-        for quantum in range(len(arguments)):
-            if not hold:
-                key = list(params.keys())[quantum]
-                arg = params.get(key)
-            current_arg = arguments[quantum]
-            if '*' in str(arg):
-                if key in args_dict:
-                    prev = (args_dict.get(key),) if not isinstance(args_dict[key], tuple) else args_dict[key]
-                    args_dict[key] = prev + (current_arg,)
-                else:
-                    args_dict.update({key: current_arg})
-                hold = True
-            else:
-                args_dict.update({key: current_arg})
-                hold = False
-
-        _args = dict(**args_dict, **keyword_arguments)
-
-        # 2. Check if the real types of arguments and keyword arguments passed are matching their annotated types.
-        for argument_name, value in params.items():
-            if arg_pos < len(_args):
-                valid_type = params[argument_name].annotation \
-                    if params[argument_name].annotation != params[argument_name].empty else \
-                    None
-                if valid_type is not None:
-                    argument = _args.pop(argument_name, NotImplemented)
-                    if argument is NotImplemented:
-                        break
-                    argtype_name = type(argument).__name__ if type(argument).__name__ != 'type' else argument
-                    err = TypeError(
-                        f'{callable_.__name__!s}() got an unexpected type {argtype_name!r} of parameter '
-                        f'{argument_name!r} (expected type(s): %s)' % (
-                            ', '.join(
-                                [f'{obj_type.__name__!r}' for obj_type in valid_type]
-                            )
-                            if isinstance(valid_type, typing.Iterable)
-                            else f'{valid_type.__name__!r}'
-                        ))
-                    __assert(isinstance(argument, valid_type), err)
-                arg_pos += 1
-
-        # 3. All checked: return the called function or method.
-        return callable_(*arguments, **keyword_arguments)
-    return __typecheck
-
-
-def do_nothing(*__args, **__kwargs):
-    """ Do exactly nothing. """
-
-
 class get_logger(object):
     """ Equivalent for logging.getLogger() made for *with_stmt* syntax. """
     def __init__(self, name='geolocbot'): self.name = name
@@ -126,7 +40,6 @@ class get_logger(object):
     def __exit__(self, exc_type, exc_val, exc_tb): pass
 
 
-@typecheck
 def representation(cls_name: str, **kwargs):
     """
     Produce a nice representation.
@@ -142,7 +55,6 @@ def representation(cls_name: str, **kwargs):
     return f'{cls_name!s}{kwargs!s}'
 
 
-@typecheck
 def output(*values,
            level: str = 'info',
            sep: str = ' ',
@@ -165,9 +77,6 @@ def output(*values,
 
     # 4. Write the values in the stream file.
     if not quiet:
-        # more aesthetic
-        timestamp = \
-            timestamp.replace(':', f'{tc.grey}:{tc.r}').replace('-', f'{tc.grey}-{tc.r}') + f' {tc.green}|{tc.r}'
         print(f'{timestamp} ', values, file=file)
 
     # 5. Return the values.
@@ -212,7 +121,6 @@ def beforehand(precedent: typing.Callable):
     return _sequence_wrapper
 
 
-@typecheck
 def revdict(dct: dict):
     """
     Reverse a dictionary.
@@ -239,7 +147,6 @@ def revdict(dct: dict):
 
 
 # noinspection PyArgumentList
-@typecheck
 def keysdict(dct: dict, rtype=tuple, sort: bool = False, key=None):
     """
     Return rtype(dictionary.keys()).
@@ -260,7 +167,6 @@ def keysdict(dct: dict, rtype=tuple, sort: bool = False, key=None):
 
 
 # noinspection PyArgumentList
-@typecheck
 def valuesdict(dct: dict, rtype=tuple, sort: bool = False, key=None):
     """
     Return rtype(dictionary.values()).

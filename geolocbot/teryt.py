@@ -238,13 +238,11 @@ class __TERYTRegisterProps(_TERYTAssociated):
 
 class _BoundNameAndID(_TERYTAssociated):
     """ Twofold object containing TERYT ID and name linked to that ID. """
-    @typecheck
     def __init__(self, name: (str, bool) = '', identificator: str = ''):
         self.name = self.Name = name
         self.id = self.ID = self.Id = identificator
         self.items_t = valuesdict(dict(self))
 
-    @typecheck
     def __getitem__(self, item: (int, str)):
         return self.items_t[item] if isinstance(item, int) else getattr(self, item, '')
 
@@ -269,7 +267,6 @@ class _BoundNameAndID(_TERYTAssociated):
 _tsearches = {}
 
 
-@typecheck
 def transferred_searches(name):
     """
     Generator that accesses transferred searches from a global dictionary.
@@ -305,7 +302,6 @@ class _Locate(_TERYTAssociated):
 
     @staticmethod
     @approve_col
-    @typecheck
     def name(*, df: pd.DataFrame, col: (pd.Series, str), value: str, case: bool):
         query = \
             (col == value) \
@@ -317,7 +313,6 @@ class _Locate(_TERYTAssociated):
 
     @staticmethod
     @approve_col
-    @typecheck
     def match(*, df: pd.DataFrame, col: (pd.Series, str), value: str, case: bool):
         query = \
             (col.str.match(value, case=case))
@@ -325,7 +320,6 @@ class _Locate(_TERYTAssociated):
 
     @staticmethod
     @approve_col
-    @typecheck
     def contains(*, df: pd.DataFrame, col: (pd.Series, str), value: str, case: bool):
         query = \
             (col.str.contains(value, case=case, na=False))
@@ -333,7 +327,6 @@ class _Locate(_TERYTAssociated):
 
     @staticmethod
     @approve_col
-    @typecheck
     def startswith(*, df: pd.DataFrame, col: (pd.Series, str), value: str, case: bool):
         query = \
             (col.str.startswith(value, na=False)) \
@@ -343,7 +336,6 @@ class _Locate(_TERYTAssociated):
 
     @staticmethod
     @approve_col
-    @typecheck
     def endswith(*, df: pd.DataFrame, col: (pd.Series, str), value: str, case: bool):
         query = \
             (col.str.endswith(value, na=False)) \
@@ -356,7 +348,6 @@ class _Search(_TERYTAssociated):
     """
     Search the field.
     """
-    @typecheck
     def __init__(
             self,
             *,
@@ -475,10 +466,10 @@ class _Search(_TERYTAssociated):
                         break
                 self.frames.append(self.candidate)
 
-        search_loop() if not done else do_nothing()
+        if not done:
+            search_loop()
         return self.candidate
 
-    @typecheck
     def __call__(self, search_indicators: dict):
         """ Wrapper for self._search(). """
         return self._search(search_indicators=search_indicators)
@@ -619,17 +610,14 @@ class TERYTRegister(abc.ABC, __TERYTRegisterProps, metaclass=better_abc.ABCMeta)
     def nim_value_spaces(self):
         return {}
 
-    @typecheck
     def _has_dict_nim(self, value_space: str) -> "bool":
         """ Check if *self* has dict-type attribute standing for value space's NIM. """
         return hasattr(self, value_space + '_nim')
 
-    @typecheck
     def _has_df_nim(self, value_space: str) -> "bool":
         """ Check if *self* has DataFrame-type attribute standing for value space's NIM. """
         return hasattr(nims, value_space + 's')
 
-    @typecheck
     def _has_nim(self, value_space: str) -> "bool":
         """ Check if *value_space* has NIM. """
         return self._has_dict_nim(value_space) or self._has_df_nim(value_space)
@@ -849,7 +837,6 @@ class TERYTRegister(abc.ABC, __TERYTRegisterProps, metaclass=better_abc.ABCMeta)
             return self._sub
 
     @beforehand(__name_id)
-    @typecheck
     def _name_id(self, value_space: str, value: str):
         if self._has_dict_nim(value_space):
             return revdict(getattr(self, value_space + '_nim'))[value]
@@ -858,7 +845,7 @@ class TERYTRegister(abc.ABC, __TERYTRegisterProps, metaclass=better_abc.ABCMeta)
             if value_space in self.TERCNIM.value_spaces \
             else self.NTSNIM \
             if value_space in self.NTSNIM.value_spaces \
-            else do_nothing()
+            else None
 
         if any([tfnim is None, value_space not in self.nim_value_spaces, value is np.nan]):
             return ''
@@ -900,7 +887,6 @@ class TERYTRegister(abc.ABC, __TERYTRegisterProps, metaclass=better_abc.ABCMeta)
         return self._candidate.empty or self._candidate.equals(self.field)
 
     @beforehand(__indicators)
-    @typecheck
     def _indicators(self, _transfer_target_name: str):
         transfer_target = self._transfer_target
         properties = dict(self)
@@ -931,7 +917,6 @@ class TERYTRegister(abc.ABC, __TERYTRegisterProps, metaclass=better_abc.ABCMeta)
         )
         return self
 
-    @typecheck
     def unfold_terid(self, teritorial_id: str, errors: bool = True):
         """
         Unfold and usenim a teritorial ID.
@@ -994,7 +979,6 @@ class TERYTRegister(abc.ABC, __TERYTRegisterProps, metaclass=better_abc.ABCMeta)
         return code_indicators
 
     @beforehand(__unpack_entry)
-    @typecheck
     def unpack_entry(self, *, _dataframe: pd.DataFrame = None):
         """
         Unpack TERYT entry values to local properties.
@@ -1097,7 +1081,6 @@ class TERYTRegister(abc.ABC, __TERYTRegisterProps, metaclass=better_abc.ABCMeta)
         )(search_indicators=self.search_indicators)
         return self.__handle_results()
 
-    @typecheck
     def to_list(self, value_space: str, usenim: bool = True) -> "list":
         """
         Get list of all values in a given value space.
@@ -1130,7 +1113,6 @@ class TERYTRegister(abc.ABC, __TERYTRegisterProps, metaclass=better_abc.ABCMeta)
                 )
         return lst
 
-    @typecheck
     def to_dict(self, usenim: bool = True) -> "dict":
         """
         Convert field (see: self.field) part to dict.
@@ -1153,7 +1135,6 @@ class TERYTRegister(abc.ABC, __TERYTRegisterProps, metaclass=better_abc.ABCMeta)
         self._results = results
         return dictionary
 
-    @typecheck
     def transfer(self, transfer_target_name: str, **other) -> "TERYTRegister":
         """
         Search another TERYT subsystem using currently available properties (e.g. self.name, self.voivodship).
@@ -1335,7 +1316,6 @@ class NTS(TERYTRegister):
             'region': 1, 'voivodship': 2, 'subregion': 2, 'powiat': 2, 'gmina': 2, 'gmitype': 1
         }
 
-    @typecheck
     def unfold_terid(self, teritorial_id: str, errors: bool = True):
         require(teritorial_id, 'teritorial ID to be unfolded cannot be an empty string')
         level = teritorial_id[0]

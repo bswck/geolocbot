@@ -1,7 +1,6 @@
 # This is the part of Geoloc-Bot for Nonsensopedia wiki (https://nonsa.pl/wiki/Main_Page).
 # Stim, 2020
 # GNU GPLv3 license
-import datetime
 import re
 
 import pywikibot
@@ -67,7 +66,6 @@ class WikidataWrapper(BotSite):
                 {"}"}
                 """
 
-        @typecheck
         def construct_query(self, subsystem: str):
             propname = 'wdt_' + subsystem.lower() + '_property'
             require(propname in globals(), f'{propname} is not defined')
@@ -76,7 +74,6 @@ class WikidataWrapper(BotSite):
             terid = getattr(self, subsystem.lower())
             return self.sparql % dict(prop=prop, terid=terid)
 
-    @typecheck
     def query(self, query, maximum: int = 1, index=None):
         """
         Send a SPARQL query to Wikidata Query Service.
@@ -97,7 +94,6 @@ class WikidataWrapper(BotSite):
                 return result[index]
         return result
 
-    @typecheck
     def _get_wdtitem(self, *, simc: str, terc: str = '', nts: str = ''):
         geolocqueries = self.GeolocQueries(simc=simc, terc=terc, nts=nts)
         results = {}
@@ -117,7 +113,6 @@ class WikidataWrapper(BotSite):
         ))
         return self.nil
 
-    @typecheck
     def _get_wdtitem_source(self, item: pywikibot.ItemPage):
         """
         Get the Wikidata item source.
@@ -137,7 +132,6 @@ class WikidataWrapper(BotSite):
         except pywikibot.exceptions.MaxlagTimeoutError:  # shit happens
             self._get_wdtitem_source(item=item)
 
-    @typecheck
     def _get_wdtitem_property(self, item: pywikibot.ItemPage, _property):
         source = self._get_wdtitem_source(item)
         labels = valuesdict(dict(source['labels']))
@@ -148,7 +142,6 @@ class WikidataWrapper(BotSite):
             return ()
         return item.claims[_property]
 
-    @typecheck
     def _get_wdtitem_coords(self, item: pywikibot.ItemPage):
         coords = self._get_wdtitem_property(item, wdt_coord_property)[0].getTarget()
         return {'lat': coords.lat, 'lon': coords.lon, 'source': self.processed_wdt_item}
@@ -204,14 +197,12 @@ class WikiWrapper(BotSite):
         return search.group(0) if search else ''
 
     @getpagebyname
-    @typecheck
     def insert(self, _pagename, text, prefixes=('[[Kategoria:', '[[Category:')):
         wikitext: str = self.processed_page.text
         index = self._index_prefixes(wikitext=wikitext, prefixes=prefixes)
         return self._insert_to_wikitext(wikitext=wikitext, index=index, newtext=text)
 
     @getpagebyname
-    @typecheck
     def loc_terinfo(self, _pagename: str, nil=None):
         def lookup(master: str) -> "dict":
             self.trace.append(master)
@@ -240,7 +231,7 @@ class WikiWrapper(BotSite):
                 if origin.unpacked:
                     try:
                         origin.transfer('nts') if \
-                            origin.transfer('terc', function='powiat').unpacked else do_nothing()
+                            origin.transfer('terc', function='powiat').unpacked else None
                         return origin
                     except any_exception:
                         self._fallback_frame = origin

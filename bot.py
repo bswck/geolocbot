@@ -69,7 +69,6 @@ class Bot(wiki.WikiWrapper):
         def __bool__(self): return False
 
     @utils.getpagebyname
-    @utils.typecheck
     def geolocate(self, _pagename: str):
         """
         Find the geolocation of Polish locality by its name identical with *_pagename*.
@@ -93,7 +92,6 @@ class Bot(wiki.WikiWrapper):
             return result
         return geoloc  # <not found>
 
-    @utils.typecheck
     def template(self, lat: float, lon: float, simc: str, wikidata: str, terc: str = ''):
         """
         Construct geolocation template.
@@ -168,7 +166,6 @@ class Bot(wiki.WikiWrapper):
         output(f'Cyk, {self._template!r} do [[{self._loc_pagename}]]')
         return locpage.save(self._comment_added % fmt, quiet=True)
 
-    @utils.typecheck
     def run_on_page(self, pagename: str):
         """
         Run the bot on a given page.
@@ -233,7 +230,7 @@ class Bot(wiki.WikiWrapper):
             raise KeyboardInterrupt
         except utils.any_exception as exception:
             import traceback
-            output(f'{utils.tc.red}ERROR{utils.tc.r}: {exception}')
+            output(f'ERROR: {exception}')
             traceback = traceback.format_exc()
             self.fallback(traceback=traceback)
         finally:
