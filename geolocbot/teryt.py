@@ -3,10 +3,16 @@
 # This is the part of Geoloc-Bot for Nonsensopedia wiki (https://nonsa.pl/wiki/Main_Page).
 # Stim, 2020
 # GNU GPLv3 license
+import abc
+import os
+import pathlib
 
+import better_abc
+import pandas as pd
+
+from . import exceptions
+from .data import TerytData
 from .utils import *
-from .libs import *
-from .prepare import *
 sys.path.extend(str(pathlib.Path(os.getcwd()).parent))
 
 subsystems = ('simc', 'terc', 'nts')
@@ -211,7 +217,7 @@ class __TERYTRegisterProps(_TERYTAssociated):
     @setordefault
     def entry_frame(self):
         """ Single entry frame. """
-        return pandas.DataFrame()
+        return pd.DataFrame()
 
     @entry_frame.deleter
     @deleter
@@ -222,7 +228,7 @@ class __TERYTRegisterProps(_TERYTAssociated):
     @setordefault
     def results(self):
         """ Results of self.search(). """
-        return pandas.DataFrame()
+        return pd.DataFrame()
 
     @results.deleter
     @deleter
@@ -232,13 +238,11 @@ class __TERYTRegisterProps(_TERYTAssociated):
 
 class _BoundNameAndID(_TERYTAssociated):
     """ Twofold object containing TERYT ID and name linked to that ID. """
-    @typecheck
     def __init__(self, name: (str, bool) = '', identificator: str = ''):
         self.name = self.Name = name
         self.id = self.ID = self.Id = identificator
         self.items_t = valuesdict(dict(self))
 
-    @typecheck
     def __getitem__(self, item: (int, str)):
         return self.items_t[item] if isinstance(item, int) else getattr(self, item, '')
 
@@ -263,7 +267,6 @@ class _BoundNameAndID(_TERYTAssociated):
 _tsearches = {}
 
 
-@typecheck
 def transferred_searches(name):
     """
     Generator that accesses transferred searches from a global dictionary.
@@ -299,8 +302,7 @@ class _Locate(_TERYTAssociated):
 
     @staticmethod
     @approve_col
-    @typecheck
-    def name(*, df: pandas.DataFrame, col: (pandas.Series, str), value: str, case: bool):
+    def name(*, df: pd.DataFrame, col: (pd.Series, str), value: str, case: bool):
         query = \
             (col == value) \
             if case else \
@@ -311,24 +313,21 @@ class _Locate(_TERYTAssociated):
 
     @staticmethod
     @approve_col
-    @typecheck
-    def match(*, df: pandas.DataFrame, col: (pandas.Series, str), value: str, case: bool):
+    def match(*, df: pd.DataFrame, col: (pd.Series, str), value: str, case: bool):
         query = \
             (col.str.match(value, case=case))
         return df.loc[query]
 
     @staticmethod
     @approve_col
-    @typecheck
-    def contains(*, df: pandas.DataFrame, col: (pandas.Series, str), value: str, case: bool):
+    def contains(*, df: pd.DataFrame, col: (pd.Series, str), value: str, case: bool):
         query = \
             (col.str.contains(value, case=case, na=False))
         return df.loc[query]
 
     @staticmethod
     @approve_col
-    @typecheck
-    def startswith(*, df: pandas.DataFrame, col: (pandas.Series, str), value: str, case: bool):
+    def startswith(*, df: pd.DataFrame, col: (pd.Series, str), value: str, case: bool):
         query = \
             (col.str.startswith(value, na=False)) \
             if case else \
@@ -337,8 +336,7 @@ class _Locate(_TERYTAssociated):
 
     @staticmethod
     @approve_col
-    @typecheck
-    def endswith(*, df: pandas.DataFrame, col: (pandas.Series, str), value: str, case: bool):
+    def endswith(*, df: pd.DataFrame, col: (pd.Series, str), value: str, case: bool):
         query = \
             (col.str.endswith(value, na=False)) \
             if case else \
@@ -350,11 +348,10 @@ class _Search(_TERYTAssociated):
     """
     Search the field.
     """
-    @typecheck
     def __init__(
             self,
             *,
-            dataframe: pandas.DataFrame,
+            dataframe: pd.DataFrame,
             field_name: str,
             search_mode: str,
             value_spaces: dict,
@@ -396,7 +393,7 @@ class _Search(_TERYTAssociated):
         self.search_indicators = dict(zip(keys, values))
         return self.search_indicators
 
-    def _search(self, search_indicators) -> "pandas.DataFrame":
+    def _search(self, search_indicators) -> "pd.DataFrame":
         """
         Search the field.
 
@@ -406,7 +403,7 @@ class _Search(_TERYTAssociated):
 
         Returns
         -------
-        pandas.DataFrame
+        pd.DataFrame
             Results of the search in a DataFrame.
 
         """
@@ -431,7 +428,7 @@ class _Search(_TERYTAssociated):
         if self.search_mode != 'no_locname':
             locname_search()
             if self.failure():
-                return pandas.DataFrame()
+                return pd.DataFrame()
 
         attempts = 0
         max_attempts = len(self.search_indicators) ** 2
@@ -469,16 +466,16 @@ class _Search(_TERYTAssociated):
                         break
                 self.frames.append(self.candidate)
 
-        search_loop() if not done else do_nothing()
+        if not done:
+            search_loop()
         return self.candidate
 
-    @typecheck
     def __call__(self, search_indicators: dict):
         """ Wrapper for self._search(). """
         return self._search(search_indicators=search_indicators)
 
 
-class TERYTRegister(ABC, __TERYTRegisterProps, metaclass=bABCMeta):
+class TERYTRegister(abc.ABC, __TERYTRegisterProps, metaclass=better_abc.ABCMeta):
     """
     TERYT register, _Search broker.
     """
@@ -489,10 +486,7 @@ class TERYTRegister(ABC, __TERYTRegisterProps, metaclass=bABCMeta):
             self,
             *,
             field_name: str,
-            sub,
-            simc_resource=resources.cached_teryt.simc,
-            terc_resource=resources.cached_teryt.terc,
-            nts_resource=resources.cached_teryt.nts
+            sub
     ):
         """
         Construct the TERYTRegister's subsystem object.
@@ -503,12 +497,6 @@ class TERYTRegister(ABC, __TERYTRegisterProps, metaclass=bABCMeta):
             Name of the subsystem (furtherly also called field), e.g. 'TERC'.
         sub : TERYTRegister
             Subclass object of TERYTRegister.
-        simc_resource : pandas.DataFrame
-            DataFrame resource of SIMC subsystem.
-        terc_resource
-            DataFrame resource of TERC subsystem.
-        nts_resource
-            DataFrame resource of NTS subsystem.
         """
         super(TERYTRegister, self).__init__()
         _GetNims()
@@ -516,9 +504,9 @@ class TERYTRegister(ABC, __TERYTRegisterProps, metaclass=bABCMeta):
             f'%s() got an unexpected keyword argument %r. Try looking for the proper argument name ' \
             f'in the following list:\n{" " * 12}%s.'
         self._repr_not_str = '%r is not a %s'
-        self.simc, self.terc, self.nts = simc_resource, terc_resource, nts_resource
+        self.simc, self.terc, self.nts = TerytData.get_simc(), TerytData.get_terc(), TerytData.get_nts()
         self._field_name = field_name.replace(' ', '_').upper()
-        self.field: pandas.DataFrame = getattr(self, self._field_name.lower(), None)
+        self.field: pd.DataFrame = getattr(self, self._field_name.lower(), None)
         require(self.field is not None, f'couldn\'t fetch searching.teryt.{self._field_name.lower()}')
         require(not self.field.empty, 'cannot instantiate _Search with an empty field')
         self._candidate = None  # auxiliary
@@ -527,7 +515,7 @@ class TERYTRegister(ABC, __TERYTRegisterProps, metaclass=bABCMeta):
         self._bool_optional = ('veinf', 'force_unpack', 'unpack', 'usenim', 'unfolded', 'match_case')  # auxiliary
         self._str_optional = ('terid',)  # auxiliary
         self._other_kwds = self._bool_optional + self._str_optional  # auxiliary
-        self._uerr = geolocbot.exceptions.UnpackError  # auxiliary
+        self._uerr = exceptions.UnpackError  # auxiliary
         self._startswiths = ('date',)  # auxiliary
         self.case = None
         self.cols, self.len = [col for col in self.field.columns], len(self.field)
@@ -604,9 +592,9 @@ class TERYTRegister(ABC, __TERYTRegisterProps, metaclass=bABCMeta):
 
     def __del__(self):
         """ Clean-up data by initializing self. """
+        # TODO: WHAT?!
         cache = self.cache
         self.__init__(
-            **{self._field_name.lower() + '_resource': self.field},
             field_name=self._field_name,
             sub=self
         )
@@ -614,25 +602,22 @@ class TERYTRegister(ABC, __TERYTRegisterProps, metaclass=bABCMeta):
 
     clear = __del__
 
-    @abstractattribute
+    @better_abc.abstract_attribute
     def value_spaces(self):
         return {}
 
-    @abstractattribute
+    @better_abc.abstract_attribute
     def nim_value_spaces(self):
         return {}
 
-    @typecheck
     def _has_dict_nim(self, value_space: str) -> "bool":
         """ Check if *self* has dict-type attribute standing for value space's NIM. """
         return hasattr(self, value_space + '_nim')
 
-    @typecheck
     def _has_df_nim(self, value_space: str) -> "bool":
         """ Check if *self* has DataFrame-type attribute standing for value space's NIM. """
         return hasattr(nims, value_space + 's')
 
-    @typecheck
     def _has_nim(self, value_space: str) -> "bool":
         """ Check if *value_space* has NIM. """
         return self._has_dict_nim(value_space) or self._has_df_nim(value_space)
@@ -852,7 +837,6 @@ class TERYTRegister(ABC, __TERYTRegisterProps, metaclass=bABCMeta):
             return self._sub
 
     @beforehand(__name_id)
-    @typecheck
     def _name_id(self, value_space: str, value: str):
         if self._has_dict_nim(value_space):
             return revdict(getattr(self, value_space + '_nim'))[value]
@@ -861,9 +845,9 @@ class TERYTRegister(ABC, __TERYTRegisterProps, metaclass=bABCMeta):
             if value_space in self.TERCNIM.value_spaces \
             else self.NTSNIM \
             if value_space in self.NTSNIM.value_spaces \
-            else do_nothing()
+            else None
 
-        if any([tfnim is None, value_space not in self.nim_value_spaces, value is nan]):
+        if any([tfnim is None, value_space not in self.nim_value_spaces, value is np.nan]):
             return ''
 
         indicators = {'function': self.value_spaces[value_space]}  # e.g. 'woj' will match 'województwo' etc.
@@ -903,7 +887,6 @@ class TERYTRegister(ABC, __TERYTRegisterProps, metaclass=bABCMeta):
         return self._candidate.empty or self._candidate.equals(self.field)
 
     @beforehand(__indicators)
-    @typecheck
     def _indicators(self, _transfer_target_name: str):
         transfer_target = self._transfer_target
         properties = dict(self)
@@ -934,7 +917,6 @@ class TERYTRegister(ABC, __TERYTRegisterProps, metaclass=bABCMeta):
         )
         return self
 
-    @typecheck
     def unfold_terid(self, teritorial_id: str, errors: bool = True):
         """
         Unfold and usenim a teritorial ID.
@@ -997,8 +979,7 @@ class TERYTRegister(ABC, __TERYTRegisterProps, metaclass=bABCMeta):
         return code_indicators
 
     @beforehand(__unpack_entry)
-    @typecheck
-    def unpack_entry(self, *, _dataframe: pandas.DataFrame = None):
+    def unpack_entry(self, *, _dataframe: pd.DataFrame = None):
         """
         Unpack TERYT entry values to local properties.
 
@@ -1100,7 +1081,6 @@ class TERYTRegister(ABC, __TERYTRegisterProps, metaclass=bABCMeta):
         )(search_indicators=self.search_indicators)
         return self.__handle_results()
 
-    @typecheck
     def to_list(self, value_space: str, usenim: bool = True) -> "list":
         """
         Get list of all values in a given value space.
@@ -1125,7 +1105,7 @@ class TERYTRegister(ABC, __TERYTRegisterProps, metaclass=bABCMeta):
         lst = getattr(dataframe, self.value_spaces[value_space]).tolist()
         if usenim and self._has_nim(value_space):
             for key_index in range(len(lst)):
-                self.unpack_entry(dataframe=pandas.DataFrame([dataframe.loc[dataframe.index[key_index]]]))
+                self.unpack_entry(dataframe=pd.DataFrame([dataframe.loc[dataframe.index[key_index]]]))
                 # TODO: cleaning after unpacking
                 lst[key_index] = _BoundNameAndID(
                     identificator=lst[key_index],
@@ -1133,7 +1113,6 @@ class TERYTRegister(ABC, __TERYTRegisterProps, metaclass=bABCMeta):
                 )
         return lst
 
-    @typecheck
     def to_dict(self, usenim: bool = True) -> "dict":
         """
         Convert field (see: self.field) part to dict.
@@ -1156,7 +1135,6 @@ class TERYTRegister(ABC, __TERYTRegisterProps, metaclass=bABCMeta):
         self._results = results
         return dictionary
 
-    @typecheck
     def transfer(self, transfer_target_name: str, **other) -> "TERYTRegister":
         """
         Search another TERYT subsystem using currently available properties (e.g. self.name, self.voivodship).
@@ -1287,8 +1265,8 @@ class TERYTRegister(ABC, __TERYTRegisterProps, metaclass=bABCMeta):
 
 class SIMC(TERYTRegister):
     """ SIMC, TERYT subsystem. """
-    def __init__(self, resource=resources.cached_teryt.simc, *_args, **_kwargs):
-        super(SIMC, self).__init__(field_name='simc', sub=self, simc_resource=resource)
+    def __init__(self, *_args, **_kwargs):
+        super(SIMC, self).__init__(field_name='simc', sub=self)
         self.value_spaces = {
             'voivodship': 'WOJ', 'powiat': 'POW', 'gmina': 'GMI', 'gmitype': 'RODZ_GMI', 'loctype': 'RM',
             'has_common_name': 'MZ', 'name': 'NAZWA', 'id': 'SYM', 'integral_id': 'SYMPOD', 'date': 'STAN_NA'
@@ -1314,8 +1292,8 @@ class SIMC(TERYTRegister):
 
 class TERC(TERYTRegister):
     """ TERC, TERYT subsystem. """
-    def __init__(self, resource=resources.cached_teryt.terc, *_args, **_kwargs):
-        super(TERC, self).__init__(field_name='terc', sub=self, terc_resource=resource)
+    def __init__(self, *_args, **_kwargs):
+        super(TERC, self).__init__(field_name='terc', sub=self)
         TERYTRegister.TERCNIM = self
         self.value_spaces = {
             'voivodship': 'WOJ', 'powiat': 'POW', 'gmina': 'GMI', 'gmitype': 'RODZ', 'name': 'NAZWA',
@@ -1327,8 +1305,8 @@ class TERC(TERYTRegister):
 class NTS(TERYTRegister):
     """ NTS, TERYT subsystem. """
     # TODO: check for NIM of levels
-    def __init__(self, resource=resources.cached_teryt.nts, *_args, **_kwargs):
-        super(NTS, self).__init__(field_name='nts', sub=self, nts_resource=resource)
+    def __init__(self, *_args, **_kwargs):
+        super(NTS, self).__init__(field_name='nts', sub=self)
         TERYTRegister.NTSNIM = self
         self.value_spaces = {
             'level': 'POZIOM', 'region': 'REGION', 'voivodship': 'WOJ', 'subregion': 'PODREG', 'powiat': 'POW',
@@ -1338,7 +1316,6 @@ class NTS(TERYTRegister):
             'region': 1, 'voivodship': 2, 'subregion': 2, 'powiat': 2, 'gmina': 2, 'gmitype': 1
         }
 
-    @typecheck
     def unfold_terid(self, teritorial_id: str, errors: bool = True):
         require(teritorial_id, 'teritorial ID to be unfolded cannot be an empty string')
         level = teritorial_id[0]
@@ -1367,7 +1344,7 @@ class _GetNims(_TERYTAssociated):
             for subsystem in subsystems:
                 eval(subsystem)()  # initialize all subsystems classes to set NIMs
 
-            self.levels = pandas.DataFrame()  # just a placeholder
+            self.levels = pd.DataFrame()  # just a placeholder
             self.regions = \
                 TERYTRegister.NTSNIM.search(function='^region', unpack=False, unfolded=True).results
             self.subregions = \
@@ -1389,5 +1366,3 @@ nims = _TERYTAssociated  # (!) real value is an instantiated _GetNims class
 simc = Simc = SIMC
 terc = Terc = TERC
 nts = Nts = NTS
-
-del ABC, bABCMeta  # not for export

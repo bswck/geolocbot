@@ -3,13 +3,13 @@
 # This is the part of Geoloc-Bot for Nonsensopedia wiki (https://nonsa.pl/wiki/Main_Page).
 # Stim, 2020
 # GNU GPLv3 license
+import os
 
-if __name__ == '__main__':
-    from geolocbot import *
-    from geolocbot.utils import getpagebyname, typecheck
-else:
-    from .geolocbot import *
-    from .geolocbot.utils import getpagebyname, typecheck
+import pywikibot
+from pywikibot import config
+
+from geolocbot import wiki, connecting, prepare, utils, teryt
+from geolocbot.utils import output
 
 
 class Bot(wiki.WikiWrapper):
@@ -19,10 +19,9 @@ class Bot(wiki.WikiWrapper):
             fallback=None,
             login=True,
             log=True,
-            template_name='lokalizacja',
+            template_name='stopka',
             quiet=False,
             deferpage='User:Stim/geolocbot/przejrzeć',
-            sleepless=False
     ):
         """ Initialize the bot. """
         super().__init__()
@@ -35,7 +34,6 @@ class Bot(wiki.WikiWrapper):
         self.args = None
 
         self.deferpage = deferpage
-        self.sleepless = sleepless
         self._fallback = fallback or self.fallback
         self._fallback_frame = None
         self.nil = self.Nil()
@@ -69,8 +67,7 @@ class Bot(wiki.WikiWrapper):
         def __getitem__(self, item): return self
         def __bool__(self): return False
 
-    @getpagebyname
-    @typecheck
+    @utils.getpagebyname
     def geolocate(self, _pagename: str):
         """
         Find the geolocation of Polish locality by its name identical with *_pagename*.
@@ -94,7 +91,6 @@ class Bot(wiki.WikiWrapper):
             return result
         return geoloc  # <not found>
 
-    @typecheck
     def template(self, lat: float, lon: float, simc: str, wikidata: str, terc: str = ''):
         """
         Construct geolocation template.
@@ -135,13 +131,13 @@ class Bot(wiki.WikiWrapper):
         cat_prefixes = ['kategoria:', 'category:']
         if not any([cat.lower().startswith(pref) for pref in cat_prefixes]):
             cat = cat_prefixes[0].capitalize() + cat
-        if not self.sleepless:
-            output(f"Haps! [[{cat}]]")
-        articles = tuple(libs.pywikibot.Category(source=self.site, title=cat).articles())
+
+        output(f"Haps! [[{cat}]]")
+        articles = tuple(pywikibot.Category(source=self.site, title=cat).articles())
         for page in articles:
             self.run_on_page(page.title())
 
-    @getpagebyname
+    @utils.getpagebyname
     def proceed(self, _pagename):
         """
         Adapt to certain factors; indicate further behavior of bot in context of a page.
@@ -169,7 +165,6 @@ class Bot(wiki.WikiWrapper):
         output(f'Cyk, {self._template!r} do [[{self._loc_pagename}]]')
         return locpage.save(self._comment_added % fmt, quiet=True)
 
-    @typecheck
     def run_on_page(self, pagename: str):
         """
         Run the bot on a given page.
@@ -223,23 +218,18 @@ class Bot(wiki.WikiWrapper):
             if arguments.page:
                 return self.run_on_page(arguments.page)
             cat = arguments.cat or default_cat
-            if self.sleepless:
-                while True:
-                    self.run_on_category(cat=cat)
-                    libs.time.sleep(30)  # but the bot was supposed to be sleepless…
             return self.run_on_category(cat=cat)
         except SystemExit as sysexit:
             raise SystemExit from sysexit
         except KeyboardInterrupt:
             raise KeyboardInterrupt
-        except utils.any_exception as exception:
+        except BaseException as exception:
             import traceback
-            output(f'{utils.tc.red}ERROR{utils.tc.r}: {exception}')
+            output(f'ERROR: {exception}')
             traceback = traceback.format_exc()
             self.fallback(traceback=traceback)
         finally:
             self.defer()
-            self.run(arguments=arguments)
 
     def fallback(self, traceback):
         """ Report an error on a specified page. """
@@ -261,12 +251,15 @@ class Bot(wiki.WikiWrapper):
 
 if __name__ == '__main__':
     args = prepare.argparser().parse_args()
+    config.password_file = os.environ.get(
+        'GEOLOCBOT_PASSWORD_FILE',
+        os.path.join(os.path.dirname(__file__), 'user-password.py')
+    )
     if not args.debug:
         bot = Bot(
             login=not args.no_wiki_login,
             quiet=args.shut_up,
             log=not args.dont_log,
             deferpage=args.deferpage,
-            sleepless=args.sleepless
         )
         bot.run(arguments=args)
