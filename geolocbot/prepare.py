@@ -4,18 +4,12 @@
 
 """ Prepare the bot to start. """
 
-__all__ = ('bot_config', 'logger', 'resources')
+__all__ = ('bot_config', 'logger')
 
 import configparser
 import os
 
-import pandas as pd
-
 import geolocbot
-try:
-    from geolocbot import resources
-except ImportError:
-    from . import _resources as resources
 from . import utils
 
 abscd = os.path.abspath(os.path.curdir[0])
@@ -31,10 +25,9 @@ def _validate_configuration_file(fname='geolocbot.conf'):
         'missing-section': 'no section %r in configuration file: ' + fpath,
         'missing-option': 'no option %r in configuration file: ' + fpath,
     }
-    required_sections = ('logging', 'pandas', 'wiki')
+    required_sections = ('logging', 'wiki')
     required_options = {
         'logging': ('filename', 'encoding', 'format', 'datefmt', 'level'),
-        'pandas': ('sep', 'dtype', 'encoding'),
         'wiki': ('target_wiki_login', 'wikidata_login')
     }
 
@@ -74,22 +67,6 @@ def logger():
         return geolocbot_logger
 
 
-def teryt_resources(buffers: dict):
-    """ Fetches pandas.DataFrame objects from cached TERYT. """
-    pdconfkwds = {
-        'sep': cfparser.get(section='pandas', option='sep'),
-        'dtype': cfparser.get(section='pandas', option='dtype'),
-        'encoding': cfparser.get(section='pandas', option='encoding')
-    }
-
-    def assign():
-        resources.cached_teryt.simc = pd.read_csv(filepath_or_buffer=buffers['simc'], **pdconfkwds)
-        resources.cached_teryt.terc = pd.read_csv(filepath_or_buffer=buffers['terc'], **pdconfkwds)
-        resources.cached_teryt.nts = pd.read_csv(filepath_or_buffer=buffers['nts'], **pdconfkwds)
-
-    assign()
-
-
 def bot_config():
     """ Fetches the bot configuration. """
     return {
@@ -115,5 +92,4 @@ def argparser():
     return parser
 
 
-teryt_resources(buffers=resources.cached_teryt.buffers)
 geolocbot.logging = logger()

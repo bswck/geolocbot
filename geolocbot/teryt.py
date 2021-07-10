@@ -10,8 +10,9 @@ import pathlib
 import better_abc
 import pandas as pd
 
+from . import exceptions
+from .data import TerytData
 from .utils import *
-from .prepare import *
 sys.path.extend(str(pathlib.Path(os.getcwd()).parent))
 
 subsystems = ('simc', 'terc', 'nts')
@@ -494,10 +495,7 @@ class TERYTRegister(abc.ABC, __TERYTRegisterProps, metaclass=better_abc.ABCMeta)
             self,
             *,
             field_name: str,
-            sub,
-            simc_resource=resources.cached_teryt.simc,
-            terc_resource=resources.cached_teryt.terc,
-            nts_resource=resources.cached_teryt.nts
+            sub
     ):
         """
         Construct the TERYTRegister's subsystem object.
@@ -508,12 +506,6 @@ class TERYTRegister(abc.ABC, __TERYTRegisterProps, metaclass=better_abc.ABCMeta)
             Name of the subsystem (furtherly also called field), e.g. 'TERC'.
         sub : TERYTRegister
             Subclass object of TERYTRegister.
-        simc_resource : pd.DataFrame
-            DataFrame resource of SIMC subsystem.
-        terc_resource
-            DataFrame resource of TERC subsystem.
-        nts_resource
-            DataFrame resource of NTS subsystem.
         """
         super(TERYTRegister, self).__init__()
         _GetNims()
@@ -521,7 +513,7 @@ class TERYTRegister(abc.ABC, __TERYTRegisterProps, metaclass=better_abc.ABCMeta)
             f'%s() got an unexpected keyword argument %r. Try looking for the proper argument name ' \
             f'in the following list:\n{" " * 12}%s.'
         self._repr_not_str = '%r is not a %s'
-        self.simc, self.terc, self.nts = simc_resource, terc_resource, nts_resource
+        self.simc, self.terc, self.nts = TerytData.get_simc(), TerytData.get_terc(), TerytData.get_nts()
         self._field_name = field_name.replace(' ', '_').upper()
         self.field: pd.DataFrame = getattr(self, self._field_name.lower(), None)
         require(self.field is not None, f'couldn\'t fetch searching.teryt.{self._field_name.lower()}')
@@ -532,7 +524,7 @@ class TERYTRegister(abc.ABC, __TERYTRegisterProps, metaclass=better_abc.ABCMeta)
         self._bool_optional = ('veinf', 'force_unpack', 'unpack', 'usenim', 'unfolded', 'match_case')  # auxiliary
         self._str_optional = ('terid',)  # auxiliary
         self._other_kwds = self._bool_optional + self._str_optional  # auxiliary
-        self._uerr = geolocbot.exceptions.UnpackError  # auxiliary
+        self._uerr = exceptions.UnpackError  # auxiliary
         self._startswiths = ('date',)  # auxiliary
         self.case = None
         self.cols, self.len = [col for col in self.field.columns], len(self.field)
@@ -609,9 +601,9 @@ class TERYTRegister(abc.ABC, __TERYTRegisterProps, metaclass=better_abc.ABCMeta)
 
     def __del__(self):
         """ Clean-up data by initializing self. """
+        # TODO: WHAT?!
         cache = self.cache
         self.__init__(
-            **{self._field_name.lower() + '_resource': self.field},
             field_name=self._field_name,
             sub=self
         )
@@ -1292,8 +1284,8 @@ class TERYTRegister(abc.ABC, __TERYTRegisterProps, metaclass=better_abc.ABCMeta)
 
 class SIMC(TERYTRegister):
     """ SIMC, TERYT subsystem. """
-    def __init__(self, resource=resources.cached_teryt.simc, *_args, **_kwargs):
-        super(SIMC, self).__init__(field_name='simc', sub=self, simc_resource=resource)
+    def __init__(self, *_args, **_kwargs):
+        super(SIMC, self).__init__(field_name='simc', sub=self)
         self.value_spaces = {
             'voivodship': 'WOJ', 'powiat': 'POW', 'gmina': 'GMI', 'gmitype': 'RODZ_GMI', 'loctype': 'RM',
             'has_common_name': 'MZ', 'name': 'NAZWA', 'id': 'SYM', 'integral_id': 'SYMPOD', 'date': 'STAN_NA'
@@ -1319,8 +1311,8 @@ class SIMC(TERYTRegister):
 
 class TERC(TERYTRegister):
     """ TERC, TERYT subsystem. """
-    def __init__(self, resource=resources.cached_teryt.terc, *_args, **_kwargs):
-        super(TERC, self).__init__(field_name='terc', sub=self, terc_resource=resource)
+    def __init__(self, *_args, **_kwargs):
+        super(TERC, self).__init__(field_name='terc', sub=self)
         TERYTRegister.TERCNIM = self
         self.value_spaces = {
             'voivodship': 'WOJ', 'powiat': 'POW', 'gmina': 'GMI', 'gmitype': 'RODZ', 'name': 'NAZWA',
@@ -1332,8 +1324,8 @@ class TERC(TERYTRegister):
 class NTS(TERYTRegister):
     """ NTS, TERYT subsystem. """
     # TODO: check for NIM of levels
-    def __init__(self, resource=resources.cached_teryt.nts, *_args, **_kwargs):
-        super(NTS, self).__init__(field_name='nts', sub=self, nts_resource=resource)
+    def __init__(self, *_args, **_kwargs):
+        super(NTS, self).__init__(field_name='nts', sub=self)
         TERYTRegister.NTSNIM = self
         self.value_spaces = {
             'level': 'POZIOM', 'region': 'REGION', 'voivodship': 'WOJ', 'subregion': 'PODREG', 'powiat': 'POW',
