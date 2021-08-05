@@ -40,7 +40,7 @@ class Bot(wiki.WikiWrapper):
         self.site = self.site
         self._template_name = template_name
         self._template_pat = \
-            f'{"{{"}%(template_name)s|%(lat).6f, %(lon).6f|simc=%(simc)s|%(terc)swikidata=%(' \
+            f'{"{{"}%(template_name)s|lokalizacja=%(lat).6f, %(lon).6f|simc=%(simc)s|%(terc)swikidata=%(' \
             f'wikidata)s{"}}"}'
         self._defer_pat = f'* {"{{/co|%(name)s|%(simc)s|%(terc)s|%(nts)s|%(date)s|}}"}'
         self._error_pat = '\n%(name)s\n%(frame)s\n\n~~~~~~~~~~~~\n%(traceback)s\n~~~~~~~~~~~~\n%(date)s\n'
