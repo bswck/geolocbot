@@ -17,7 +17,6 @@ class Bot(wiki.WikiWrapper):
     def __init__(
             self,
             fallback=None,
-            login=True,
             log=True,
             template_name='stopka',
             quiet=False,
@@ -25,8 +24,7 @@ class Bot(wiki.WikiWrapper):
     ):
         """ Initialize the bot. """
         super().__init__()
-        if login:
-            connecting.login()
+
         if quiet:
             utils.quiet = True
         if not log:
@@ -37,7 +35,6 @@ class Bot(wiki.WikiWrapper):
         self._fallback = fallback or self.fallback
         self._fallback_frame = None
         self.nil = self.Nil()
-        self.site = self.site
         self._template_name = template_name
         self._template_pat = \
             f'{"{{"}%(template_name)s|lokalizacja=%(lat).6f, %(lon).6f|simc=%(simc)s|%(terc)swikidata=%(' \
@@ -60,6 +57,8 @@ class Bot(wiki.WikiWrapper):
         self._terc = None
         self._nts = None
         self._defer = False
+
+        self.login()
 
     class Nil:
         """ Marker for not found data. """
@@ -85,7 +84,7 @@ class Bot(wiki.WikiWrapper):
             transferred = dict(teryt.transferred_searches(geoloc.name))
             simc, terc, nts = (transferred.get(sub.upper(), None) for sub in teryt.subsystems)
             ids = {'simc': simc.id, 'terc': getattr(terc, 'terid', ''), 'nts': getattr(nts, 'terid', '')}
-            coords = self.base.geolocate(geoloc.name, nil=self.nil, **ids)
+            coords = self.wikidata.geolocate(geoloc.name, nil=self.nil, **ids)
             result = {'name': pagename, 'coords': coords, **ids}
             output(pagename, '→', result)
             return result
@@ -174,6 +173,9 @@ class Bot(wiki.WikiWrapper):
         pagename : str
             Name of the page.
         """
+        # Ensure we are logged into Wikidata
+        self.wikidata.login()
+
         self.instantiate_page(pagename)  # checkpoint
         output(f'Mlem: [[{pagename}]]')
         self._data = self.geolocate(pagename)
@@ -255,9 +257,9 @@ if __name__ == '__main__':
         'GEOLOCBOT_PASSWORD_FILE',
         os.path.join(os.path.dirname(__file__), 'user-password.py')
     )
+    config.max_retries = 5  # The bot will try again later anyway
     if not args.debug:
         bot = Bot(
-            login=not args.no_wiki_login,
             quiet=args.shut_up,
             log=not args.dont_log,
             deferpage=args.deferpage,

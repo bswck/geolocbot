@@ -17,7 +17,7 @@ def login(call=0):
         ww = WikiWrapper()
         try:
             ww.site.login()
-            ww.base.site.login()
+            ww.wikidata.site.login()
             utils.output('Zalogowano')
         except (pywikibot.exceptions.FatalServerError, requests.exceptions.ConnectionError):
             time.sleep(2)

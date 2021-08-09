@@ -2,15 +2,16 @@
 # Stim, 2020
 # GNU GPLv3 license
 import re
+import time
 
 import pywikibot
+import requests
 from pywikibot import pagegenerators
 
 from .utils import *
 from .prepare import *
 from .family import Nonsensopedia
-from . import teryt
-
+from . import teryt, utils
 
 __all__ = ('WikiWrapper',)
 
@@ -21,6 +22,18 @@ class BotSite:
     def __init__(self, site: pywikibot.Site):
         self.site = site
         self.processed_page = pywikibot.Page(self.site, 'Użytkownik:Stim/bot-api-sandbox')  # default
+
+    def login(self, call: int = 1):
+        if call >= 6:
+            utils.output('5 razy próbowano zalogować, SystemExit -1')
+            exit(-1)
+
+        try:
+            self.site.login()
+            utils.output('Zalogowano')
+        except (pywikibot.exceptions.FatalServerError, requests.exceptions.ConnectionError):
+            time.sleep(2)
+            self.login(call + 1)
 
 
 def _wpage(title):
@@ -164,7 +177,7 @@ class WikiWrapper(BotSite):
             fam=Nonsensopedia(),
             user=_botconf['user']
         ))
-        self.base = WikidataWrapper()
+        self.wikidata = WikidataWrapper()
         self.instantiate_page = _wpage
         self.page_terinfo = {}
         self.ter_cat_prefixes = {
